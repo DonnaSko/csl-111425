@@ -41,3 +41,6 @@ export const authenticate = async (
   }
 };
 
+// Re-export requireActiveSubscription from paywall
+export { requireActiveSubscription } from './paywall';
+

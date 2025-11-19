@@ -8,7 +8,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia' as any
 });
 
 const PRICE_ID_MONTHLY = process.env.STRIPE_PRICE_ID_MONTHLY!;
