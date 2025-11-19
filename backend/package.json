@@ -4,8 +4,8 @@
   "description": "Capture Show Leads Backend API",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=18.0.0 <19.0.0",
-    "npm": ">=9.0.0"
+    "node": "18.20.8",
+    "npm": "11.6.2"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
