@@ -50,8 +50,10 @@ router.post('/register', async (req, res) => {
     const user = company.users[0];
 
     // Generate JWT
-    const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as string;
-    const signOptions: SignOptions = { expiresIn };
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const signOptions: SignOptions = { 
+      expiresIn: expiresIn as string | number 
+    };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
@@ -100,8 +102,10 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate JWT
-    const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as string;
-    const signOptions: SignOptions = { expiresIn };
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const signOptions: SignOptions = { 
+      expiresIn: expiresIn as string | number 
+    };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
