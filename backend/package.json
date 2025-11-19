@@ -4,7 +4,7 @@
   "description": "Capture Show Leads Backend API",
   "main": "dist/index.js",
   "engines": {
-    "node": "18.20.8",
+    "node": "20.17.0",
     "npm": "11.6.2"
   },
   "scripts": {
