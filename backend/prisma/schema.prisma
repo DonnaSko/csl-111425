@@ -3,11 +3,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["csl"]
 }
 
 model User {
@@ -25,6 +27,7 @@ model User {
 
   @@index([email])
   @@index([companyId])
+  @@schema("csl")
 }
 
 model Company {
@@ -37,6 +40,8 @@ model Company {
   dealers   Dealer[]
   tradeShows TradeShow[]
   todos     Todo[]
+
+  @@schema("csl")
 }
 
 model Subscription {
@@ -58,6 +63,7 @@ model Subscription {
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([status])
+  @@schema("csl")
 }
 
 model Dealer {
@@ -92,6 +98,7 @@ model Dealer {
   @@index([email])
   @@index([status])
   @@index([buyingGroup])
+  @@schema("csl")
 }
 
 model DealerNote {
@@ -104,6 +111,7 @@ model DealerNote {
   dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@index([dealerId])
+  @@schema("csl")
 }
 
 model Photo {
@@ -120,6 +128,7 @@ model Photo {
   dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@index([dealerId])
+  @@schema("csl")
 }
 
 model VoiceRecording {
@@ -136,6 +145,7 @@ model VoiceRecording {
   dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@index([dealerId])
+  @@schema("csl")
 }
 
 model TradeShow {
@@ -153,6 +163,7 @@ model TradeShow {
   dealers     DealerTradeShow[]
 
   @@index([companyId])
+  @@schema("csl")
 }
 
 model DealerTradeShow {
@@ -167,6 +178,7 @@ model DealerTradeShow {
   @@unique([dealerId, tradeShowId])
   @@index([dealerId])
   @@index([tradeShowId])
+  @@schema("csl")
 }
 
 model Todo {
@@ -186,6 +198,7 @@ model Todo {
   @@index([companyId])
   @@index([dealerId])
   @@index([completed])
+  @@schema("csl")
 }
 
 model QuickAction {
@@ -202,5 +215,5 @@ model QuickAction {
 
   @@index([dealerId])
   @@index([status])
+  @@schema("csl")
 }
-
