@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const Subscription = () => {
   const [loading, setLoading] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     setLoading(plan);
