@@ -1,0 +1,68 @@
+name: capture-show-leads
+region: nyc
+services:
+  - name: backend
+    github:
+      repo: DonnaSko/csl-111425
+      branch: main
+      deploy_on_push: true
+    source_dir: backend
+    build_command: npm install && npm run build
+    run_command: npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 3001
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: STRIPE_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_PRICE_ID_MONTHLY
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_PRICE_ID_ANNUAL
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_WEBHOOK_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: UPLOAD_DIR
+        value: "./uploads"
+      - key: MAX_FILE_SIZE
+        value: "10485760"
+
+  - name: frontend
+    github:
+      repo: DonnaSko/csl-111425
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm install && npm run build
+    output_dir: dist
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: VITE_API_URL
+        scope: RUN_TIME
+        type: SECRET
+

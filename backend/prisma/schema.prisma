@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@index([email])
+  @@index([companyId])
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  dealers   Dealer[]
+  tradeShows TradeShow[]
+  todos     Todo[]
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String
+  stripeCustomerId  String   @unique
+  stripeSubscriptionId String @unique
+  stripePriceId     String
+  status            String   // active, canceled, past_due, etc.
+  currentPeriodEnd  DateTime
+  cancelAtPeriodEnd Boolean  @default(false)
+  canceledAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+model Dealer {
+  id              String   @id @default(cuid())
+  companyId       String
+  companyName     String
+  contactName     String?
+  email           String?
+  phone           String?
+  city            String?
+  state           String?
+  zip             String?
+  country         String?
+  address         String?
+  buyingGroup     String?
+  status          String   @default("Prospect") // Prospect, Active, Inactive, etc.
+  rating          Int?     // 1-5 star rating
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealerNotes     DealerNote[]
+  photos          Photo[]
+  voiceRecordings VoiceRecording[]
+  todos           Todo[]
+  tradeShows      DealerTradeShow[]
+  quickActions    QuickAction[]
+
+  @@index([companyId])
+  @@index([companyName])
+  @@index([email])
+  @@index([status])
+  @@index([buyingGroup])
+}
+
+model DealerNote {
+  id        String   @id @default(cuid())
+  dealerId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+}
+
+model Photo {
+  id          String   @id @default(cuid())
+  dealerId    String
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  path        String
+  type        String   @default("business_card") // business_card, badge, other
+  createdAt   DateTime @default(now())
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+}
+
+model VoiceRecording {
+  id          String   @id @default(cuid())
+  dealerId    String
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  path        String
+  duration    Int?     // in seconds
+  createdAt   DateTime @default(now())
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+}
+
+model TradeShow {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  location    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealers     DealerTradeShow[]
+
+  @@index([companyId])
+}
+
+model DealerTradeShow {
+  id         String    @id @default(cuid())
+  dealerId   String
+  tradeShowId String
+  createdAt  DateTime  @default(now())
+
+  dealer     Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  tradeShow  TradeShow @relation(fields: [tradeShowId], references: [id], onDelete: Cascade)
+
+  @@unique([dealerId, tradeShowId])
+  @@index([dealerId])
+  @@index([tradeShowId])
+}
+
+model Todo {
+  id          String   @id @default(cuid())
+  companyId   String
+  dealerId    String?
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealer  Dealer? @relation(fields: [dealerId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([dealerId])
+  @@index([completed])
+}
+
+model QuickAction {
+  id          String   @id @default(cuid())
+  dealerId    String
+  actionType  String   // email, snail_mail, etc.
+  files       String[] // Array of file identifiers
+  interests   String[] // Array of interest tags
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+  @@index([status])
+}
+
