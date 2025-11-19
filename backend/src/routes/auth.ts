@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { getSubscriptionStatus } from '../utils/subscription';
@@ -51,10 +51,11 @@ router.post('/register', async (req, res) => {
 
     // Generate JWT
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const signOptions: SignOptions = { expiresIn };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
-      { expiresIn: expiresIn as string }
+      signOptions
     );
 
     res.status(201).json({
@@ -100,10 +101,11 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const signOptions: SignOptions = { expiresIn };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
-      { expiresIn: expiresIn as string }
+      signOptions
     );
 
     // Get subscription status
