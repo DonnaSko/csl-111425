@@ -50,13 +50,10 @@ router.post('/register', async (req, res) => {
     const user = company.users[0];
 
     // Generate JWT
-    const jwtOptions = {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-    };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
-      jwtOptions
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any
     );
 
     res.status(201).json({
@@ -101,13 +98,10 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate JWT
-    const jwtOptions = {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-    };
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
-      jwtOptions
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any
     );
 
     // Get subscription status
