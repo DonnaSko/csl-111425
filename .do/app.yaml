@@ -49,6 +49,8 @@ services:
         value: "./uploads"
       - key: MAX_FILE_SIZE
         value: "10485760"
+      - key: PRISMA_PREVIEW_FEATURES
+        value: "multiSchema"
 
   - name: frontend
     github:
