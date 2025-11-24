@@ -65,8 +65,6 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /
-      - path: /*
-        preserve_path_prefix: true
     envs:
       - key: VITE_API_URL
         scope: BUILD_TIME

@@ -50,7 +50,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// Routes (with /api prefix for direct access)
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/webhooks', webhookRoutes);
@@ -59,6 +59,16 @@ app.use('/api/trade-shows', tradeShowRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/uploads', uploadRoutes);
+
+// Routes (without /api prefix - DigitalOcean may strip it)
+app.use('/auth', authRoutes);
+app.use('/subscriptions', subscriptionRoutes);
+app.use('/webhooks', webhookRoutes);
+app.use('/dealers', dealerRoutes);
+app.use('/trade-shows', tradeShowRoutes);
+app.use('/todos', todoRoutes);
+app.use('/reports', reportRoutes);
+app.use('/uploads', uploadRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
