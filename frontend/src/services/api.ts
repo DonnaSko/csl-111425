@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// API URL from environment variable (set at build time)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
