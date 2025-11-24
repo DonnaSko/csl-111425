@@ -69,6 +69,6 @@ services:
       - path: /
     envs:
       - key: VITE_API_URL
-        scope: RUN_TIME
+        scope: BUILD_TIME
         type: SECRET
 
