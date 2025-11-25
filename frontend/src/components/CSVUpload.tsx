@@ -71,16 +71,14 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     setError('');
     setIsParsing(true);
 
-    // Parse CSV
-    Papa.parse(selectedFile, {
-      header: true,
-      skipEmptyLines: true,
-      encoding: 'UTF-8',
-      delimiter: '', // Auto-detect delimiter
-      newline: '', // Auto-detect newline
-      quoteChar: '"',
-      escapeChar: '"',
-      complete: (results: ParseResult<any>) => {
+    // Parse CSV - read file first
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results: ParseResult<any>) => {
         if (results.errors.length > 0) {
           setError(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`);
           return;
@@ -127,16 +125,22 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           return;
         }
 
-        setParsedData(normalizedData);
-        setIsParsing(false);
-        checkDuplicates(normalizedData);
-      },
-      error: (error) => {
-        console.error('CSV parse error:', error);
-        setIsParsing(false);
-        setError(`Failed to parse CSV file: ${error.message || 'Unknown error'}. Please make sure your file is a valid CSV file.`);
-      }
-    });
+          setParsedData(normalizedData);
+          setIsParsing(false);
+          checkDuplicates(normalizedData);
+        },
+        error: (error: Error) => {
+          console.error('CSV parse error:', error);
+          setIsParsing(false);
+          setError(`Failed to parse CSV file: ${error.message || 'Unknown error'}. Please make sure your file is a valid CSV file.`);
+        }
+      });
+    };
+    reader.onerror = () => {
+      setIsParsing(false);
+      setError('Failed to read file. Please try again.');
+    };
+    reader.readAsText(selectedFile);
   };
 
   const checkDuplicates = async (data: DealerRow[]) => {
