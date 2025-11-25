@@ -1,11 +1,10 @@
 import express from 'express';
 import Stripe from 'stripe';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { canCancelSubscription } from '../utils/subscription';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia' as any

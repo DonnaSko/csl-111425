@@ -31,7 +31,18 @@ const Register = () => {
       await register(formData);
       navigate('/subscription');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Registration failed';
+      setError(errorMessage);
+      
+      // Log more details for debugging
+      if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+      } else if (err.request) {
+        console.error('No response received. Request:', err.request);
+        setError('Cannot connect to server. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }

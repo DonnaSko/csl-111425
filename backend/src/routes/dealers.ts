@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // All dealer routes require authentication and active subscription
 router.use(authenticate);
@@ -221,37 +220,159 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 // Bulk import from CSV
 router.post('/bulk-import', async (req: AuthRequest, res) => {
   try {
-    const { dealers } = req.body; // Array of dealer objects
+    const { dealers, skipDuplicates = false } = req.body; // Array of dealer objects
 
     if (!Array.isArray(dealers) || dealers.length === 0) {
       return res.status(400).json({ error: 'Invalid dealers data' });
     }
 
-    const created = await prisma.dealer.createMany({
-      data: dealers.map((dealer: any) => ({
-        companyId: req.companyId!,
-        companyName: dealer.companyName || '',
-        contactName: dealer.contactName,
-        email: dealer.email,
-        phone: dealer.phone,
-        city: dealer.city,
-        state: dealer.state,
-        zip: dealer.zip,
-        country: dealer.country,
-        address: dealer.address,
-        buyingGroup: dealer.buyingGroup,
-        status: dealer.status || 'Prospect'
-      })),
-      skipDuplicates: true
+    // Get existing dealers to check for duplicates
+    const existingDealers = await prisma.dealer.findMany({
+      where: { companyId: req.companyId! },
+      select: {
+        companyName: true,
+        email: true,
+        phone: true
+      }
     });
 
+    // Create a set of existing identifiers for quick lookup
+    const existingIdentifiers = new Set(
+      existingDealers.map(d => 
+        `${(d.companyName || '').toLowerCase().trim()}|${(d.email || '').toLowerCase().trim()}|${(d.phone || '').replace(/\D/g, '')}`
+      )
+    );
+
+    // Process dealers and identify duplicates
+    const dealersToImport: any[] = [];
+    const duplicates: any[] = [];
+    const errors: any[] = [];
+
+    for (const dealer of dealers) {
+      const companyName = (dealer.companyName || '').trim();
+      if (!companyName) {
+        errors.push({ dealer, error: 'Company name is required' });
+        continue;
+      }
+
+      const email = (dealer.email || '').toLowerCase().trim();
+      const phone = (dealer.phone || '').replace(/\D/g, '');
+      const identifier = `${companyName.toLowerCase()}|${email}|${phone}`;
+
+      if (existingIdentifiers.has(identifier)) {
+        duplicates.push(dealer);
+        if (skipDuplicates) {
+          continue; // Skip this dealer
+        }
+      }
+
+      dealersToImport.push({
+        companyId: req.companyId!,
+        companyName,
+        contactName: dealer.contactName?.trim() || null,
+        email: email || null,
+        phone: dealer.phone?.trim() || null,
+        city: dealer.city?.trim() || null,
+        state: dealer.state?.trim() || null,
+        zip: dealer.zip?.trim() || null,
+        country: dealer.country?.trim() || null,
+        address: dealer.address?.trim() || null,
+        buyingGroup: dealer.buyingGroup?.trim() || null,
+        status: dealer.status || 'Prospect'
+      });
+
+      // Add to existing set to prevent duplicates within the same import
+      existingIdentifiers.add(identifier);
+    }
+
+    // Import dealers
+    let createdCount = 0;
+    if (dealersToImport.length > 0) {
+      const result = await prisma.dealer.createMany({
+        data: dealersToImport,
+        skipDuplicates: true
+      });
+      createdCount = result.count;
+    }
+
     res.json({ 
-      message: `Successfully imported ${created.count} dealers`,
-      count: created.count
+      message: `Successfully imported ${createdCount} dealers`,
+      count: createdCount,
+      duplicates: duplicates.length,
+      errors: errors.length,
+      duplicateList: duplicates,
+      errorList: errors
     });
   } catch (error) {
     console.error('Bulk import error:', error);
     res.status(500).json({ error: 'Failed to import dealers' });
+  }
+});
+
+// Check for duplicates before import
+router.post('/check-duplicates', async (req: AuthRequest, res) => {
+  try {
+    const { dealers } = req.body;
+
+    if (!Array.isArray(dealers) || dealers.length === 0) {
+      return res.status(400).json({ error: 'Invalid dealers data' });
+    }
+
+    // Get existing dealers
+    const existingDealers = await prisma.dealer.findMany({
+      where: { companyId: req.companyId! },
+      select: {
+        id: true,
+        companyName: true,
+        email: true,
+        phone: true,
+        contactName: true
+      }
+    });
+
+    const existingIdentifiers = new Set(
+      existingDealers.map(d => 
+        `${(d.companyName || '').toLowerCase().trim()}|${(d.email || '').toLowerCase().trim()}|${(d.phone || '').replace(/\D/g, '')}`
+      )
+    );
+
+    const duplicates: any[] = [];
+    const newDealers: any[] = [];
+
+    for (const dealer of dealers) {
+      const companyName = (dealer.companyName || '').trim();
+      if (!companyName) continue;
+
+      const email = (dealer.email || '').toLowerCase().trim();
+      const phone = (dealer.phone || '').replace(/\D/g, '');
+      const identifier = `${companyName.toLowerCase()}|${email}|${phone}`;
+
+      if (existingIdentifiers.has(identifier)) {
+        const existing = existingDealers.find(d => {
+          const dEmail = (d.email || '').toLowerCase().trim();
+          const dPhone = (d.phone || '').replace(/\D/g, '');
+          return `${(d.companyName || '').toLowerCase().trim()}|${dEmail}|${dPhone}` === identifier;
+        });
+        duplicates.push({
+          ...dealer,
+          existingId: existing?.id,
+          existing: existing
+        });
+      } else {
+        newDealers.push(dealer);
+      }
+    }
+
+    res.json({
+      total: dealers.length,
+      duplicates: duplicates.length,
+      new: newDealers.length,
+      duplicateList: duplicates,
+      newList: newDealers
+    });
+  } catch (error) {
+    console.error('Check duplicates error:', error);
+    res.status(500).json({ error: 'Failed to check duplicates' });
   }
 });
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import CSVUpload from '../components/CSVUpload';
 
 interface Dealer {
   id: string;
@@ -26,6 +27,8 @@ const Dealers = () => {
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [buyingGroupFilter, setBuyingGroupFilter] = useState('All Buying Groups');
   const [buyingGroups, setBuyingGroups] = useState<string[]>([]);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,8 +62,28 @@ const Dealers = () => {
   };
 
   const handleBulkUpload = () => {
-    // TODO: Implement CSV upload
-    alert('CSV upload feature coming soon');
+    setShowCSVUpload(true);
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this dealer? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      await api.delete(`/dealers/${id}`);
+      // Remove from list
+      setDealers(dealers.filter(d => d.id !== id));
+    } catch (error) {
+      console.error('Failed to delete dealer:', error);
+      alert('Failed to delete dealer. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -171,22 +194,32 @@ const Dealers = () => {
                         </span>
                       )}
                     </div>
-                    <div className="ml-4 text-right">
-                      <span
-                        className={`inline-block px-3 py-1 text-sm rounded-full ${
-                          dealer.status === 'Active'
-                            ? 'bg-green-100 text-green-800'
-                            : dealer.status === 'Prospect'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {dealer.status}
-                      </span>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {dealer._count.dealerNotes} notes • {dealer._count.photos} photos •{' '}
-                        {dealer._count.voiceRecordings} recordings
+                    <div className="ml-4 text-right flex items-start gap-3">
+                      <div>
+                        <span
+                          className={`inline-block px-3 py-1 text-sm rounded-full ${
+                            dealer.status === 'Active'
+                              ? 'bg-green-100 text-green-800'
+                              : dealer.status === 'Prospect'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {dealer.status}
+                        </span>
+                        <div className="mt-2 text-xs text-gray-500">
+                          {dealer._count.dealerNotes} notes • {dealer._count.photos} photos •{' '}
+                          {dealer._count.voiceRecordings} recordings
+                        </div>
                       </div>
+                      <button
+                        onClick={(e) => handleDelete(dealer.id, e)}
+                        disabled={deletingId === dealer.id}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
+                        title="Delete dealer"
+                      >
+                        {deletingId === dealer.id ? '...' : '🗑️'}
+                      </button>
                     </div>
                   </div>
                 </Link>
@@ -195,6 +228,15 @@ const Dealers = () => {
           </div>
         </div>
       </div>
+      {showCSVUpload && (
+        <CSVUpload
+          onSuccess={() => {
+            setShowCSVUpload(false);
+            fetchDealers();
+          }}
+          onCancel={() => setShowCSVUpload(false)}
+        />
+      )}
     </Layout>
   );
 };

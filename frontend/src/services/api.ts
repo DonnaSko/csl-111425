@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 // API URL from environment variable (set at build time)
+// In production, this should be set to: https://your-backend.ondigitalocean.app/api
+// Backend supports routes at both /api/auth and /auth, but we use /api prefix
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({

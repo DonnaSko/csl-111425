@@ -1,8 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { AuthRequest } from './auth';
-
-const prisma = new PrismaClient();
 
 export const requireActiveSubscription = async (
   req: AuthRequest,

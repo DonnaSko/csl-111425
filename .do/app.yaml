@@ -1,72 +1,71 @@
-name: capture-show-leads
+name: csl-app
 region: nyc
+
+# Backend Service
 services:
   - name: backend
     github:
-      repo: DonnaSko/csl-111425
+      repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
       branch: main
       deploy_on_push: true
-    source_dir: backend
-    build_command: npm install && npm run build
-    run_command: npm run start:migrate
+    source_dir: /backend
+    build_command: npm install && npx prisma generate && npm run build
+    run_command: npm start
     environment_slug: node-js
-    buildpacks:
-      - name: heroku/nodejs
     instance_count: 1
     instance_size_slug: basic-xxs
-    http_port: 8080
+    http_port: 3001
     routes:
       - path: /api
+      - path: /
     envs:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "3001"
       - key: DATABASE_URL
-        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
         type: SECRET
       - key: JWT_SECRET
-        scope: RUN_TIME
+        value: YOUR_JWT_SECRET
         type: SECRET
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: STRIPE_SECRET_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: STRIPE_PRICE_ID_MONTHLY
-        scope: RUN_TIME
-        type: SECRET
-      - key: STRIPE_PRICE_ID_ANNUAL
-        scope: RUN_TIME
+        value: YOUR_STRIPE_SECRET_KEY
         type: SECRET
       - key: STRIPE_WEBHOOK_SECRET
-        scope: RUN_TIME
+        value: YOUR_STRIPE_WEBHOOK_SECRET
         type: SECRET
       - key: FRONTEND_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: UPLOAD_DIR
-        value: "./uploads"
-      - key: MAX_FILE_SIZE
-        value: "10485760"
-      - key: PRISMA_PREVIEW_FEATURES
-        value: "multiSchema"
+        value: ${apps.csl-frontend.PUBLIC_URL}
+      - key: STRIPE_PRICE_ID_MONTHLY
+        value: YOUR_MONTHLY_PRICE_ID
+      - key: STRIPE_PRICE_ID_ANNUAL
+        value: YOUR_ANNUAL_PRICE_ID
 
-  - name: frontend
+  # Frontend Static Site with SPA routing
+  - name: csl-frontend
     github:
-      repo: DonnaSko/csl-111425
+      repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
       branch: main
       deploy_on_push: true
-    source_dir: frontend
+    source_dir: /frontend
     build_command: npm install && npm run build
     output_dir: dist
-    environment_slug: node-js
-    buildpacks:
-      - name: heroku/nodejs
-    instance_count: 1
-    instance_size_slug: basic-xxs
+    environment_slug: static-site
     routes:
       - path: /
     envs:
       - key: VITE_API_URL
-        scope: BUILD_TIME
-        type: SECRET
+        value: ${apps.backend.PUBLIC_URL}/api
 
+# Database
+databases:
+  - name: db
+    engine: PG
+    version: "15"
+    production: false
+    cluster_name: csl-db
+    db_name: csl
+    db_user: csl_user

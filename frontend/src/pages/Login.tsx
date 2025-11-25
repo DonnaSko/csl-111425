@@ -19,7 +19,18 @@ const Login = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Login failed';
+      setError(errorMessage);
+      
+      // Log more details for debugging
+      if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+      } else if (err.request) {
+        console.error('No response received. Request:', err.request);
+        setError('Cannot connect to server. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 router.use(authenticate);
 router.use(requireActiveSubscription);
@@ -155,6 +154,93 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
     }
     console.error('Associate dealer error:', error);
     res.status(500).json({ error: 'Failed to associate dealer' });
+  }
+});
+
+// Export trade show leads to CSV
+router.get('/:id/export', async (req: AuthRequest, res) => {
+  try {
+    const tradeShow = await prisma.tradeShow.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      },
+      include: {
+        dealers: {
+          include: {
+            dealer: {
+              include: {
+                dealerNotes: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1 // Get most recent note
+                },
+                photos: {
+                  take: 1 // Get first photo info
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!tradeShow) {
+      return res.status(404).json({ error: 'Trade show not found' });
+    }
+
+    // Convert to CSV
+    const headers = [
+      'Company Name',
+      'Contact Name',
+      'Email',
+      'Phone',
+      'City',
+      'State',
+      'Zip',
+      'Country',
+      'Address',
+      'Buying Group',
+      'Status',
+      'Rating',
+      'Most Recent Note',
+      'Photo Count',
+      'Captured At'
+    ];
+
+    const rows = tradeShow.dealers.map(dts => {
+      const dealer = dts.dealer;
+      return [
+        dealer.companyName,
+        dealer.contactName || '',
+        dealer.email || '',
+        dealer.phone || '',
+        dealer.city || '',
+        dealer.state || '',
+        dealer.zip || '',
+        dealer.country || '',
+        dealer.address || '',
+        dealer.buyingGroup || '',
+        dealer.status,
+        dealer.rating || '',
+        dealer.dealerNotes[0]?.content || '',
+        dealer.photos.length.toString(),
+        dts.createdAt.toISOString()
+      ];
+    });
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const filename = `trade-show-${tradeShow.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Export trade show error:', error);
+    res.status(500).json({ error: 'Failed to export trade show leads' });
   }
 });
 
