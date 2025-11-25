@@ -109,7 +109,7 @@ const Dealers = () => {
               onClick={handleBulkUpload}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              📤 Bulk Upload CSV
+              📤 Upload Files
             </button>
             <button
               onClick={() => navigate('/capture-lead')}

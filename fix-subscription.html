@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Subscription</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fix Your Subscription</h1>
+        <p>This will create or update your subscription to be active for 30 days.</p>
+        <p><strong>Important:</strong> You must be logged into your app in another tab for this to work.</p>
+        
+        <div id="status" class="status"></div>
+        
+        <button id="fixBtn" onclick="fixSubscription()">Fix My Subscription</button>
+    </div>
+
+    <script>
+        async function fixSubscription() {
+            const btn = document.getElementById('fixBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.textContent = 'Fixing...';
+            status.style.display = 'none';
+            
+            // Get token from localStorage (you need to be logged in)
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                status.className = 'status error';
+                status.style.display = 'block';
+                status.innerHTML = '<strong>Error:</strong> You are not logged in. Please:<br>1. Go to <a href="https://csl-bjg7z.ondigitalocean.app/login" target="_blank">https://csl-bjg7z.ondigitalocean.app/login</a><br>2. Log in<br>3. Then come back to this page and try again.';
+                btn.disabled = false;
+                btn.textContent = 'Fix My Subscription';
+                return;
+            }
+            
+            try {
+                const response = await fetch('https://csl-bjg7z.ondigitalocean.app/api/subscriptions/fix-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    status.className = 'status success';
+                    status.style.display = 'block';
+                    status.innerHTML = '<strong>Success!</strong> Your subscription has been fixed.<br><br>Redirecting to dashboard...';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'https://csl-bjg7z.ondigitalocean.app/dashboard';
+                    }, 2000);
+                } else {
+                    status.className = 'status error';
+                    status.style.display = 'block';
+                    status.innerHTML = '<strong>Error:</strong> ' + (data.error || 'Failed to fix subscription');
+                    btn.disabled = false;
+                    btn.textContent = 'Fix My Subscription';
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.style.display = 'block';
+                status.innerHTML = '<strong>Error:</strong> ' + error.message + '<br><br>Make sure you are logged into the app in another tab.';
+                btn.disabled = false;
+                btn.textContent = 'Fix My Subscription';
+            }
+        }
+        
+        // Check if user is logged in
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            const status = document.getElementById('status');
+            
+            if (!token) {
+                status.className = 'status info';
+                status.style.display = 'block';
+                status.innerHTML = '<strong>Note:</strong> You need to be logged in. Open <a href="https://csl-bjg7z.ondigitalocean.app/login" target="_blank">this link</a> in another tab, log in, then come back here.';
+            }
+        };
+    </script>
+</body>
+</html>
+

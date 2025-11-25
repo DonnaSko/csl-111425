@@ -228,5 +228,55 @@ router.delete('/recording/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// Upload general document (CSV, PDF, Excel, Word, etc.)
+router.post('/document', upload.single('file'), async (req: AuthRequest, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Allowed file types
+    const allowedMimeTypes = [
+      'text/csv',
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'application/rtf'
+    ];
+
+    const allowedExtensions = ['.csv', '.pdf', '.xls', '.xlsx', '.doc', '.docx', '.pages', '.txt', '.rtf'];
+
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    
+    if (!allowedExtensions.includes(fileExt) && !allowedMimeTypes.includes(req.file.mimetype)) {
+      // Delete uploaded file
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        error: `File type not supported. Allowed types: ${allowedExtensions.join(', ')}` 
+      });
+    }
+
+    // Store file info (you might want to create a Document model in Prisma later)
+    // For now, just return the file info
+    res.status(201).json({
+      message: 'File uploaded successfully',
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+      path: req.file.path
+    });
+  } catch (error) {
+    console.error('Upload document error:', error);
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed to upload document' });
+  }
+});
+
 export default router;
 

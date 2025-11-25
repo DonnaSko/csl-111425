@@ -41,24 +41,45 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   const [selectedDuplicates, setSelectedDuplicates] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
   const [importResult, setImportResult] = useState<any>(null);
+  const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      setError('No file selected. Please choose a CSV file.');
+      return;
+    }
 
-    if (!selectedFile.name.endsWith('.csv')) {
-      setError('Please select a CSV file');
+    // Check file type
+    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['csv', 'pdf', 'xls', 'xlsx', 'doc', 'docx', 'pages', 'txt', 'rtf'];
+    
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      setError(`File type not supported. Please select: ${allowedExtensions.join(', ').toUpperCase()}`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // For non-CSV files, upload directly
+    if (fileExtension !== 'csv') {
+      handleNonCSVUpload(selectedFile);
       return;
     }
 
     setFile(selectedFile);
     setError('');
+    setIsParsing(true);
 
     // Parse CSV
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
+      encoding: 'UTF-8',
+      delimiter: '', // Auto-detect delimiter
+      newline: '', // Auto-detect newline
+      quoteChar: '"',
+      escapeChar: '"',
       complete: (results: ParseResult<any>) => {
         if (results.errors.length > 0) {
           setError(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`);
@@ -66,6 +87,12 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         }
 
         const data = results.data as any[];
+        
+        if (!data || data.length === 0) {
+          setError('CSV file appears to be empty or has no data rows. Please check your file.');
+          return;
+        }
+
         const normalizedData: DealerRow[] = data.map(row => {
           // Normalize column names (case-insensitive, handle spaces)
           const normalizeKey = (key: string) => key.toLowerCase().trim().replace(/\s+/g, '');
@@ -77,11 +104,14 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             return '';
           };
 
+          const phoneValue = getValue(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']);
+          const emailValue = getValue(['email', 'e-mail', 'email address']);
+          
           return {
             companyName: getValue(['companyname', 'company', 'company name', 'business name', 'businessname']) || '',
             contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']),
-            email: getValue(['email', 'e-mail', 'email address']),
-            phone: getValue(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']),
+            email: emailValue ? emailValue.toLowerCase().trim() : undefined,
+            phone: phoneValue ? phoneValue.trim() : undefined,
             city: getValue(['city']),
             state: getValue(['state', 'province']),
             zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']),
@@ -92,11 +122,19 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           };
         }).filter(row => row.companyName); // Filter out rows without company name
 
+        if (normalizedData.length === 0) {
+          setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data.');
+          return;
+        }
+
         setParsedData(normalizedData);
+        setIsParsing(false);
         checkDuplicates(normalizedData);
       },
       error: (error) => {
-        setError(`Failed to parse CSV: ${error.message}`);
+        console.error('CSV parse error:', error);
+        setIsParsing(false);
+        setError(`Failed to parse CSV file: ${error.message || 'Unknown error'}. Please make sure your file is a valid CSV file.`);
       }
     });
   };
@@ -104,12 +142,35 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   const checkDuplicates = async (data: DealerRow[]) => {
     try {
       setError('');
+      
+      if (!data || data.length === 0) {
+        setError('No dealers to check. Please ensure your CSV has valid data.');
+        return;
+      }
+
       const response = await api.post('/dealers/check-duplicates', { dealers: data });
+      
+      if (!response.data) {
+        setError('Invalid response from server. Please try again.');
+        return;
+      }
+
       setDuplicates(response.data.duplicateList || []);
       setNewDealers(response.data.newList || []);
       setStep('review');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to check for duplicates');
+      console.error('Check duplicates error:', err);
+      const errorMessage = err.response?.data?.error 
+        || err.message 
+        || 'Failed to check for duplicates. Please check your connection and try again.';
+      setError(errorMessage);
+      
+      // If it's a 403, might be subscription issue
+      if (err.response?.status === 403) {
+        setError('Subscription required. Please check your subscription status.');
+      } else if (err.response?.status === 401) {
+        setError('Please log in again and try again.');
+      }
     }
   };
 
@@ -139,6 +200,34 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     }
   };
 
+  const handleNonCSVUpload = async (file: File) => {
+    try {
+      setIsParsing(true);
+      setError('');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'document');
+
+      const response = await api.post('/uploads/document', formData);
+
+      setIsParsing(false);
+      setImportResult({
+        message: `File "${file.name}" uploaded successfully`,
+        count: 1,
+        file: response.data
+      });
+      setStep('complete');
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      setIsParsing(false);
+      const errorMessage = err.response?.data?.error 
+        || err.message 
+        || 'Failed to upload file. Please try again.';
+      setError(errorMessage);
+    }
+  };
+
   const toggleDuplicate = (index: number) => {
     const newSet = new Set(selectedDuplicates);
     if (newSet.has(index)) {
@@ -153,23 +242,35 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-          <h2 className="text-2xl font-bold mb-4">Upload CSV File</h2>
+          <h2 className="text-2xl font-bold mb-4">Upload File</h2>
           <p className="text-gray-600 mb-4">
-            Upload a CSV file with your dealers. Required column: <strong>Company Name</strong>.
+            <strong>For CSV files:</strong> Upload a CSV file with your dealers. Required column: <strong>Company Name</strong>.
             Optional columns: Contact Name, Email, Phone, City, State, Zip, Country, Address, Buying Group, Status.
+            <br /><br />
+            <strong>For other files:</strong> PDF, Excel, Word, Pages, and other document formats will be uploaded and stored.
           </p>
           
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.pdf,.xls,.xlsx,.doc,.docx,.pages,.txt,.rtf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileSelect}
-            className="mb-4 w-full"
+            className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
+            disabled={isParsing}
           />
+          <p className="text-sm text-gray-500 mb-4">
+            Supported formats: CSV, PDF, Excel (XLS, XLSX), Word (DOC, DOCX), Pages, TXT, RTF
+          </p>
+
+          {isParsing && (
+            <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded">
+              Parsing CSV file...
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-              {error}
+              <strong>Error:</strong> {error}
             </div>
           )}
 
@@ -308,13 +409,19 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
           <h2 className="text-2xl font-bold mb-4">Import Complete!</h2>
           <div className="mb-4">
-            <p className="text-lg">
-              Successfully imported <strong>{importResult?.count || 0}</strong> dealers
-            </p>
-            {importResult?.duplicates > 0 && (
-              <p className="text-sm text-gray-600 mt-2">
-                {importResult.duplicates} duplicates were skipped
-              </p>
+            {importResult?.message ? (
+              <p className="text-lg">{importResult.message}</p>
+            ) : (
+              <>
+                <p className="text-lg">
+                  Successfully imported <strong>{importResult?.count || 0}</strong> dealers
+                </p>
+                {importResult?.duplicates > 0 && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    {importResult.duplicates} duplicates were skipped
+                  </p>
+                )}
+              </>
             )}
           </div>
           <button
