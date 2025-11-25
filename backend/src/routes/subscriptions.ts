@@ -161,6 +161,68 @@ router.post('/cancel', authenticate, async (req: AuthRequest, res) => {
 });
 
 // Create customer portal session
+// TEMPORARY: Fix subscription for current user (one-time fix endpoint)
+router.post('/fix-subscription', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if subscription exists
+    let subscription = await prisma.subscription.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Set period end to 30 days from now
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+
+    if (subscription) {
+      // Update existing subscription
+      subscription = await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: 'active',
+          currentPeriodEnd: futureDate,
+          cancelAtPeriodEnd: false,
+          canceledAt: null
+        }
+      });
+    } else {
+      // Create new subscription
+      subscription = await prisma.subscription.create({
+        data: {
+          userId: user.id,
+          stripeCustomerId: `cus_manual_${Date.now()}`,
+          stripeSubscriptionId: `sub_manual_${Date.now()}`,
+          stripePriceId: 'price_manual',
+          status: 'active',
+          currentPeriodEnd: futureDate,
+          cancelAtPeriodEnd: false
+        }
+      });
+    }
+
+    res.json({
+      message: 'Subscription fixed successfully!',
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        isActive: subscription.status === 'active' && subscription.currentPeriodEnd >= new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Fix subscription error:', error);
+    res.status(500).json({ error: 'Failed to fix subscription' });
+  }
+});
+
 router.post('/create-portal-session', authenticate, async (req: AuthRequest, res) => {
   try {
     const subscription = await prisma.subscription.findFirst({
