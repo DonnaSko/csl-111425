@@ -16,11 +16,12 @@ const getDatabaseUrlWithPoolLimit = () => {
     return dbUrl;
   }
   
-  // Add connection_limit=5 to the connection string
-  // This limits the maximum number of connections in the pool to 5
-  // Also set pool_timeout to ensure connections are released promptly
+  // Add connection_limit=3 to the connection string (reduced from 5)
+  // This limits the maximum number of connections in the pool to 3
+  // Also set pool_timeout and statement_timeout to ensure connections are released promptly
+  // statement_timeout=30000 means queries will timeout after 30 seconds
   const separator = dbUrl.includes('?') ? '&' : '?';
-  return `${dbUrl}${separator}connection_limit=5&pool_timeout=10`;
+  return `${dbUrl}${separator}connection_limit=3&pool_timeout=5&statement_timeout=30000`;
 };
 
 // Get the database URL with pool limit configured
@@ -35,8 +36,8 @@ export const prisma =
         url: databaseUrl,
       },
     },
-    // Additional connection pool configuration
-    // Prisma automatically manages connection pooling, but we ensure proper limits
+    // Connection pool configuration
+    // Prisma automatically manages the pool, but we set limits via connection string
   });
 
 if (process.env.NODE_ENV !== 'production') {
