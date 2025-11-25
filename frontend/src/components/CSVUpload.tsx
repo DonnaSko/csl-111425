@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import Papa from 'papaparse';
+import Papa, { ParseResult } from 'papaparse';
 import api from '../services/api';
 
 interface CSVUploadProps {
@@ -34,7 +34,7 @@ interface DuplicateInfo {
 
 const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   const [step, setStep] = useState<'upload' | 'review' | 'importing' | 'complete'>('upload');
-  const [file, setFile] = useState<File | null>(null);
+  const [_file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<DealerRow[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateInfo[]>([]);
   const [newDealers, setNewDealers] = useState<DealerRow[]>([]);
@@ -59,7 +59,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: (results: ParseResult<any>) => {
         if (results.errors.length > 0) {
           setError(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`);
           return;
