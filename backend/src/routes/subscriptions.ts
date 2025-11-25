@@ -1,7 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import prisma from '../utils/prisma';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
 import { canCancelSubscription } from '../utils/subscription';
 
 const router = express.Router();
@@ -114,8 +114,8 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
-// Cancel subscription
-router.post('/cancel', authenticate, async (req: AuthRequest, res) => {
+// Cancel subscription (requires active subscription)
+router.post('/cancel', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const subscription = await prisma.subscription.findFirst({
       where: {
@@ -223,7 +223,7 @@ router.post('/fix-subscription', authenticate, async (req: AuthRequest, res) => 
   }
 });
 
-router.post('/create-portal-session', authenticate, async (req: AuthRequest, res) => {
+router.post('/create-portal-session', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const subscription = await prisma.subscription.findFirst({
       where: { userId: req.userId! }

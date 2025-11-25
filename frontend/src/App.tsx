@@ -98,7 +98,7 @@ function App() {
             <Route
               path="/getting-started"
               element={
-                <PrivateRoute>
+                <PrivateRoute requireSubscription>
                   <GettingStarted />
                 </PrivateRoute>
               }
