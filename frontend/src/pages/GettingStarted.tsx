@@ -26,11 +26,17 @@ const GettingStarted = () => {
             <p className="text-gray-600 mb-4">
               Upload a CSV file with your existing dealer information, or add dealers manually.
             </p>
-            <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>Go to the Dealers page</li>
+            <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4">
               <li>Click "Bulk Upload CSV" to import multiple dealers at once</li>
               <li>Or click "Add New Dealer" to add dealers one at a time</li>
+              <li>The system will automatically detect and help you manage duplicates</li>
             </ul>
+            <Link
+              to="/dealers"
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go to Dealers & Upload CSV
+            </Link>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
