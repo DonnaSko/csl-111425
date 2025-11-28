@@ -310,7 +310,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
 });
 
 // Check for duplicates before import
-router.post('/check-duplicates', async (req: AuthRequest, res) => {
+router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => {
   try {
     const { dealers } = req.body;
 
