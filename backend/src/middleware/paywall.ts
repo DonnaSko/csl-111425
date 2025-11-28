@@ -12,21 +12,47 @@ export const requireActiveSubscription = async (
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Check for active subscription
+    // Check for active subscription - get the MOST RECENT one
     const subscription = await prisma.subscription.findFirst({
       where: {
-        userId: req.userId,
-        status: 'active',
-        currentPeriodEnd: {
-          gte: new Date()
-        }
+        userId: req.userId
+      },
+      orderBy: { 
+        createdAt: 'desc' // Get the most recent subscription
       }
     });
 
-    if (!subscription) {
+    console.log(`Subscription check for user ${req.userId}:`, {
+      found: !!subscription,
+      status: subscription?.status,
+      currentPeriodEnd: subscription?.currentPeriodEnd,
+      now: new Date(),
+      isActive: subscription?.status === 'active' && subscription?.currentPeriodEnd >= new Date()
+    });
+
+    // Check if subscription is active
+    const isActive = subscription && 
+      subscription.status === 'active' && 
+      subscription.currentPeriodEnd >= new Date();
+
+    if (!isActive) {
+      // If subscription exists but isn't active, log details for debugging
+      if (subscription) {
+        console.warn(`Subscription found but not active:`, {
+          id: subscription.id,
+          status: subscription.status,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          now: new Date(),
+          expired: subscription.currentPeriodEnd < new Date()
+        });
+      }
+      
       return res.status(403).json({ 
         error: 'Active subscription required',
-        code: 'SUBSCRIPTION_REQUIRED'
+        code: 'SUBSCRIPTION_REQUIRED',
+        hasSubscription: !!subscription,
+        subscriptionStatus: subscription?.status,
+        currentPeriodEnd: subscription?.currentPeriodEnd
       });
     }
 

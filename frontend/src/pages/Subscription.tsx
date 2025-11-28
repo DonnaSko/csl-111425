@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import api from '../services/api';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const Subscription = () => {
   const [loading, setLoading] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const { refreshSubscription } = useSubscription();
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     setLoading(plan);
@@ -15,6 +18,24 @@ const Subscription = () => {
       console.error('Subscription error:', error);
       alert(error.response?.data?.error || 'Failed to create checkout session');
       setLoading(null);
+    }
+  };
+
+  const handleSyncFromStripe = async () => {
+    setSyncing(true);
+    try {
+      const response = await api.post('/subscriptions/sync-from-stripe');
+      alert(response.data.message || 'Subscription synced successfully! Please refresh the page.');
+      await refreshSubscription();
+      // Redirect to dashboard if subscription is now active
+      if (response.data.subscription?.isActive) {
+        window.location.href = '/dashboard';
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      alert(error.response?.data?.error || 'Failed to sync subscription from Stripe. Please contact support.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -128,6 +149,23 @@ const Subscription = () => {
               {loading === 'annual' ? 'Processing...' : 'Subscribe Annually'}
             </button>
           </div>
+        </div>
+
+        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+            Already Paid? Sync Your Subscription
+          </h3>
+          <p className="text-sm text-yellow-800 mb-4">
+            If you've already paid but are seeing this page, your subscription may not be synced from Stripe. 
+            Click the button below to manually sync your subscription.
+          </p>
+          <button
+            onClick={handleSyncFromStripe}
+            disabled={syncing}
+            className="bg-yellow-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {syncing ? 'Syncing...' : 'Sync Subscription from Stripe'}
+          </button>
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-600">

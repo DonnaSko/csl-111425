@@ -85,16 +85,32 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
   try {
     const subscription = await prisma.subscription.findFirst({
       where: { userId: req.userId! },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' } // Get most recent subscription
+    });
+
+    console.log(`Subscription status check for user ${req.userId}:`, {
+      found: !!subscription,
+      status: subscription?.status,
+      currentPeriodEnd: subscription?.currentPeriodEnd,
+      stripeSubscriptionId: subscription?.stripeSubscriptionId
     });
 
     if (!subscription) {
-      return res.json({ hasSubscription: false });
+      return res.json({ hasSubscription: false, isActive: false });
     }
 
+    const now = new Date();
     const isActive = 
       subscription.status === 'active' && 
-      subscription.currentPeriodEnd >= new Date();
+      subscription.currentPeriodEnd >= now;
+
+    console.log(`Subscription active check:`, {
+      status: subscription.status,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      now,
+      isActive,
+      expired: subscription.currentPeriodEnd < now
+    });
 
     res.json({
       hasSubscription: true,
@@ -105,12 +121,89 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
         currentPeriodEnd: subscription.currentPeriodEnd,
         cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
         canceledAt: subscription.canceledAt,
-        canCancel: canCancelSubscription(subscription.currentPeriodEnd)
+        canCancel: canCancelSubscription(subscription.currentPeriodEnd),
+        stripeSubscriptionId: subscription.stripeSubscriptionId
       }
     });
   } catch (error) {
     console.error('Get subscription error:', error);
     res.status(500).json({ error: 'Failed to get subscription' });
+  }
+});
+
+// Sync subscription from Stripe (manual sync endpoint)
+router.post('/sync-from-stripe', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find user's subscription
+    const dbSubscription = await prisma.subscription.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!dbSubscription || !dbSubscription.stripeSubscriptionId) {
+      return res.status(404).json({ error: 'No Stripe subscription found. Please check your subscription in Stripe.' });
+    }
+
+    console.log(`Syncing subscription ${dbSubscription.stripeSubscriptionId} from Stripe...`);
+
+    // Fetch from Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      dbSubscription.stripeSubscriptionId
+    );
+
+    // Update database with latest Stripe data
+    const updated = await prisma.subscription.update({
+      where: { id: dbSubscription.id },
+      data: {
+        status: stripeSubscription.status,
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end || false,
+        canceledAt: stripeSubscription.canceled_at 
+          ? new Date(stripeSubscription.canceled_at * 1000) 
+          : null
+      }
+    });
+
+    const isActive = 
+      updated.status === 'active' && 
+      updated.currentPeriodEnd >= new Date();
+
+    console.log(`Subscription synced:`, {
+      status: updated.status,
+      currentPeriodEnd: updated.currentPeriodEnd,
+      isActive
+    });
+
+    res.json({
+      message: 'Subscription synced from Stripe successfully',
+      subscription: {
+        id: updated.id,
+        status: updated.status,
+        currentPeriodEnd: updated.currentPeriodEnd,
+        isActive,
+        stripeStatus: stripeSubscription.status,
+        stripePeriodEnd: new Date(stripeSubscription.current_period_end * 1000)
+      }
+    });
+  } catch (error: any) {
+    console.error('Sync subscription error:', error);
+    
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(404).json({ 
+        error: 'Subscription not found in Stripe. Please contact support.',
+        details: error.message
+      });
+    }
+    
+    res.status(500).json({ error: 'Failed to sync subscription from Stripe' });
   }
 });
 
