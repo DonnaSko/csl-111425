@@ -209,11 +209,24 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       setIsParsing(true);
       setError('');
 
+      console.log('Uploading non-CSV file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', 'document');
+      // Note: Don't append 'type' as it's not needed and might confuse multer
 
-      const response = await api.post('/uploads/document', formData);
+      const response = await api.post('/uploads/document', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minute timeout for large files
+      });
+
+      console.log('Upload response:', response.data);
 
       setIsParsing(false);
       setImportResult({
@@ -225,9 +238,31 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     } catch (err: any) {
       console.error('File upload error:', err);
       setIsParsing(false);
-      const errorMessage = err.response?.data?.error 
-        || err.message 
-        || 'Failed to upload file. Please try again.';
+      
+      let errorMessage = 'Failed to upload file. Please try again.';
+      
+      if (err.response) {
+        // Server responded with error
+        errorMessage = err.response.data?.error || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check your connection and try again.';
+      } else if (err.message) {
+        // Error in request setup
+        errorMessage = err.message;
+      }
+      
+      // Handle specific error codes
+      if (err.response?.status === 400) {
+        errorMessage = err.response.data?.error || 'Invalid file. Please check the file type and size.';
+      } else if (err.response?.status === 413) {
+        errorMessage = 'File too large. Maximum file size is 50MB.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Subscription required. Please check your subscription status.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Please log in again and try again.';
+      }
+      
       setError(errorMessage);
     }
   };
@@ -257,7 +292,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.pdf,.xls,.xlsx,.doc,.docx,.pages,.txt,.rtf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".csv,.pdf,.xls,.xlsx,.doc,.docx,.pages,.txt,.rtf"
             onChange={handleFileSelect}
             className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
             disabled={isParsing}

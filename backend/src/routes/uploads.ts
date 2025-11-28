@@ -24,10 +24,47 @@ const storage = multer.diskStorage({
   }
 });
 
+// Allowed file extensions and their corresponding MIME types
+const allowedExtensions = ['.csv', '.pdf', '.xls', '.xlsx', '.doc', '.docx', '.pages', '.txt', '.rtf'];
+const allowedMimeTypes = [
+  'text/csv',
+  'application/csv',
+  'text/plain',
+  'application/pdf',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.apple.pages',
+  'application/rtf',
+  'text/rtf',
+  'application/octet-stream' // Some browsers send this for unknown types
+];
+
+// File filter function
+const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  
+  // Check extension first (more reliable than MIME type)
+  if (allowedExtensions.includes(fileExt)) {
+    // Also check MIME type if provided, but don't reject if it's application/octet-stream
+    // (some browsers send this for valid files)
+    if (file.mimetype && 
+        !allowedMimeTypes.includes(file.mimetype) && 
+        file.mimetype !== 'application/octet-stream') {
+      console.warn(`Warning: File ${file.originalname} has unexpected MIME type: ${file.mimetype}, but extension is valid: ${fileExt}`);
+    }
+    cb(null, true);
+  } else {
+    cb(new Error(`File type not supported. Allowed types: ${allowedExtensions.join(', ').toUpperCase()}. Received: ${fileExt || 'unknown'}`));
+  }
+};
+
 const upload = multer({
   storage,
+  fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800') // 50MB default (increased from 10MB)
   }
 });
 
@@ -232,49 +269,70 @@ router.delete('/recording/:id', async (req: AuthRequest, res) => {
 router.post('/document', upload.single('file'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).json({ error: 'No file uploaded. Please select a file and try again.' });
     }
 
-    // Allowed file types
-    const allowedMimeTypes = [
-      'text/csv',
-      'application/pdf',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'application/rtf'
-    ];
+    console.log('File upload received:', {
+      originalName: req.file.originalname,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      extension: path.extname(req.file.originalname)
+    });
 
-    const allowedExtensions = ['.csv', '.pdf', '.xls', '.xlsx', '.doc', '.docx', '.pages', '.txt', '.rtf'];
-
+    // File validation is already done by multer fileFilter, but double-check
     const fileExt = path.extname(req.file.originalname).toLowerCase();
-    
-    if (!allowedExtensions.includes(fileExt) && !allowedMimeTypes.includes(req.file.mimetype)) {
+    if (!allowedExtensions.includes(fileExt)) {
       // Delete uploaded file
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ 
-        error: `File type not supported. Allowed types: ${allowedExtensions.join(', ')}` 
+        error: `File type not supported. Allowed types: ${allowedExtensions.join(', ').toUpperCase()}. Received: ${fileExt || 'unknown'}` 
       });
     }
 
-    // Store file info (you might want to create a Document model in Prisma later)
-    // For now, just return the file info
-    res.status(201).json({
+    // Store file info
+    // Note: In the future, you might want to create a Document model in Prisma
+    // For now, we return the file info and store it on disk
+    const fileInfo = {
       message: 'File uploaded successfully',
       filename: req.file.filename,
       originalName: req.file.originalname,
       size: req.file.size,
       mimeType: req.file.mimetype,
-      path: req.file.path
-    });
-  } catch (error) {
+      path: req.file.path,
+      uploadedAt: new Date().toISOString()
+    };
+
+    console.log('File uploaded successfully:', fileInfo);
+    res.status(201).json(fileInfo);
+  } catch (error: any) {
     console.error('Upload document error:', error);
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
+    
+    // Handle multer errors specifically
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ 
+          error: `File too large. Maximum size is ${parseInt(process.env.MAX_FILE_SIZE || '52428800') / 1024 / 1024}MB` 
+        });
+      }
+      if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({ error: 'Unexpected file field. Please use "file" as the field name.' });
+      }
     }
-    res.status(500).json({ error: 'Failed to upload document' });
+    
+    // Clean up file if it was uploaded
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Failed to delete file after error:', unlinkError);
+      }
+    }
+    
+    const errorMessage = error.message || 'Failed to upload document. Please try again.';
+    res.status(500).json({ error: errorMessage });
   }
 });
 
