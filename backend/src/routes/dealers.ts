@@ -219,14 +219,18 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
 // Bulk import from CSV
 router.post('/bulk-import', async (req: AuthRequest, res) => {
+  const startTime = Date.now();
   try {
     const { dealers, skipDuplicates = false } = req.body; // Array of dealer objects
+
+    console.log(`Bulk import started: ${dealers?.length || 0} dealers, skipDuplicates: ${skipDuplicates}`);
 
     if (!Array.isArray(dealers) || dealers.length === 0) {
       return res.status(400).json({ error: 'Invalid dealers data' });
     }
 
     // Get existing dealers to check for duplicates
+    console.log('Fetching existing dealers for duplicate check...');
     const existingDealers = await prisma.dealer.findMany({
       where: { companyId: req.companyId! },
       select: {
@@ -235,6 +239,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
         phone: true
       }
     });
+    console.log(`Found ${existingDealers.length} existing dealers`);
 
     // Create a set of existing identifiers for quick lookup
     const existingIdentifiers = new Set(
@@ -245,13 +250,14 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
 
     // Process dealers and identify duplicates
     const dealersToImport: any[] = [];
-    const duplicates: any[] = [];
-    const errors: any[] = [];
+    let duplicatesCount = 0;
+    let errorsCount = 0;
 
+    console.log('Processing dealers...');
     for (const dealer of dealers) {
       const companyName = (dealer.companyName || '').trim();
       if (!companyName) {
-        errors.push({ dealer, error: 'Company name is required' });
+        errorsCount++;
         continue;
       }
 
@@ -260,7 +266,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
       const identifier = `${companyName.toLowerCase()}|${email}|${phone}`;
 
       if (existingIdentifiers.has(identifier)) {
-        duplicates.push(dealer);
+        duplicatesCount++;
         if (skipDuplicates) {
           continue; // Skip this dealer
         }
@@ -285,27 +291,71 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
       existingIdentifiers.add(identifier);
     }
 
-    // Import dealers
+    console.log(`Processed: ${dealersToImport.length} to import, ${duplicatesCount} duplicates, ${errorsCount} errors`);
+
+    // Import dealers in batches to avoid overwhelming the database
     let createdCount = 0;
     if (dealersToImport.length > 0) {
-      const result = await prisma.dealer.createMany({
-        data: dealersToImport,
-        skipDuplicates: true
-      });
-      createdCount = result.count;
+      console.log(`Importing ${dealersToImport.length} dealers...`);
+      
+      // For large imports, use batch processing
+      const BATCH_SIZE = 500;
+      if (dealersToImport.length > BATCH_SIZE) {
+        console.log(`Large import detected (${dealersToImport.length} dealers), using batch processing...`);
+        for (let i = 0; i < dealersToImport.length; i += BATCH_SIZE) {
+          const batch = dealersToImport.slice(i, i + BATCH_SIZE);
+          const result = await prisma.dealer.createMany({
+            data: batch,
+            skipDuplicates: true
+          });
+          createdCount += result.count;
+          console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} complete: ${result.count} dealers imported`);
+        }
+      } else {
+        const result = await prisma.dealer.createMany({
+          data: dealersToImport,
+          skipDuplicates: true
+        });
+        createdCount = result.count;
+      }
+      
+      console.log(`Import complete: ${createdCount} dealers created`);
     }
 
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`Bulk import completed in ${duration} seconds`);
+
+    // Don't send full lists for large imports to avoid response size issues
+    // Only send summary counts
     res.json({ 
       message: `Successfully imported ${createdCount} dealers`,
       count: createdCount,
-      duplicates: duplicates.length,
-      errors: errors.length,
-      duplicateList: duplicates,
-      errorList: errors
+      duplicates: duplicatesCount,
+      errors: errorsCount,
+      total: dealers.length,
+      duration: `${duration}s`
     });
-  } catch (error) {
+  } catch (error: any) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.error('Bulk import error:', error);
-    res.status(500).json({ error: 'Failed to import dealers' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to import dealers';
+    if (error.code === 'P2002') {
+      errorMessage = 'Database constraint violation. Some dealers may already exist.';
+    } else if (error.message) {
+      errorMessage = `Import failed: ${error.message}`;
+    }
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      duration: `${duration}s`
+    });
   }
 });
 

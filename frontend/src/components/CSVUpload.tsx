@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Papa, { ParseResult } from 'papaparse';
 import api from '../services/api';
 
@@ -43,6 +43,18 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   const [importResult, setImportResult] = useState<any>(null);
   const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Error boundary - catch any unhandled errors to prevent blank screen
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Unhandled error in CSVUpload:', event.error);
+      setError('An unexpected error occurred. Please try again or contact support.');
+      setStep('upload');
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -191,15 +203,35 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             ...duplicates.filter((_, index) => selectedDuplicates.has(index))
           ];
 
+      console.log(`Starting bulk import of ${dealersToImport.length} dealers...`);
+
       const response = await api.post('/dealers/bulk-import', {
         dealers: dealersToImport,
         skipDuplicates
+      }, {
+        timeout: 300000, // 5 minute timeout for large imports
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
       });
+
+      console.log('Bulk import response:', response.data);
 
       setImportResult(response.data);
       setStep('complete');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to import dealers');
+      console.error('Bulk import error:', err);
+      
+      let errorMessage = 'Failed to import dealers';
+      
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Import timed out. The file may be too large. Please try splitting it into smaller files or contact support.';
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setStep('review');
     }
   };
@@ -432,12 +464,18 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   }
 
   if (step === 'importing') {
+    const totalDealers = newDealers.length + (selectedDuplicates.size > 0 ? selectedDuplicates.size : 0);
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-lg">Importing dealers...</p>
+            <p className="text-lg font-semibold mb-2">Importing dealers...</p>
+            <p className="text-sm text-gray-600 mb-2">Please wait, this may take a few minutes for large files.</p>
+            <p className="text-xs text-gray-500">Importing {totalDealers} dealers...</p>
+            <div className="mt-4 text-xs text-gray-400">
+              Do not close this window
+            </div>
           </div>
         </div>
       </div>
@@ -451,18 +489,28 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           <h2 className="text-2xl font-bold mb-4">Import Complete!</h2>
           <div className="mb-4">
             {importResult?.message ? (
-              <p className="text-lg">{importResult.message}</p>
+              <p className="text-lg mb-2">{importResult.message}</p>
             ) : (
               <>
-                <p className="text-lg">
+                <p className="text-lg mb-2">
                   Successfully imported <strong>{importResult?.count || 0}</strong> dealers
                 </p>
-                {importResult?.duplicates > 0 && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    {importResult.duplicates} duplicates were skipped
-                  </p>
-                )}
               </>
+            )}
+            {importResult?.duplicates > 0 && (
+              <p className="text-sm text-gray-600 mb-1">
+                {importResult.duplicates} duplicates were skipped
+              </p>
+            )}
+            {importResult?.errors > 0 && (
+              <p className="text-sm text-yellow-600 mb-1">
+                {importResult.errors} rows had errors
+              </p>
+            )}
+            {importResult?.duration && (
+              <p className="text-xs text-gray-500 mt-2">
+                Completed in {importResult.duration}
+              </p>
             )}
           </div>
           <button
