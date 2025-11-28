@@ -87,17 +87,9 @@ try {
   process.exit(1);
 }
 
-// Graceful shutdown - prisma disconnect is handled in utils/prisma.ts
-// This ensures connections are always properly closed
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully...');
-  process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
-  process.exit(0);
-});
+// Graceful shutdown is handled in utils/prisma.ts
+// The Prisma client will properly disconnect all connections on shutdown
+// No need for duplicate handlers here - prisma.ts handles SIGINT, SIGTERM, etc.
 
 export default app;
 
