@@ -223,7 +223,9 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minute timeout for large files
+        timeout: 300000, // 5 minute timeout for large files (increased from 2 minutes)
+        maxContentLength: 104857600, // 100MB
+        maxBodyLength: 104857600, // 100MB
       });
 
       console.log('Upload response:', response.data);
@@ -256,7 +258,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       if (err.response?.status === 400) {
         errorMessage = err.response.data?.error || 'Invalid file. Please check the file type and size.';
       } else if (err.response?.status === 413) {
-        errorMessage = 'File too large. Maximum file size is 50MB.';
+        errorMessage = err.response.data?.error || 'File too large. Maximum file size is 100MB. Please try a smaller file or split your CSV into multiple files.';
       } else if (err.response?.status === 403) {
         errorMessage = 'Subscription required. Please check your subscription status.';
       } else if (err.response?.status === 401) {

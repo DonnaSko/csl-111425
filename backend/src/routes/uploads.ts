@@ -64,7 +64,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800') // 50MB default (increased from 10MB)
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600') // 100MB default (increased for large CSV files)
   }
 });
 
@@ -313,13 +313,28 @@ router.post('/document', upload.single('file'), async (req: AuthRequest, res) =>
     // Handle multer errors specifically
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
+        const maxSizeMB = parseInt(process.env.MAX_FILE_SIZE || '104857600') / 1024 / 1024;
         return res.status(400).json({ 
-          error: `File too large. Maximum size is ${parseInt(process.env.MAX_FILE_SIZE || '52428800') / 1024 / 1024}MB` 
+          error: `File too large. Maximum size is ${maxSizeMB}MB. Your file exceeds this limit.` 
         });
       }
       if (error.code === 'LIMIT_UNEXPECTED_FILE') {
         return res.status(400).json({ error: 'Unexpected file field. Please use "file" as the field name.' });
       }
+    }
+    
+    // Handle "request entity too large" errors from Express/nginx
+    if (error.message && error.message.includes('request entity too large')) {
+      return res.status(413).json({ 
+        error: 'File too large. Maximum file size is 100MB. Please try a smaller file or split your CSV into multiple files.' 
+      });
+    }
+    
+    // Handle 413 status code (Payload Too Large)
+    if (error.status === 413 || error.statusCode === 413) {
+      return res.status(413).json({ 
+        error: 'File too large. Maximum file size is 100MB. Please try a smaller file or split your CSV into multiple files.' 
+      });
     }
     
     // Clean up file if it was uploaded
