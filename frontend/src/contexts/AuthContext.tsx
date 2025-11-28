@@ -39,14 +39,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (storedToken && storedUser) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      // Verify token is still valid
+      // DO NOT set user from localStorage - verify token first
+      // Verify token is still valid before setting user
       api.get('/auth/me')
         .then((response) => {
+          // Only set user after successful verification
           setUser(response.data.user);
           localStorage.setItem('user', JSON.stringify(response.data.user));
         })
         .catch(() => {
+          // Token is invalid - clear everything
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setToken(null);
@@ -54,6 +56,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         })
         .finally(() => setLoading(false));
     } else {
+      // No token or user in storage - ensure clean state
+      setToken(null);
+      setUser(null);
       setLoading(false);
     }
   }, []);

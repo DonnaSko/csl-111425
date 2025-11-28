@@ -103,7 +103,14 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Navigate to="/dashboard" replace />
+                </PrivateRoute>
+              }
+            />
           </Routes>
         </SubscriptionProvider>
       </AuthProvider>

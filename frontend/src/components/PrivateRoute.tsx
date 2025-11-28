@@ -12,7 +12,8 @@ const PrivateRoute = ({ children, requireSubscription = false }: PrivateRoutePro
   const { user, loading: authLoading } = useAuth();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
 
-  if (authLoading || (requireSubscription && subLoading)) {
+  // Always wait for auth to finish loading before checking user
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
@@ -20,14 +21,26 @@ const PrivateRoute = ({ children, requireSubscription = false }: PrivateRoutePro
     );
   }
 
+  // If auth finished loading and no user, redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // If subscription is required, wait for subscription check
+  if (requireSubscription && subLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // If subscription is required but user doesn't have one, redirect to subscription
   if (requireSubscription && !hasActiveSubscription) {
     return <Navigate to="/subscription" replace />;
   }
 
+  // User is authenticated (and has subscription if required)
   return <>{children}</>;
 };
 
