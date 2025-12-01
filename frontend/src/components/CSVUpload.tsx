@@ -117,8 +117,12 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
               skipEmptyLines: true,
               complete: (results: ParseResult<any>) => {
                 try {
-                  if (results.errors.length > 0) {
-                    const errorMessages = results.errors.map(e => e.message).join(', ');
+                  // Safely check for errors
+                  if (results.errors && Array.isArray(results.errors) && results.errors.length > 0) {
+                    const errorMessages = results.errors
+                      .map((e: any) => (e && typeof e === 'object' && e.message ? String(e.message) : String(e)))
+                      .filter(Boolean)
+                      .join(', ');
                     console.error('CSV parsing errors:', errorMessages);
                     setError(`CSV parsing errors: ${errorMessages}`);
                     setIsParsing(false);
@@ -126,9 +130,9 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                     return;
                   }
 
-                  const data = results.data as any[];
-                  
-                  if (!data || data.length === 0) {
+                  // Safely get data
+                  const data = results?.data;
+                  if (!data || !Array.isArray(data) || data.length === 0) {
                     setError('CSV file appears to be empty or has no data rows. Please check your file.');
                     setIsParsing(false);
                     setStep('upload');
@@ -138,12 +142,38 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                   const normalizedData = data
                     .map((row): DealerRow | null => {
                       try {
+                        // Ensure row is an object
+                        if (!row || typeof row !== 'object' || Array.isArray(row)) {
+                          return null;
+                        }
+
                         // Normalize column names (case-insensitive, handle spaces)
-                        const normalizeKey = (key: string) => key.toLowerCase().trim().replace(/\s+/g, '');
+                        const normalizeKey = (key: string) => {
+                          if (!key || typeof key !== 'string') return '';
+                          return key.toLowerCase().trim().replace(/\s+/g, '');
+                        };
+                        
                         const getValue = (keys: string[]) => {
+                          if (!row || typeof row !== 'object') return '';
+                          const rowKeys = Object.keys(row || {});
+                          
                           for (const key of keys) {
-                            const found = Object.keys(row).find(k => normalizeKey(k) === normalizeKey(key));
-                            if (found && row[found]) return row[found].trim();
+                            const found = rowKeys.find(k => {
+                              if (!k || typeof k !== 'string') return false;
+                              return normalizeKey(k) === normalizeKey(key);
+                            });
+                            
+                            if (found && row[found] != null) {
+                              const value = row[found];
+                              // Ensure value is a string before calling trim
+                              if (typeof value === 'string') {
+                                return value.trim();
+                              } else if (typeof value === 'number') {
+                                return String(value).trim();
+                              } else if (value != null) {
+                                return String(value).trim();
+                              }
+                            }
                           }
                           return '';
                         };
@@ -154,21 +184,21 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                         const companyName = getValue(['companyname', 'company', 'company name', 'business name', 'businessname']) || '';
                         
                         // Only return valid rows with company name
-                        if (!companyName) {
+                        if (!companyName || companyName.trim() === '') {
                           return null;
                         }
                         
                         return {
-                          companyName,
-                          contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']),
-                          email: emailValue ? emailValue.toLowerCase().trim() : undefined,
-                          phone: phoneValue ? phoneValue.trim() : undefined,
-                          city: getValue(['city']),
-                          state: getValue(['state', 'province']),
-                          zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']),
-                          country: getValue(['country']),
-                          address: getValue(['address', 'street', 'street address']),
-                          buyingGroup: getValue(['buyinggroup', 'buying group', 'group']),
+                          companyName: companyName.trim(),
+                          contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']) || undefined,
+                          email: emailValue && typeof emailValue === 'string' && emailValue.trim() ? emailValue.toLowerCase().trim() : undefined,
+                          phone: phoneValue && typeof phoneValue === 'string' && phoneValue.trim() ? phoneValue.trim() : undefined,
+                          city: getValue(['city']) || undefined,
+                          state: getValue(['state', 'province']) || undefined,
+                          zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']) || undefined,
+                          country: getValue(['country']) || undefined,
+                          address: getValue(['address', 'street', 'street address']) || undefined,
+                          buyingGroup: getValue(['buyinggroup', 'buying group', 'group']) || undefined,
                           status: getValue(['status']) || 'Prospect'
                         };
                       } catch (rowError) {
@@ -176,7 +206,14 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                         return null;
                       }
                     })
-                    .filter((row): row is DealerRow => row !== null && row.companyName !== '') as DealerRow[];
+                    .filter((row): row is DealerRow => {
+                      return row !== null && 
+                             row !== undefined && 
+                             typeof row === 'object' &&
+                             row.companyName != null && 
+                             typeof row.companyName === 'string' &&
+                             row.companyName.trim() !== '';
+                    });
 
                   if (normalizedData.length === 0) {
                     setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data.');
@@ -298,13 +335,16 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         return;
       }
 
+      const duplicateList = (response.data && Array.isArray(response.data.duplicateList)) ? response.data.duplicateList : [];
+      const newList = (response.data && Array.isArray(response.data.newList)) ? response.data.newList : [];
+
       console.log('Duplicate check complete:', {
-        duplicates: response.data.duplicateList?.length || 0,
-        new: response.data.newList?.length || 0
+        duplicates: duplicateList.length,
+        new: newList.length
       });
 
-      setDuplicates(response.data.duplicateList || []);
-      setNewDealers(response.data.newList || []);
+      setDuplicates(duplicateList);
+      setNewDealers(newList);
       setIsParsing(false);
       setStep('review');
     } catch (err: any) {
@@ -670,17 +710,17 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                 </p>
               </>
             )}
-            {importResult?.duplicates > 0 && (
+            {importResult && typeof importResult.duplicates === 'number' && importResult.duplicates > 0 && (
               <p className="text-sm text-gray-600 mb-1">
                 {importResult.duplicates} duplicates were skipped
               </p>
             )}
-            {importResult?.errors > 0 && (
+            {importResult && typeof importResult.errors === 'number' && importResult.errors > 0 && (
               <p className="text-sm text-yellow-600 mb-1">
                 {importResult.errors} rows had errors
               </p>
             )}
-            {importResult?.duration && (
+            {importResult && importResult.duration && typeof importResult.duration === 'string' && (
               <p className="text-xs text-gray-500 mt-2">
                 Completed in {importResult.duration}
               </p>
