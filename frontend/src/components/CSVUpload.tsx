@@ -375,7 +375,10 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       // Always proceed to review step - never return to upload or show blank screen
       setError(errorMessage);
       setDuplicates([]);
-      setNewDealers(parsedData.length > 0 ? parsedData : data);
+      // Ensure we always set an array, never undefined
+      const safeParsedData = Array.isArray(parsedData) ? parsedData : [];
+      const safeData = Array.isArray(data) ? data : [];
+      setNewDealers(safeParsedData.length > 0 ? safeParsedData : safeData);
       setIsParsing(false);
       setStep('review');
     }
@@ -386,12 +389,16 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       setStep('importing');
       setError('');
 
+      // Defensive: Ensure arrays are always defined
+      const safeNewDealers = Array.isArray(newDealers) ? newDealers : [];
+      const safeDuplicates = Array.isArray(duplicates) ? duplicates : [];
+
       // Combine new dealers with selected duplicates (if not skipping)
       const dealersToImport = skipDuplicates
-        ? newDealers
+        ? safeNewDealers
         : [
-            ...newDealers,
-            ...duplicates.filter((_, index) => selectedDuplicates.has(index))
+            ...safeNewDealers,
+            ...safeDuplicates.filter((_, index) => selectedDuplicates.has(index))
           ];
 
       if (dealersToImport.length === 0) {
@@ -574,6 +581,11 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   }
 
   if (step === 'review') {
+    // Defensive: Ensure arrays are always defined and are actually arrays
+    const safeParsedData = Array.isArray(parsedData) ? parsedData : [];
+    const safeNewDealers = Array.isArray(newDealers) ? newDealers : [];
+    const safeDuplicates = Array.isArray(duplicates) ? duplicates : [];
+    
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
         <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 my-8">
@@ -581,24 +593,24 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           
           <div className="mb-6 grid grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded">
-              <div className="text-2xl font-bold text-blue-600">{parsedData.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{safeParsedData.length}</div>
               <div className="text-sm text-gray-600">Total Rows</div>
             </div>
             <div className="p-4 bg-green-50 rounded">
-              <div className="text-2xl font-bold text-green-600">{newDealers.length}</div>
+              <div className="text-2xl font-bold text-green-600">{safeNewDealers.length}</div>
               <div className="text-sm text-gray-600">New Dealers</div>
             </div>
             <div className="p-4 bg-yellow-50 rounded">
-              <div className="text-2xl font-bold text-yellow-600">{duplicates.length}</div>
+              <div className="text-2xl font-bold text-yellow-600">{safeDuplicates.length}</div>
               <div className="text-sm text-gray-600">Potential Duplicates</div>
             </div>
           </div>
 
-          {duplicates.length > 0 && (
+          {safeDuplicates.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">Potential Duplicates</h3>
               <div className="border rounded-lg max-h-64 overflow-y-auto">
-                {duplicates
+                {safeDuplicates
                   .map((dup, index) => {
                     // Safely get dealer company name
                     const companyName = dup?.dealer?.companyName;
@@ -667,7 +679,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             >
               Cancel
             </button>
-            {duplicates.length > 0 && (
+            {safeDuplicates.length > 0 && (
               <button
                 onClick={() => handleImport(true)}
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
@@ -679,7 +691,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
               onClick={() => handleImport(false)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Import {selectedDuplicates.size > 0 ? `(${newDealers.length + selectedDuplicates.size} dealers)` : `(${newDealers.length} dealers)`}
+              Import {selectedDuplicates.size > 0 ? `(${safeNewDealers.length + selectedDuplicates.size} dealers)` : `(${safeNewDealers.length} dealers)`}
             </button>
           </div>
         </div>
@@ -688,7 +700,8 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   }
 
   if (step === 'importing') {
-    const totalDealers = newDealers.length + (selectedDuplicates.size > 0 ? selectedDuplicates.size : 0);
+    const safeNewDealers = Array.isArray(newDealers) ? newDealers : [];
+    const totalDealers = safeNewDealers.length + (selectedDuplicates.size > 0 ? selectedDuplicates.size : 0);
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
