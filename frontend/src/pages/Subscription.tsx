@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Subscription = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const { refreshSubscription } = useSubscription();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     setLoading(plan);
@@ -25,15 +29,28 @@ const Subscription = () => {
     setSyncing(true);
     try {
       const response = await api.post('/subscriptions/sync-from-stripe');
-      alert(response.data.message || 'Subscription synced successfully! Please refresh the page.');
+      
+      // Refresh subscription status
       await refreshSubscription();
-      // Redirect to dashboard if subscription is now active
+      
+      // Check if subscription is active after sync
       if (response.data.subscription?.isActive) {
-        window.location.href = '/dashboard';
+        // If user has paid (subscription is active), redirect based on auth status
+        // If user is authenticated, redirect to dashboard
+        // If user is NOT authenticated, redirect to login (as requested)
+        if (user) {
+          navigate('/dashboard');
+        } else {
+          navigate('/login');
+        }
+      } else {
+        // Subscription synced but not active
+        alert(response.data.message || 'Subscription synced successfully, but it is not active. Please contact support.');
       }
     } catch (error: any) {
       console.error('Sync error:', error);
-      alert(error.response?.data?.error || 'Failed to sync subscription from Stripe. Please contact support.');
+      const errorMessage = error.response?.data?.error || 'Failed to sync subscription from Stripe. Please contact support.';
+      alert(errorMessage);
     } finally {
       setSyncing(false);
     }
