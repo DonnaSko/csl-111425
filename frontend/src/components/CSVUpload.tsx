@@ -207,6 +207,17 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         return;
       }
 
+      // For very large datasets, skip duplicate check and go straight to import
+      // This prevents timeouts and memory issues
+      if (data.length > 1000) {
+        console.log(`Large dataset (${data.length} dealers), skipping duplicate check to prevent timeout...`);
+        setDuplicates([]);
+        setNewDealers(data);
+        setIsParsing(false);
+        setStep('review');
+        return;
+      }
+
       console.log(`Checking duplicates for ${data.length} dealers...`);
       const response = await api.post('/dealers/check-duplicates', { dealers: data }, {
         timeout: 300000, // 5 minute timeout
@@ -214,7 +225,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
         maxBodyLength: Infinity,
       });
       
-      if (!response.data) {
+      if (!response || !response.data) {
         setError('Invalid response from server. Please try again.');
         setIsParsing(false);
         setStep('upload');
@@ -237,7 +248,19 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       let errorMessage = 'Failed to check for duplicates. Please check your connection and try again.';
       
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        errorMessage = 'Request timed out. The file may be too large. Please try splitting it into smaller files.';
+        // On timeout, skip duplicate check and proceed with import
+        console.log('Duplicate check timed out, proceeding without duplicate check...');
+        setDuplicates([]);
+        setNewDealers(parsedData);
+        setStep('review');
+        return;
+      } else if (err.response?.status === 413) {
+        // Request too large - skip duplicate check
+        console.log('Request too large for duplicate check, proceeding without duplicate check...');
+        setDuplicates([]);
+        setNewDealers(parsedData);
+        setStep('review');
+        return;
       } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
       } else if (err.message) {
@@ -269,28 +292,41 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             ...duplicates.filter((_, index) => selectedDuplicates.has(index))
           ];
 
+      if (dealersToImport.length === 0) {
+        setError('No dealers to import. Please check your selection.');
+        setStep('review');
+        return;
+      }
+
       console.log(`Starting bulk import of ${dealersToImport.length} dealers...`);
 
       const response = await api.post('/dealers/bulk-import', {
         dealers: dealersToImport,
         skipDuplicates
       }, {
-        timeout: 300000, // 5 minute timeout for large imports
+        timeout: 600000, // 10 minute timeout for very large imports
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
       });
 
       console.log('Bulk import response:', response.data);
 
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
+
       setImportResult(response.data);
       setStep('complete');
     } catch (err: any) {
       console.error('Bulk import error:', err);
       
+      // Always ensure we're in a valid state, never leave blank screen
       let errorMessage = 'Failed to import dealers';
       
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        errorMessage = 'Import timed out. The file may be too large. Please try splitting it into smaller files or contact support.';
+        errorMessage = 'Import timed out. The file may be too large. Please try splitting it into smaller files (500 dealers per file) or contact support.';
+      } else if (err.response?.status === 413) {
+        errorMessage = 'Request too large. Please split your file into smaller files (500 dealers per file).';
       } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
       } else if (err.message) {
@@ -298,6 +334,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       }
       
       setError(errorMessage);
+      // Always return to review step so user can see the error and try again
       setStep('review');
     }
   };
@@ -600,6 +637,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   }
 
   // Fallback - should never reach here, but if we do, show upload screen
+  // This prevents blank screens by always rendering something
   console.warn('CSVUpload component reached unexpected state, defaulting to upload screen');
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

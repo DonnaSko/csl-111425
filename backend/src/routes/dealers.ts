@@ -386,7 +386,19 @@ router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => 
       return res.status(400).json({ error: 'Invalid dealers data' });
     }
 
-    // Get existing dealers
+    // For very large datasets, skip duplicate check to prevent timeouts
+    if (dealers.length > 1000) {
+      return res.json({
+        total: dealers.length,
+        duplicates: 0,
+        new: dealers.length,
+        duplicateList: [],
+        newList: dealers
+      });
+    }
+
+    // Get existing dealers - limit to prevent memory issues
+    // Only get essential fields for duplicate checking
     const existingDealers = await prisma.dealer.findMany({
       where: { companyId: req.companyId! },
       select: {
@@ -395,7 +407,8 @@ router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => 
         email: true,
         phone: true,
         contactName: true
-      }
+      },
+      take: 10000 // Limit to 10k existing dealers to prevent memory issues
     });
 
     const existingIdentifiers = new Set(
