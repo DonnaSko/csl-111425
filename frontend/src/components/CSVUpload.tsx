@@ -168,12 +168,20 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             }
 
             setParsedData(normalizedData);
-            setIsParsing(false);
-            checkDuplicates(normalizedData).catch((err) => {
+            // Keep isParsing true while checking duplicates to show loading state
+            setIsParsing(true);
+            
+            // Call checkDuplicates with proper error handling to prevent blank screen
+            // If checkDuplicates fails, skip it and go straight to review
+            checkDuplicates(normalizedData).catch((err: any) => {
               console.error('Error in checkDuplicates:', err);
-              setError('Failed to check for duplicates. Please try again.');
+              // On any error, skip duplicate check and proceed to review
+              // This prevents blank screen and allows user to continue
+              setError('Note: Could not check for duplicates. You can still proceed with import.');
               setIsParsing(false);
-              setStep('upload');
+              setDuplicates([]);
+              setNewDealers(normalizedData);
+              setStep('review');
             });
           } catch (parseError) {
             console.error('Error in CSV parse complete handler:', parseError);
@@ -199,10 +207,15 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     try {
       setError('');
       setIsParsing(true);
+      // Ensure step is set to show loading state
+      if (step !== 'review' && step !== 'importing' && step !== 'complete') {
+        // Keep on upload step but show parsing indicator
+      }
       
       if (!data || data.length === 0) {
         setError('No dealers to check. Please ensure your CSV has valid data.');
         setIsParsing(false);
+        // Stay on upload step if no data
         setStep('upload');
         return;
       }
@@ -226,9 +239,13 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       });
       
       if (!response || !response.data) {
-        setError('Invalid response from server. Please try again.');
+        // Invalid response - skip duplicate check and proceed to review
+        console.log('Invalid response from server, proceeding without duplicate check...');
+        setError('Note: Could not check for duplicates. You can still proceed with import.');
+        setDuplicates([]);
+        setNewDealers(data);
         setIsParsing(false);
-        setStep('upload');
+        setStep('review');
         return;
       }
 
@@ -245,37 +262,33 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       console.error('Check duplicates error:', err);
       setIsParsing(false);
       
-      let errorMessage = 'Failed to check for duplicates. Please check your connection and try again.';
+      // For ANY error in duplicate check, skip it and proceed to review
+      // This prevents blank screen and allows user to continue with import
+      console.log('Duplicate check error, proceeding without duplicate check...', err);
       
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         // On timeout, skip duplicate check and proceed with import
         console.log('Duplicate check timed out, proceeding without duplicate check...');
-        setDuplicates([]);
-        setNewDealers(parsedData);
-        setStep('review');
-        return;
+        setError('Note: Duplicate check timed out. You can still proceed with import.');
       } else if (err.response?.status === 413) {
         // Request too large - skip duplicate check
         console.log('Request too large for duplicate check, proceeding without duplicate check...');
-        setDuplicates([]);
-        setNewDealers(parsedData);
-        setStep('review');
-        return;
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      // If it's a 403, might be subscription issue
-      if (err.response?.status === 403) {
-        errorMessage = 'Subscription required. Please check your subscription status.';
+        setError('Note: File too large for duplicate check. You can still proceed with import.');
+      } else if (err.response?.status === 403) {
+        // Subscription issue - still proceed but show warning
+        setError('Note: Subscription check failed. You can still proceed with import.');
       } else if (err.response?.status === 401) {
-        errorMessage = 'Please log in again and try again.';
+        // Auth issue - still proceed but show warning
+        setError('Note: Authentication check failed. You can still proceed with import.');
+      } else {
+        setError('Note: Could not check for duplicates. You can still proceed with import.');
       }
       
-      setError(errorMessage);
-      setStep('upload'); // Always return to upload step on error
+      // Always proceed to review step - never return to upload or show blank screen
+      setDuplicates([]);
+      setNewDealers(parsedData.length > 0 ? parsedData : data);
+      setIsParsing(false);
+      setStep('review');
     }
   };
 
@@ -414,7 +427,8 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     setSelectedDuplicates(newSet);
   };
 
-  if (step === 'upload') {
+  // Always show upload step if step is 'upload' OR if step is invalid/undefined
+  if (step === 'upload' || !step) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -440,7 +454,10 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
 
           {isParsing && (
             <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded">
-              Parsing CSV file...
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                <span>Processing file...</span>
+              </div>
             </div>
           )}
 
@@ -454,6 +471,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             <button
               onClick={onCancel}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              disabled={isParsing}
             >
               Cancel
             </button>
