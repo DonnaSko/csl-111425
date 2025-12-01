@@ -91,7 +91,7 @@ router.get('/', async (req: AuthRequest, res) => {
           }
         });
 
-        // Apply fuzzy matching
+        // Apply fuzzy matching with lower threshold for better typo tolerance
         const fuzzyMatches = allDealers.filter(dealer =>
           fuzzyMatchDealer(searchTerm, {
             companyName: dealer.companyName,
@@ -99,8 +99,10 @@ router.get('/', async (req: AuthRequest, res) => {
             email: dealer.email,
             phone: dealer.phone,
             buyingGroup: dealer.buyingGroup
-          }, 0.6) // 60% similarity threshold
+          }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
         );
+        
+        console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
 
         // Sort fuzzy matches by creation date (newest first)
         fuzzyMatches.sort((a, b) => 

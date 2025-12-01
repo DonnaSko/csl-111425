@@ -107,7 +107,7 @@ export function findFuzzyMatches(
  * Check if search term matches any field in dealer object using fuzzy search
  * @param searchTerm The search term
  * @param dealer Dealer object with searchable fields
- * @param threshold Similarity threshold (0 to 1), default 0.6
+ * @param threshold Similarity threshold (0 to 1), default 0.5 (lowered for better typo tolerance)
  */
 export function fuzzyMatchDealer(
   searchTerm: string,
@@ -118,10 +118,11 @@ export function fuzzyMatchDealer(
     phone: string | null;
     buyingGroup: string | null;
   },
-  threshold: number = 0.6
+  threshold: number = 0.5
 ): boolean {
   if (!searchTerm) return false;
   
+  const searchTermLower = searchTerm.toLowerCase().trim();
   const searchFields = [
     dealer.companyName,
     dealer.contactName,
@@ -131,8 +132,26 @@ export function fuzzyMatchDealer(
   ].filter(Boolean) as string[];
   
   for (const field of searchFields) {
-    if (isSimilar(searchTerm, field, threshold)) {
+    const fieldLower = field.toLowerCase().trim();
+    
+    // Check full field match
+    if (isSimilar(searchTermLower, fieldLower, threshold)) {
       return true;
+    }
+    
+    // For name fields, also check word-by-word matching
+    // This helps with "Skulnick" matching "Donna Skolnick"
+    if (field === dealer.contactName || field === dealer.companyName) {
+      const words = fieldLower.split(/\s+/);
+      for (const word of words) {
+        if (word.length >= 3 && isSimilar(searchTermLower, word, threshold)) {
+          return true;
+        }
+        // Also check if search term is similar to any word
+        if (searchTermLower.length >= 3 && isSimilar(searchTermLower, word, threshold)) {
+          return true;
+        }
+      }
     }
   }
   
