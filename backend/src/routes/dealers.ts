@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../utils/prisma';
 import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
+import { fuzzyMatchDealer } from '../utils/fuzzySearch';
 
 const router = express.Router();
 
@@ -20,16 +21,7 @@ router.get('/', async (req: AuthRequest, res) => {
       companyId: req.companyId!
     };
 
-    if (search) {
-      where.OR = [
-        { companyName: { contains: search as string, mode: 'insensitive' } },
-        { contactName: { contains: search as string, mode: 'insensitive' } },
-        { email: { contains: search as string, mode: 'insensitive' } },
-        { phone: { contains: search as string, mode: 'insensitive' } },
-        { buyingGroup: { contains: search as string, mode: 'insensitive' } }
-      ];
-    }
-
+    // Apply status and buyingGroup filters first
     if (status && status !== 'All Statuses') {
       where.status = status;
     }
@@ -38,28 +30,121 @@ router.get('/', async (req: AuthRequest, res) => {
       where.buyingGroup = buyingGroup;
     }
 
-    const [dealers, total] = await Promise.all([
-      prisma.dealer.findMany({
-        where,
-        skip,
-        take: limitNum,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: {
-              dealerNotes: true,
-              photos: true,
-              voiceRecordings: true,
-              todos: true
+    let dealers: any[] = [];
+    let total = 0;
+    let useFuzzySearch = false;
+
+    if (search) {
+      const searchTerm = (search as string).trim();
+      
+      // First, try exact/contains match (faster, more precise)
+      const exactWhere: any = {
+        ...where,
+        OR: [
+          { companyName: { contains: searchTerm, mode: 'insensitive' } },
+          { contactName: { contains: searchTerm, mode: 'insensitive' } },
+          { email: { contains: searchTerm, mode: 'insensitive' } },
+          { phone: { contains: searchTerm, mode: 'insensitive' } },
+          { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
+        ]
+      };
+
+      const exactTotal = await prisma.dealer.count({ where: exactWhere });
+
+      // If we found results with exact match, use those (with pagination)
+      if (exactTotal > 0) {
+        const [paginatedDealers] = await Promise.all([
+          prisma.dealer.findMany({
+            where: exactWhere,
+            skip,
+            take: limitNum,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              _count: {
+                select: {
+                  dealerNotes: true,
+                  photos: true,
+                  voiceRecordings: true,
+                  todos: true
+                }
+              }
+            }
+          })
+        ]);
+        dealers = paginatedDealers;
+        total = exactTotal;
+      } else {
+        // No exact matches, try fuzzy search
+        useFuzzySearch = true;
+        // Fetch all dealers for the company (with filters applied)
+        const allDealers = await prisma.dealer.findMany({
+          where,
+          include: {
+            _count: {
+              select: {
+                dealerNotes: true,
+                photos: true,
+                voiceRecordings: true,
+                todos: true
+              }
             }
           }
-        }
-      }),
-      prisma.dealer.count({ where })
-    ]);
+        });
+
+        // Apply fuzzy matching
+        const fuzzyMatches = allDealers.filter(dealer =>
+          fuzzyMatchDealer(searchTerm, {
+            companyName: dealer.companyName,
+            contactName: dealer.contactName,
+            email: dealer.email,
+            phone: dealer.phone,
+            buyingGroup: dealer.buyingGroup
+          }, 0.6) // 60% similarity threshold
+        );
+
+        // Sort fuzzy matches by creation date (newest first)
+        fuzzyMatches.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        dealers = fuzzyMatches;
+        total = fuzzyMatches.length;
+      }
+    } else {
+      // No search term, just get all dealers with filters
+      const [allDealers, allTotal] = await Promise.all([
+        prisma.dealer.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            _count: {
+              select: {
+                dealerNotes: true,
+                photos: true,
+                voiceRecordings: true,
+                todos: true
+              }
+            }
+          }
+        }),
+        prisma.dealer.count({ where })
+      ]);
+
+      dealers = allDealers;
+      total = allTotal;
+    }
+
+    // Apply pagination to fuzzy search results (exact matches already paginated)
+    let paginatedDealers = dealers;
+    if (useFuzzySearch) {
+      // Only paginate fuzzy results (exact matches already paginated by Prisma)
+      paginatedDealers = dealers.slice(skip, skip + limitNum);
+    }
 
     res.json({
-      dealers,
+      dealers: paginatedDealers,
       pagination: {
         total,
         page: pageNum,
