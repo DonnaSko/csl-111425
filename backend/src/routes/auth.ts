@@ -10,10 +10,27 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, companyName } = req.body;
+    let { email, password, firstName, lastName, companyName } = req.body;
+
+    // Trim and sanitize inputs
+    email = email?.trim().toLowerCase();
+    firstName = firstName?.trim();
+    lastName = lastName?.trim();
+    companyName = companyName?.trim();
 
     if (!email || !password || !firstName || !lastName || !companyName) {
       return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
     // Check if user exists
@@ -74,11 +91,14 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
+
+    // Trim and lowercase email
+    email = email.trim().toLowerCase();
 
     // Find user
     const user = await prisma.user.findUnique({

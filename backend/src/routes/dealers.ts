@@ -121,7 +121,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 // Create dealer
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const {
+    let {
       companyName,
       contactName,
       email,
@@ -135,15 +135,33 @@ router.post('/', async (req: AuthRequest, res) => {
       status
     } = req.body;
 
+    // Trim and sanitize inputs
+    companyName = companyName?.trim();
+    contactName = contactName?.trim();
+    email = email?.trim().toLowerCase() || null;
+    phone = phone?.trim() || null;
+    city = city?.trim() || null;
+    state = state?.trim() || null;
+    zip = zip?.trim() || null;
+    country = country?.trim() || null;
+    address = address?.trim() || null;
+    buyingGroup = buyingGroup?.trim() || null;
+    status = status?.trim() || 'Prospect';
+
     if (!companyName) {
       return res.status(400).json({ error: 'Company name is required' });
+    }
+
+    // Validate email format if provided
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
     }
 
     const dealer = await prisma.dealer.create({
       data: {
         companyId: req.companyId!,
         companyName,
-        contactName,
+        contactName: contactName || null,
         email,
         phone,
         city,
@@ -152,7 +170,7 @@ router.post('/', async (req: AuthRequest, res) => {
         country,
         address,
         buyingGroup,
-        status: status || 'Prospect'
+        status
       }
     });
 
