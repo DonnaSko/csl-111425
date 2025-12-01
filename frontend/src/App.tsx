@@ -9,6 +9,7 @@ import Dealers from './pages/Dealers';
 import DealerDetail from './pages/DealerDetail';
 import CaptureLead from './pages/CaptureLead';
 import TradeShows from './pages/TradeShows';
+import TradeShowDetail from './pages/TradeShowDetail';
 import Reports from './pages/Reports';
 import Todos from './pages/Todos';
 import GettingStarted from './pages/GettingStarted';
@@ -76,6 +77,14 @@ function App() {
               element={
                 <PrivateRoute requireSubscription>
                   <TradeShows />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trade-shows/:id"
+              element={
+                <PrivateRoute requireSubscription>
+                  <TradeShowDetail />
                 </PrivateRoute>
               }
             />
