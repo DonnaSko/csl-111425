@@ -47,3 +47,4 @@ fetch('https://csl-bjg7z.ondigitalocean.app/api/subscriptions/status', {
 
 Run this first and share what it returns!
 
+

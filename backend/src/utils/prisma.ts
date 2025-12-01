@@ -8,8 +8,8 @@ const globalForPrisma = globalThis as unknown as {
 
 // Configure connection pool settings properly
 // Prisma Client manages its own connection pool internally
-// We need to ensure the connection string has proper timeout settings
-// to prevent connections from being held indefinitely
+// According to Prisma docs, we need to set connection_limit in the connection string
+// This is the CORRECT way to limit Prisma's internal connection pool
 const getDatabaseUrlWithPoolSettings = () => {
   const dbUrl = process.env.DATABASE_URL || '';
   
@@ -17,34 +17,32 @@ const getDatabaseUrlWithPoolSettings = () => {
     throw new Error('DATABASE_URL environment variable is not set');
   }
   
-  // Safely add connection parameters to prevent connection leaks
-  // PostgreSQL connection string parameters:
-  // - connect_timeout: Time to wait for a connection (seconds)
-  // - statement_timeout: Maximum time a query can run (milliseconds)  
-  // - pool_timeout: Time to wait for a connection from the pool (seconds)
+  // Prisma connection pool configuration:
+  // - connection_limit: Limits Prisma's internal connection pool (REQUIRED for preventing leaks)
+  // - statement_timeout: Maximum time a query can run (milliseconds) - prevents hanging queries
+  // Note: connect_timeout and pool_timeout are NOT Prisma parameters - they don't work!
   
   // Check if parameters are already present (case-insensitive check)
-  const hasConnectTimeout = /[?&]connect_timeout=/i.test(dbUrl);
+  const hasConnectionLimit = /[?&]connection_limit=/i.test(dbUrl);
   const hasStatementTimeout = /[?&]statement_timeout=/i.test(dbUrl);
-  const hasPoolTimeout = /[?&]pool_timeout=/i.test(dbUrl);
   
-  // If all parameters are already set, return the URL as-is
-  if (hasConnectTimeout && hasStatementTimeout && hasPoolTimeout) {
+  // If both parameters are already set, return the URL as-is
+  if (hasConnectionLimit && hasStatementTimeout) {
     return dbUrl;
   }
   
   // Build the parameter string safely
   const params: string[] = [];
   
-  // Add timeout parameters if not already present
-  if (!hasConnectTimeout) {
-    params.push('connect_timeout=10');
+  // Add connection_limit if not already present - THIS IS CRITICAL FOR PREVENTING LEAKS
+  // Prisma uses this to limit its internal pool size (default is unlimited without this)
+  if (!hasConnectionLimit) {
+    params.push('connection_limit=5'); // Limit to 5 connections max
   }
+  
+  // Add statement_timeout to prevent long-running queries from holding connections
   if (!hasStatementTimeout) {
     params.push('statement_timeout=30000'); // 30 seconds - prevents long-running queries
-  }
-  if (!hasPoolTimeout) {
-    params.push('pool_timeout=10');
   }
   
   // Safely append parameters to the connection string
@@ -62,24 +60,26 @@ const getDatabaseUrlWithPoolSettings = () => {
 const databaseUrl = getDatabaseUrlWithPoolSettings();
 
 // Prisma Client connection pool configuration
-// Prisma Client by default uses a connection pool with:
-// - Maximum 10 connections per instance
-// - Connections are reused and managed automatically
-// - Connections are released back to the pool after queries complete
+// With connection_limit=5 in the connection string, Prisma will:
+// - Limit the internal pool to maximum 5 connections
+// - Reuse connections automatically
+// - Release connections back to the pool after queries complete
+// - Prevent connection leaks by enforcing the limit
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: databaseUrl,
+        url: databaseUrl, // Contains connection_limit=5 and statement_timeout=30000
       },
     },
-    // Prisma automatically manages connection pooling
+    // Prisma automatically manages connection pooling based on connection_limit parameter
     // We ensure proper cleanup and connection release via:
-    // 1. Proper error handling in all route handlers
-    // 2. Graceful shutdown handlers
-    // 3. Connection timeouts to prevent hanging connections
+    // 1. connection_limit=5 in connection string (prevents pool exhaustion)
+    // 2. statement_timeout=30000 (prevents long-running queries from holding connections)
+    // 3. Proper error handling in all route handlers
+    // 4. Graceful shutdown handlers that call $disconnect()
   });
 
 if (process.env.NODE_ENV !== 'production') {
@@ -113,11 +113,11 @@ if (process.env.NODE_ENV === 'development') {
       `;
       const activeConnections = Number(result[0]?.count || 0);
       
-      // Warn if we have more than 5 active connections (Prisma default max is 10)
-      // This indicates potential connection leaks
-      if (activeConnections > 5) {
+      // Warn if we have more than 4 active connections (our limit is 5)
+      // This indicates potential connection leaks or approaching the limit
+      if (activeConnections > 4) {
         console.warn(`⚠️  High active connection count: ${activeConnections} connections`);
-        console.warn(`   Prisma Client pool max: 10 connections`);
+        console.warn(`   Prisma Client pool max: 5 connections (set via connection_limit=5)`);
         console.warn(`   Consider checking for connection leaks or long-running queries`);
       } else {
         console.log(`✓ Connection pool healthy: ${activeConnections} active connections`);

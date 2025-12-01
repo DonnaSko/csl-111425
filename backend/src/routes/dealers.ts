@@ -37,11 +37,18 @@ router.get('/', async (req: AuthRequest, res) => {
     if (search) {
       const searchTerm = (search as string).trim();
       
+      // Special handling for single character searches - use startsWith for company name
+      const isSingleChar = searchTerm.length === 1;
+      
       // First, try exact/contains match (faster, more precise)
+      // For single character, use startsWith for companyName to get all matches starting with that letter
       const exactWhere: any = {
         ...where,
         OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
+          // For single character, use startsWith for company name to get all matches starting with that letter
+          isSingleChar 
+            ? { companyName: { startsWith: searchTerm, mode: 'insensitive' } }
+            : { companyName: { contains: searchTerm, mode: 'insensitive' } },
           { contactName: { contains: searchTerm, mode: 'insensitive' } },
           { email: { contains: searchTerm, mode: 'insensitive' } },
           { phone: { contains: searchTerm, mode: 'insensitive' } },
