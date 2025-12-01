@@ -598,31 +598,42 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">Potential Duplicates</h3>
               <div className="border rounded-lg max-h-64 overflow-y-auto">
-                {duplicates.map((dup, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 border-b flex items-start gap-3 cursor-pointer hover:bg-gray-50 ${
-                      selectedDuplicates.has(index) ? 'bg-blue-50' : ''
-                    }`}
-                    onClick={() => toggleDuplicate(index)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedDuplicates.has(index)}
-                      onChange={() => toggleDuplicate(index)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold">{dup.dealer.companyName}</div>
-                      {dup.existing && (
-                        <div className="text-sm text-gray-600">
-                          Matches existing: {dup.existing.companyName}
-                          {dup.existing.email && ` (${dup.existing.email})`}
+                {duplicates
+                  .map((dup, index) => {
+                    // Safely get dealer company name
+                    const companyName = dup?.dealer?.companyName;
+                    if (!companyName || typeof companyName !== 'string') {
+                      // Skip invalid duplicates
+                      return null;
+                    }
+                    
+                    return (
+                      <div
+                        key={index}
+                        className={`p-3 border-b flex items-start gap-3 cursor-pointer hover:bg-gray-50 ${
+                          selectedDuplicates.has(index) ? 'bg-blue-50' : ''
+                        }`}
+                        onClick={() => toggleDuplicate(index)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDuplicates.has(index)}
+                          onChange={() => toggleDuplicate(index)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold">{companyName}</div>
+                          {dup?.existing && (
+                            <div className="text-sm text-gray-600">
+                              Matches existing: {dup.existing.companyName || 'Unknown'}
+                              {dup.existing.email && typeof dup.existing.email === 'string' && ` (${dup.existing.email})`}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                      </div>
+                    );
+                  })
+                  .filter(Boolean)}
               </div>
               <p className="text-sm text-gray-600 mt-2">
                 Check duplicates you want to import anyway, or skip them all.
