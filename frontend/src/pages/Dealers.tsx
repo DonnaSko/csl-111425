@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import CSVUpload from '../components/CSVUpload';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 interface Dealer {
   id: string;
@@ -229,13 +230,15 @@ const Dealers = () => {
         </div>
       </div>
       {showCSVUpload && (
-        <CSVUpload
-          onSuccess={() => {
-            setShowCSVUpload(false);
-            fetchDealers();
-          }}
-          onCancel={() => setShowCSVUpload(false)}
-        />
+        <ErrorBoundary>
+          <CSVUpload
+            onSuccess={() => {
+              setShowCSVUpload(false);
+              fetchDealers();
+            }}
+            onCancel={() => setShowCSVUpload(false)}
+          />
+        </ErrorBoundary>
       )}
     </Layout>
   );

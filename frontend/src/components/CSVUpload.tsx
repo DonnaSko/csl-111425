@@ -69,147 +69,196 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) {
-      setError('No file selected. Please choose a CSV file.');
-      return;
-    }
+    try {
+      const selectedFile = e.target.files?.[0];
+      if (!selectedFile) {
+        setError('No file selected. Please choose a CSV file.');
+        return;
+      }
 
-    // Check file type
-    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
-    const allowedExtensions = ['csv', 'pdf', 'xls', 'xlsx', 'doc', 'docx', 'pages', 'txt', 'rtf'];
-    
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      setError(`File type not supported. Please select: ${allowedExtensions.join(', ').toUpperCase()}`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
+      // Check file type
+      const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ['csv', 'pdf', 'xls', 'xlsx', 'doc', 'docx', 'pages', 'txt', 'rtf'];
+      
+      if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+        setError(`File type not supported. Please select: ${allowedExtensions.join(', ').toUpperCase()}`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
 
-    // For non-CSV files, upload directly
-    if (fileExtension !== 'csv') {
-      handleNonCSVUpload(selectedFile);
-      return;
-    }
-
-    setFile(selectedFile);
-    setError('');
-    setIsParsing(true);
-
-    // Parse CSV - read file first
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results: ParseResult<any>) => {
-          try {
-            if (results.errors.length > 0) {
-              setError(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`);
-              setIsParsing(false);
-              return;
-            }
-
-            const data = results.data as any[];
-            
-            if (!data || data.length === 0) {
-              setError('CSV file appears to be empty or has no data rows. Please check your file.');
-              setIsParsing(false);
-              return;
-            }
-
-            const normalizedData = data
-              .map((row): DealerRow | null => {
-                try {
-                  // Normalize column names (case-insensitive, handle spaces)
-                  const normalizeKey = (key: string) => key.toLowerCase().trim().replace(/\s+/g, '');
-                  const getValue = (keys: string[]) => {
-                    for (const key of keys) {
-                      const found = Object.keys(row).find(k => normalizeKey(k) === normalizeKey(key));
-                      if (found && row[found]) return row[found].trim();
-                    }
-                    return '';
-                  };
-
-                  const phoneValue = getValue(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']);
-                  const emailValue = getValue(['email', 'e-mail', 'email address']);
-                  
-                  const companyName = getValue(['companyname', 'company', 'company name', 'business name', 'businessname']) || '';
-                  
-                  // Only return valid rows with company name
-                  if (!companyName) {
-                    return null;
-                  }
-                  
-                  return {
-                    companyName,
-                    contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']),
-                    email: emailValue ? emailValue.toLowerCase().trim() : undefined,
-                    phone: phoneValue ? phoneValue.trim() : undefined,
-                    city: getValue(['city']),
-                    state: getValue(['state', 'province']),
-                    zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']),
-                    country: getValue(['country']),
-                    address: getValue(['address', 'street', 'street address']),
-                    buyingGroup: getValue(['buyinggroup', 'buying group', 'group']),
-                    status: getValue(['status']) || 'Prospect'
-                  };
-                } catch (rowError) {
-                  console.error('Error processing row:', rowError, row);
-                  return null;
-                }
-              })
-              .filter((row): row is DealerRow => row !== null && row.companyName !== '') as DealerRow[]; // Filter out null rows and rows without company name
-
-            if (normalizedData.length === 0) {
-              setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data.');
-              setIsParsing(false);
-              return;
-            }
-
-            setParsedData(normalizedData);
-            // Keep isParsing true while checking duplicates to show loading state
-            setIsParsing(true);
-            
-            // Call checkDuplicates with proper error handling to prevent blank screen
-            // If checkDuplicates fails, skip it and go straight to review
-            checkDuplicates(normalizedData).catch((err: any) => {
-              console.error('Error in checkDuplicates:', err);
-              // On any error, skip duplicate check and proceed to review
-              // This prevents blank screen and allows user to continue
-              setError('Note: Could not check for duplicates. You can still proceed with import.');
-              setIsParsing(false);
-              setDuplicates([]);
-              setNewDealers(normalizedData);
-              setStep('review');
-            });
-          } catch (parseError) {
-            console.error('Error in CSV parse complete handler:', parseError);
-            setError('An error occurred while processing the CSV file. Please try again.');
-            setIsParsing(false);
-          }
-        },
-        error: (error: Error) => {
-          console.error('CSV parse error:', error);
+      // For non-CSV files, upload directly
+      if (fileExtension !== 'csv') {
+        handleNonCSVUpload(selectedFile).catch((err) => {
+          console.error('Non-CSV upload error:', err);
+          setError('Failed to upload file. Please try again.');
           setIsParsing(false);
-          setError(`Failed to parse CSV file: ${error.message || 'Unknown error'}. Please make sure your file is a valid CSV file.`);
-        }
-      });
-    };
-    reader.onerror = () => {
+        });
+        return;
+      }
+
+      setFile(selectedFile);
+      setError('');
+      setIsParsing(true);
+      setStep('upload'); // Ensure we're on upload step
+
+      // Parse CSV - read file first with comprehensive error handling
+      try {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            const text = e.target?.result;
+            if (!text || typeof text !== 'string') {
+              throw new Error('Failed to read file content as text');
+            }
+
+            Papa.parse(text, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results: ParseResult<any>) => {
+                try {
+                  if (results.errors.length > 0) {
+                    const errorMessages = results.errors.map(e => e.message).join(', ');
+                    console.error('CSV parsing errors:', errorMessages);
+                    setError(`CSV parsing errors: ${errorMessages}`);
+                    setIsParsing(false);
+                    setStep('upload');
+                    return;
+                  }
+
+                  const data = results.data as any[];
+                  
+                  if (!data || data.length === 0) {
+                    setError('CSV file appears to be empty or has no data rows. Please check your file.');
+                    setIsParsing(false);
+                    setStep('upload');
+                    return;
+                  }
+
+                  const normalizedData = data
+                    .map((row): DealerRow | null => {
+                      try {
+                        // Normalize column names (case-insensitive, handle spaces)
+                        const normalizeKey = (key: string) => key.toLowerCase().trim().replace(/\s+/g, '');
+                        const getValue = (keys: string[]) => {
+                          for (const key of keys) {
+                            const found = Object.keys(row).find(k => normalizeKey(k) === normalizeKey(key));
+                            if (found && row[found]) return row[found].trim();
+                          }
+                          return '';
+                        };
+
+                        const phoneValue = getValue(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']);
+                        const emailValue = getValue(['email', 'e-mail', 'email address']);
+                        
+                        const companyName = getValue(['companyname', 'company', 'company name', 'business name', 'businessname']) || '';
+                        
+                        // Only return valid rows with company name
+                        if (!companyName) {
+                          return null;
+                        }
+                        
+                        return {
+                          companyName,
+                          contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']),
+                          email: emailValue ? emailValue.toLowerCase().trim() : undefined,
+                          phone: phoneValue ? phoneValue.trim() : undefined,
+                          city: getValue(['city']),
+                          state: getValue(['state', 'province']),
+                          zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']),
+                          country: getValue(['country']),
+                          address: getValue(['address', 'street', 'street address']),
+                          buyingGroup: getValue(['buyinggroup', 'buying group', 'group']),
+                          status: getValue(['status']) || 'Prospect'
+                        };
+                      } catch (rowError) {
+                        console.error('Error processing row:', rowError, row);
+                        return null;
+                      }
+                    })
+                    .filter((row): row is DealerRow => row !== null && row.companyName !== '') as DealerRow[];
+
+                  if (normalizedData.length === 0) {
+                    setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data.');
+                    setIsParsing(false);
+                    setStep('upload');
+                    return;
+                  }
+
+                  setParsedData(normalizedData);
+                  // Keep isParsing true while checking duplicates to show loading state
+                  setIsParsing(true);
+                  
+                  // Call checkDuplicates with proper error handling to prevent blank screen
+                  // If checkDuplicates fails, skip it and go straight to review
+                  checkDuplicates(normalizedData).catch((err: any) => {
+                    console.error('Error in checkDuplicates:', err);
+                    // On any error, skip duplicate check and proceed to review
+                    // This prevents blank screen and allows user to continue
+                    setError('Note: Could not check for duplicates. You can still proceed with import.');
+                    setIsParsing(false);
+                    setDuplicates([]);
+                    setNewDealers(normalizedData);
+                    setStep('review');
+                  });
+                } catch (parseError) {
+                  console.error('Error in CSV parse complete handler:', parseError);
+                  setError('An error occurred while processing the CSV file. Please try again.');
+                  setIsParsing(false);
+                  setStep('upload');
+                }
+              },
+              error: (error: Error) => {
+                console.error('CSV parse error:', error);
+                setIsParsing(false);
+                setStep('upload');
+                setError(`Failed to parse CSV file: ${error.message || 'Unknown error'}. Please make sure your file is a valid CSV file.`);
+              }
+            });
+          } catch (loadError) {
+            console.error('Error in FileReader onload:', loadError);
+            setIsParsing(false);
+            setStep('upload');
+            setError('Failed to process file content. Please try again.');
+          }
+        };
+        
+        reader.onerror = (error) => {
+          console.error('FileReader error:', error);
+          setIsParsing(false);
+          setStep('upload');
+          setError('Failed to read file. Please try again.');
+        };
+        
+        reader.onabort = () => {
+          console.warn('FileReader aborted');
+          setIsParsing(false);
+          setStep('upload');
+          setError('File reading was cancelled. Please try again.');
+        };
+        
+        reader.readAsText(selectedFile);
+      } catch (readerError) {
+        console.error('Error creating FileReader:', readerError);
+        setIsParsing(false);
+        setStep('upload');
+        setError('Failed to initialize file reader. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handleFileSelect:', error);
       setIsParsing(false);
-      setError('Failed to read file. Please try again.');
-    };
-    reader.readAsText(selectedFile);
+      setStep('upload');
+      setError('An unexpected error occurred. Please try again.');
+    }
   };
 
   const checkDuplicates = async (data: DealerRow[]) => {
     try {
       setError('');
       setIsParsing(true);
-      // Ensure step is set to show loading state
+      // Ensure we're in a valid state - stay on upload step while checking
       if (step !== 'review' && step !== 'importing' && step !== 'complete') {
-        // Keep on upload step but show parsing indicator
+        setStep('upload');
       }
       
       if (!data || data.length === 0) {
@@ -260,31 +309,31 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       setStep('review');
     } catch (err: any) {
       console.error('Check duplicates error:', err);
-      setIsParsing(false);
       
       // For ANY error in duplicate check, skip it and proceed to review
       // This prevents blank screen and allows user to continue with import
       console.log('Duplicate check error, proceeding without duplicate check...', err);
       
+      let errorMessage = 'Note: Could not check for duplicates. You can still proceed with import.';
+      
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         // On timeout, skip duplicate check and proceed with import
         console.log('Duplicate check timed out, proceeding without duplicate check...');
-        setError('Note: Duplicate check timed out. You can still proceed with import.');
+        errorMessage = 'Note: Duplicate check timed out. You can still proceed with import.';
       } else if (err.response?.status === 413) {
         // Request too large - skip duplicate check
         console.log('Request too large for duplicate check, proceeding without duplicate check...');
-        setError('Note: File too large for duplicate check. You can still proceed with import.');
+        errorMessage = 'Note: File too large for duplicate check. You can still proceed with import.';
       } else if (err.response?.status === 403) {
         // Subscription issue - still proceed but show warning
-        setError('Note: Subscription check failed. You can still proceed with import.');
+        errorMessage = 'Note: Subscription check failed. You can still proceed with import.';
       } else if (err.response?.status === 401) {
         // Auth issue - still proceed but show warning
-        setError('Note: Authentication check failed. You can still proceed with import.');
-      } else {
-        setError('Note: Could not check for duplicates. You can still proceed with import.');
+        errorMessage = 'Note: Authentication check failed. You can still proceed with import.';
       }
       
       // Always proceed to review step - never return to upload or show blank screen
+      setError(errorMessage);
       setDuplicates([]);
       setNewDealers(parsedData.length > 0 ? parsedData : data);
       setIsParsing(false);
@@ -356,6 +405,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     try {
       setIsParsing(true);
       setError('');
+      setStep('upload'); // Ensure we're on upload step
 
       console.log('Uploading non-CSV file:', {
         name: file.name,
@@ -388,6 +438,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
     } catch (err: any) {
       console.error('File upload error:', err);
       setIsParsing(false);
+      setStep('upload'); // Always return to upload step on error
       
       let errorMessage = 'Failed to upload file. Please try again.';
       
@@ -428,7 +479,8 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
   };
 
   // Always show upload step if step is 'upload' OR if step is invalid/undefined
-  if (step === 'upload' || !step) {
+  // This ensures we never render a blank screen
+  if (!step || step === 'upload') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
