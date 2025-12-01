@@ -123,15 +123,19 @@ export function fuzzyMatchDealer(
   if (!searchTerm) return false;
   
   const searchTermLower = searchTerm.toLowerCase().trim();
-  const searchFields = [
-    dealer.companyName,
-    dealer.contactName,
-    dealer.email,
-    dealer.phone,
-    dealer.buyingGroup
-  ].filter(Boolean) as string[];
   
-  for (const field of searchFields) {
+  // Check each field individually to know which field we're checking
+  const fieldsToCheck = [
+    { value: dealer.companyName, isName: true },
+    { value: dealer.contactName, isName: true },
+    { value: dealer.email, isName: false },
+    { value: dealer.phone, isName: false },
+    { value: dealer.buyingGroup, isName: false }
+  ];
+  
+  for (const { value: field, isName } of fieldsToCheck) {
+    if (!field) continue;
+    
     const fieldLower = field.toLowerCase().trim();
     
     // Check full field match
@@ -140,16 +144,15 @@ export function fuzzyMatchDealer(
     }
     
     // For name fields, also check word-by-word matching
-    // This helps with "Skulnick" matching "Donna Skolnick"
-    if (field === dealer.contactName || field === dealer.companyName) {
+    // This helps with "Skulnick" matching "Donna Skolnick" or "Steve Skolnick"
+    if (isName) {
       const words = fieldLower.split(/\s+/);
       for (const word of words) {
-        if (word.length >= 3 && isSimilar(searchTermLower, word, threshold)) {
-          return true;
-        }
-        // Also check if search term is similar to any word
-        if (searchTermLower.length >= 3 && isSimilar(searchTermLower, word, threshold)) {
-          return true;
+        // Check if search term matches any word (both must be at least 3 chars for meaningful match)
+        if (word.length >= 3 && searchTermLower.length >= 3) {
+          if (isSimilar(searchTermLower, word, threshold)) {
+            return true;
+          }
         }
       }
     }
