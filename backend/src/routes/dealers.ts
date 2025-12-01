@@ -243,7 +243,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
 
     // Create a set of existing identifiers for quick lookup
     const existingIdentifiers = new Set(
-      existingDealers.map(d => 
+      existingDealers.map((d: { companyName: string | null; email: string | null; phone: string | null }) => 
         `${(d.companyName || '').toLowerCase().trim()}|${(d.email || '').toLowerCase().trim()}|${(d.phone || '').replace(/\D/g, '')}`
       )
     );
@@ -381,7 +381,7 @@ router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => 
     });
 
     const existingIdentifiers = new Set(
-      existingDealers.map(d => 
+      existingDealers.map((d: { companyName: string | null; email: string | null; phone: string | null }) => 
         `${(d.companyName || '').toLowerCase().trim()}|${(d.email || '').toLowerCase().trim()}|${(d.phone || '').replace(/\D/g, '')}`
       )
     );
@@ -398,7 +398,7 @@ router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => 
       const identifier = `${companyName.toLowerCase()}|${email}|${phone}`;
 
       if (existingIdentifiers.has(identifier)) {
-        const existing = existingDealers.find(d => {
+        const existing = existingDealers.find((d: { id: string; companyName: string | null; email: string | null; phone: string | null; contactName: string | null }) => {
           const dEmail = (d.email || '').toLowerCase().trim();
           const dPhone = (d.phone || '').replace(/\D/g, '');
           return `${(d.companyName || '').toLowerCase().trim()}|${dEmail}|${dPhone}` === identifier;
@@ -440,7 +440,7 @@ router.get('/buying-groups/list', async (req: AuthRequest, res) => {
       distinct: ['buyingGroup']
     });
 
-    res.json(buyingGroups.map(bg => bg.buyingGroup).filter(Boolean));
+    res.json(buyingGroups.map((bg: { buyingGroup: string | null }) => bg.buyingGroup).filter(Boolean));
   } catch (error) {
     console.error('Get buying groups error:', error);
     res.status(500).json({ error: 'Failed to fetch buying groups' });

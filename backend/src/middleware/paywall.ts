@@ -57,7 +57,7 @@ export const requireActiveSubscription = async (
     }
 
     // Check if subscription is set to cancel at period end
-    if (subscription.cancelAtPeriodEnd) {
+    if (subscription && subscription.cancelAtPeriodEnd) {
       // Still allow access until period ends
       next();
       return;
