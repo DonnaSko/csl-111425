@@ -1,7 +1,7 @@
 import express from 'express';
 import prisma from '../utils/prisma';
 import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
-import { fuzzyMatchDealer } from '../utils/fuzzySearch';
+import { searchDealers } from '../utils/dealerSearch';
 
 const router = express.Router();
 
@@ -135,28 +135,14 @@ router.get('/dashboard/dealers-by-status/:status', async (req: AuthRequest, res)
     const { status } = req.params;
     const { search } = req.query;
 
-    const baseWhere: any = {
-      companyId: req.companyId!,
-      status: status
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      // First try exact/contains match
-      const exactWhere: any = {
-        ...baseWhere,
-        OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
-          { contactName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } }
-        ]
-      };
-
-      const exactDealers = await prisma.dealer.findMany({
-        where: exactWhere,
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        baseWhere: { status },
+        searchTerm: search as string,
         select: {
           id: true,
           companyName: true,
@@ -167,41 +153,13 @@ router.get('/dashboard/dealers-by-status/:status', async (req: AuthRequest, res)
         },
         take: 100
       });
-
-      if (exactDealers.length > 0) {
-        dealers = exactDealers;
-      } else {
-        // No exact matches, try fuzzy search
-        const allDealers = await prisma.dealer.findMany({
-          where: baseWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true,
-            buyingGroup: true
-          },
-          take: 500 // Get more for fuzzy matching
-        });
-
-        const fuzzyMatches = allDealers.filter(dealer =>
-          fuzzyMatchDealer(searchTerm, {
-            companyName: dealer.companyName,
-            contactName: dealer.contactName,
-            email: dealer.email,
-            phone: dealer.phone,
-            buyingGroup: dealer.buyingGroup
-          }, 0.5)
-        );
-
-        dealers = fuzzyMatches.slice(0, 100); // Limit results
-      }
     } else {
       // No search, just get all dealers for this status
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: {
+          companyId: req.companyId!,
+          status
+        },
         select: {
           id: true,
           companyName: true,
@@ -232,28 +190,14 @@ router.get('/dashboard/dealers-by-rating/:rating', async (req: AuthRequest, res)
       return res.status(400).json({ error: 'Invalid rating' });
     }
 
-    const baseWhere: any = {
-      companyId: req.companyId!,
-      rating: rating
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      // First try exact/contains match
-      const exactWhere: any = {
-        ...baseWhere,
-        OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
-          { contactName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } }
-        ]
-      };
-
-      const exactDealers = await prisma.dealer.findMany({
-        where: exactWhere,
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        baseWhere: { rating },
+        searchTerm: search as string,
         select: {
           id: true,
           companyName: true,
@@ -264,41 +208,13 @@ router.get('/dashboard/dealers-by-rating/:rating', async (req: AuthRequest, res)
         },
         take: 100
       });
-
-      if (exactDealers.length > 0) {
-        dealers = exactDealers;
-      } else {
-        // No exact matches, try fuzzy search
-        const allDealers = await prisma.dealer.findMany({
-          where: baseWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            rating: true,
-            buyingGroup: true
-          },
-          take: 500 // Get more for fuzzy matching
-        });
-
-        const fuzzyMatches = allDealers.filter(dealer =>
-          fuzzyMatchDealer(searchTerm, {
-            companyName: dealer.companyName,
-            contactName: dealer.contactName,
-            email: dealer.email,
-            phone: dealer.phone,
-            buyingGroup: dealer.buyingGroup
-          }, 0.5)
-        );
-
-        dealers = fuzzyMatches.slice(0, 100); // Limit results
-      }
     } else {
       // No search, just get all dealers for this rating
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: {
+          companyId: req.companyId!,
+          rating
+        },
         select: {
           id: true,
           companyName: true,
@@ -324,141 +240,27 @@ router.get('/dashboard/all-dealers', async (req: AuthRequest, res) => {
   try {
     const { search } = req.query;
 
-    const baseWhere: any = {
-      companyId: req.companyId!
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      // Special handling for single character searches - use startsWith for company name and contact name
-      const isSingleChar = searchTerm.length === 1;
-      
-      // First try exact/contains match
-      // For single character, use startsWith for companyName and contactName to get all matches starting with that letter
-      // This matches: company names starting with the letter, first names starting with the letter, or any word in contactName starting with the letter
-      if (isSingleChar) {
-        // For single character, use startsWith for company name and contact name (matches first name)
-        // Also check if contactName contains a word starting with that letter (matches last name)
-        const exactWhere: any = {
-          ...baseWhere,
-          OR: [
-            { companyName: { startsWith: searchTerm, mode: 'insensitive' } },
-            { contactName: { startsWith: searchTerm, mode: 'insensitive' } },
-            // Match last names by checking if contactName contains a space followed by the letter
-            { contactName: { contains: ` ${searchTerm}`, mode: 'insensitive' } },
-            { email: { contains: searchTerm, mode: 'insensitive' } },
-            { phone: { contains: searchTerm, mode: 'insensitive' } },
-            { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-          ]
-        };
-        
-        const exactDealers = await prisma.dealer.findMany({
-          where: exactWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true
-          },
-          take: 100
-        });
-
-        if (exactDealers.length > 0) {
-          dealers = exactDealers;
-        } else {
-          // No exact matches, try fuzzy search
-          const allDealers = await prisma.dealer.findMany({
-            where: baseWhere,
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              email: true,
-              phone: true,
-              status: true,
-              buyingGroup: true
-            },
-            take: 500 // Get more for fuzzy matching
-          });
-
-          const fuzzyMatches = allDealers.filter(dealer =>
-            fuzzyMatchDealer(searchTerm, {
-              companyName: dealer.companyName,
-              contactName: dealer.contactName,
-              email: dealer.email,
-              phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup
-            }, 0.5)
-          );
-
-          dealers = fuzzyMatches.slice(0, 100); // Limit results
-        }
-      } else {
-        // Multi-character search - use contains
-        const exactWhere: any = {
-          ...baseWhere,
-          OR: [
-            { companyName: { contains: searchTerm, mode: 'insensitive' } },
-            { contactName: { contains: searchTerm, mode: 'insensitive' } },
-            { email: { contains: searchTerm, mode: 'insensitive' } },
-            { phone: { contains: searchTerm, mode: 'insensitive' } },
-            { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-          ]
-        };
-
-        const exactDealers = await prisma.dealer.findMany({
-          where: exactWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true
-          },
-          take: 100
-        });
-
-        if (exactDealers.length > 0) {
-          dealers = exactDealers;
-        } else {
-          // No exact matches, try fuzzy search
-          const allDealers = await prisma.dealer.findMany({
-            where: baseWhere,
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              email: true,
-              phone: true,
-              status: true,
-              buyingGroup: true
-            },
-            take: 500 // Get more for fuzzy matching
-          });
-
-          const fuzzyMatches = allDealers.filter(dealer =>
-            fuzzyMatchDealer(searchTerm, {
-              companyName: dealer.companyName,
-              contactName: dealer.contactName,
-              email: dealer.email,
-              phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup
-            }, 0.5)
-          );
-
-          dealers = fuzzyMatches.slice(0, 100); // Limit results
-        }
-      }
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        searchTerm: search as string,
+        select: {
+          id: true,
+          companyName: true,
+          contactName: true,
+          email: true,
+          phone: true,
+          status: true
+        },
+        take: 100
+      });
     } else {
       // No search, just get all dealers
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: { companyId: req.companyId! },
         select: {
           id: true,
           companyName: true,
@@ -484,31 +286,18 @@ router.get('/dashboard/dealers-with-notes', async (req: AuthRequest, res) => {
   try {
     const { search } = req.query;
 
-    const baseWhere: any = {
-      companyId: req.companyId!,
-      dealerNotes: {
-        some: {}
-      }
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      const exactWhere: any = {
-        ...baseWhere,
-        OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
-          { contactName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-          { phone: { contains: searchTerm, mode: 'insensitive' } },
-          { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-        ]
-      };
-
-      const exactDealers = await prisma.dealer.findMany({
-        where: exactWhere,
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        baseWhere: {
+          dealerNotes: {
+            some: {}
+          }
+        },
+        searchTerm: search as string,
         select: {
           id: true,
           companyName: true,
@@ -517,43 +306,21 @@ router.get('/dashboard/dealers-with-notes', async (req: AuthRequest, res) => {
           phone: true,
           status: true
         },
-        distinct: ['id'],
         take: 100
       });
-
-      if (exactDealers.length > 0) {
-        dealers = exactDealers;
-      } else {
-        const allDealers = await prisma.dealer.findMany({
-          where: baseWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true,
-            buyingGroup: true
-          },
-          distinct: ['id'],
-          take: 500
-        });
-
-        const fuzzyMatches = allDealers.filter(dealer =>
-          fuzzyMatchDealer(searchTerm, {
-            companyName: dealer.companyName,
-            contactName: dealer.contactName,
-            email: dealer.email,
-            phone: dealer.phone,
-            buyingGroup: dealer.buyingGroup
-          }, 0.5)
-        );
-
-        dealers = fuzzyMatches.slice(0, 100);
-      }
+      // Remove duplicates
+      const uniqueDealers = dealers.filter((dealer, index, self) =>
+        index === self.findIndex(d => d.id === dealer.id)
+      );
+      dealers = uniqueDealers;
     } else {
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: {
+          companyId: req.companyId!,
+          dealerNotes: {
+            some: {}
+          }
+        },
         select: {
           id: true,
           companyName: true,
@@ -580,31 +347,18 @@ router.get('/dashboard/dealers-with-photos', async (req: AuthRequest, res) => {
   try {
     const { search } = req.query;
 
-    const baseWhere: any = {
-      companyId: req.companyId!,
-      photos: {
-        some: {}
-      }
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      const exactWhere: any = {
-        ...baseWhere,
-        OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
-          { contactName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-          { phone: { contains: searchTerm, mode: 'insensitive' } },
-          { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-        ]
-      };
-
-      const exactDealers = await prisma.dealer.findMany({
-        where: exactWhere,
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        baseWhere: {
+          photos: {
+            some: {}
+          }
+        },
+        searchTerm: search as string,
         select: {
           id: true,
           companyName: true,
@@ -613,43 +367,21 @@ router.get('/dashboard/dealers-with-photos', async (req: AuthRequest, res) => {
           phone: true,
           status: true
         },
-        distinct: ['id'],
         take: 100
       });
-
-      if (exactDealers.length > 0) {
-        dealers = exactDealers;
-      } else {
-        const allDealers = await prisma.dealer.findMany({
-          where: baseWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true,
-            buyingGroup: true
-          },
-          distinct: ['id'],
-          take: 500
-        });
-
-        const fuzzyMatches = allDealers.filter(dealer =>
-          fuzzyMatchDealer(searchTerm, {
-            companyName: dealer.companyName,
-            contactName: dealer.contactName,
-            email: dealer.email,
-            phone: dealer.phone,
-            buyingGroup: dealer.buyingGroup
-          }, 0.5)
-        );
-
-        dealers = fuzzyMatches.slice(0, 100);
-      }
+      // Remove duplicates
+      const uniqueDealers = dealers.filter((dealer, index, self) =>
+        index === self.findIndex(d => d.id === dealer.id)
+      );
+      dealers = uniqueDealers;
     } else {
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: {
+          companyId: req.companyId!,
+          photos: {
+            some: {}
+          }
+        },
         select: {
           id: true,
           companyName: true,
@@ -676,31 +408,18 @@ router.get('/dashboard/dealers-with-recordings', async (req: AuthRequest, res) =
   try {
     const { search } = req.query;
 
-    const baseWhere: any = {
-      companyId: req.companyId!,
-      voiceRecordings: {
-        some: {}
-      }
-    };
-
     let dealers: any[] = [];
 
     if (search) {
-      const searchTerm = (search as string).trim();
-      
-      const exactWhere: any = {
-        ...baseWhere,
-        OR: [
-          { companyName: { contains: searchTerm, mode: 'insensitive' } },
-          { contactName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-          { phone: { contains: searchTerm, mode: 'insensitive' } },
-          { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-        ]
-      };
-
-      const exactDealers = await prisma.dealer.findMany({
-        where: exactWhere,
+      dealers = await searchDealers({
+        prisma,
+        companyId: req.companyId!,
+        baseWhere: {
+          voiceRecordings: {
+            some: {}
+          }
+        },
+        searchTerm: search as string,
         select: {
           id: true,
           companyName: true,
@@ -709,43 +428,21 @@ router.get('/dashboard/dealers-with-recordings', async (req: AuthRequest, res) =
           phone: true,
           status: true
         },
-        distinct: ['id'],
         take: 100
       });
-
-      if (exactDealers.length > 0) {
-        dealers = exactDealers;
-      } else {
-        const allDealers = await prisma.dealer.findMany({
-          where: baseWhere,
-          select: {
-            id: true,
-            companyName: true,
-            contactName: true,
-            email: true,
-            phone: true,
-            status: true,
-            buyingGroup: true
-          },
-          distinct: ['id'],
-          take: 500
-        });
-
-        const fuzzyMatches = allDealers.filter(dealer =>
-          fuzzyMatchDealer(searchTerm, {
-            companyName: dealer.companyName,
-            contactName: dealer.contactName,
-            email: dealer.email,
-            phone: dealer.phone,
-            buyingGroup: dealer.buyingGroup
-          }, 0.5)
-        );
-
-        dealers = fuzzyMatches.slice(0, 100);
-      }
+      // Remove duplicates
+      const uniqueDealers = dealers.filter((dealer, index, self) =>
+        index === self.findIndex(d => d.id === dealer.id)
+      );
+      dealers = uniqueDealers;
     } else {
       dealers = await prisma.dealer.findMany({
-        where: baseWhere,
+        where: {
+          companyId: req.companyId!,
+          voiceRecordings: {
+            some: {}
+          }
+        },
         select: {
           id: true,
           companyName: true,
