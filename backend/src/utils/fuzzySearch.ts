@@ -146,12 +146,20 @@ export function fuzzyMatchDealer(
     }
     
     // For name fields, also check word-by-word matching
-    // This helps with "Skulnick" matching "Donna Skolnick" or "Steve Skolnick"
+    // This helps with "Skolnick" matching "Donna Skolnick" or "Steve Skolnick"
     if (isName) {
       const words = fieldLower.split(/\s+/);
       for (const word of words) {
-        // Check if search term matches any word (both must be at least 3 chars for meaningful match)
-        if (word.length >= 3 && searchTermLower.length >= 3) {
+        // Check exact word match first (faster)
+        if (word === searchTermLower) {
+          return true;
+        }
+        // Check if search term is contained in word (for partial matches like "Skol" matching "Skolnick")
+        if (word.includes(searchTermLower) || searchTermLower.includes(word)) {
+          return true;
+        }
+        // Check if search term matches any word (both must be at least 2 chars for meaningful match)
+        if (word.length >= 2 && searchTermLower.length >= 2) {
           if (isSimilar(searchTermLower, word, threshold)) {
             return true;
           }

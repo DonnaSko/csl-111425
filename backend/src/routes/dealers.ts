@@ -152,114 +152,96 @@ router.get('/', async (req: AuthRequest, res) => {
           total = fuzzyMatches.length;
         }
       } else {
-        // Multi-character search - use contains
-        // Also search in groups (many-to-many)
-        const exactWhere: any = {
-          ...where,
-          OR: [
-            { companyName: { contains: searchTerm, mode: 'insensitive' } },
-            { contactName: { contains: searchTerm, mode: 'insensitive' } },
-            { email: { contains: searchTerm, mode: 'insensitive' } },
-            { phone: { contains: searchTerm, mode: 'insensitive' } },
-            { buyingGroup: { contains: searchTerm, mode: 'insensitive' } },
-            {
-              groups: {
-                some: {
-                  group: {
-                    name: { contains: searchTerm, mode: 'insensitive' }
-                  }
-                }
+        // Multi-character search - use semantic/fuzzy search for better matching
+        // This handles typos, partial matches, and word-by-word matching (e.g., "Skolnick" matches "Donna Skolnick")
+        useFuzzySearch = true;
+        
+        // Fetch all dealers for the company (with filters applied)
+        const allDealers = await prisma.dealer.findMany({
+          where,
+          include: {
+            _count: {
+              select: {
+                dealerNotes: true,
+                photos: true,
+                voiceRecordings: true,
+                todos: true
               }
-            }
-          ]
-        };
-
-        const exactTotal = await prisma.dealer.count({ where: exactWhere });
-
-        // If we found results with exact match, use those (with pagination)
-        if (exactTotal > 0) {
-          const [paginatedDealers] = await Promise.all([
-            prisma.dealer.findMany({
-              where: exactWhere,
-              skip,
-              take: limitNum,
-              orderBy: { createdAt: 'desc' },
+            },
+            groups: {
               include: {
-                _count: {
+                group: {
                   select: {
-                    dealerNotes: true,
-                    photos: true,
-                    voiceRecordings: true,
-                    todos: true
-                  }
-                },
-                groups: {
-                  include: {
-                    group: {
-                      select: {
-                        id: true,
-                        name: true
-                      }
-                    }
+                    id: true,
+                    name: true
                   }
                 }
               }
-            })
-          ]);
-          dealers = paginatedDealers;
-          total = exactTotal;
-        } else {
-          // No exact matches, try fuzzy search
-          useFuzzySearch = true;
-          // Fetch all dealers for the company (with filters applied)
-          const allDealers = await prisma.dealer.findMany({
-            where,
-            include: {
-              _count: {
-                select: {
-                  dealerNotes: true,
-                  photos: true,
-                  voiceRecordings: true,
-                  todos: true
-                }
+            },
+            buyingGroupHistory: {
+              where: {
+                endDate: null // Only active buying group associations
               },
-              groups: {
-                include: {
-                  group: {
-                    select: {
-                      id: true,
-                      name: true
-                    }
+              include: {
+                buyingGroup: {
+                  select: {
+                    name: true
                   }
                 }
               }
             }
-          });
+          }
+        });
 
-          // Apply fuzzy matching with lower threshold for better typo tolerance
-          const fuzzyMatches = allDealers.filter(dealer => {
-            const groupNames = dealer.groups?.map((dg: any) => dg.group.name).join(' ') || '';
-            return fuzzyMatchDealer(searchTerm, {
-              companyName: dealer.companyName,
-              contactName: dealer.contactName,
-              email: dealer.email,
-              phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup,
-              groups: groupNames
-            }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
-          });
+        // Apply semantic/fuzzy matching with improved word-by-word matching
+        const fuzzyMatches = allDealers.filter(dealer => {
+          const groupNames = dealer.groups?.map((dg: any) => dg.group.name).join(' ') || '';
+          const buyingGroupNames = dealer.buyingGroupHistory?.map((h: any) => h.buyingGroup.name).join(' ') || '';
           
-          console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
+          // First try exact contains match (faster for exact matches)
+          const searchLower = searchTerm.toLowerCase();
+          const exactMatch = 
+            (dealer.companyName?.toLowerCase().includes(searchLower)) ||
+            (dealer.contactName?.toLowerCase().includes(searchLower)) ||
+            (dealer.email?.toLowerCase().includes(searchLower)) ||
+            (dealer.phone?.includes(searchTerm)) ||
+            (dealer.buyingGroup?.toLowerCase().includes(searchLower)) ||
+            (groupNames.toLowerCase().includes(searchLower)) ||
+            (buyingGroupNames.toLowerCase().includes(searchLower));
+          
+          if (exactMatch) return true;
+          
+          // Then try fuzzy/semantic matching for typos and partial matches
+          return fuzzyMatchDealer(searchTerm, {
+            companyName: dealer.companyName,
+            contactName: dealer.contactName,
+            email: dealer.email,
+            phone: dealer.phone,
+            buyingGroup: dealer.buyingGroup || buyingGroupNames,
+            groups: groupNames
+          }, 0.4) // 40% similarity threshold for better semantic matching
+        });
+        
+        console.log(`Semantic search: "${searchTerm}" found ${fuzzyMatches.length} matches out of ${allDealers.length} dealers`);
 
-          // Sort fuzzy matches by creation date (newest first)
-          fuzzyMatches.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+        // Sort fuzzy matches by relevance (exact matches first, then by similarity)
+        fuzzyMatches.sort((a, b) => {
+          const aExact = 
+            (a.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             a.contactName?.toLowerCase().includes(searchTerm.toLowerCase())) ? 1 : 0;
+          const bExact = 
+            (b.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             b.contactName?.toLowerCase().includes(searchTerm.toLowerCase())) ? 1 : 0;
+          
+          if (aExact !== bExact) return bExact - aExact;
+          
+          // Then by creation date (newest first)
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
 
-          // Apply pagination to fuzzy matches
-          dealers = fuzzyMatches.slice(skip, skip + limitNum);
-          total = fuzzyMatches.length;
-        }
+        // Apply pagination to fuzzy matches
+        dealers = fuzzyMatches.slice(skip, skip + limitNum);
+        total = fuzzyMatches.length;
       }
     } else {
       // No search term, just get all dealers with filters
@@ -297,15 +279,9 @@ router.get('/', async (req: AuthRequest, res) => {
       total = allTotal;
     }
 
-    // Apply pagination to fuzzy search results (exact matches already paginated)
-    let paginatedDealers = dealers;
-    if (useFuzzySearch) {
-      // Only paginate fuzzy results (exact matches already paginated by Prisma)
-      paginatedDealers = dealers.slice(skip, skip + limitNum);
-    }
-
+    // Dealers are already paginated (either by Prisma for exact matches or by slice for fuzzy matches)
     res.json({
-      dealers: paginatedDealers,
+      dealers,
       pagination: {
         total,
         page: pageNum,
