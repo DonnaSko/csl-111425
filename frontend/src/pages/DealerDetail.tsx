@@ -53,12 +53,29 @@ const DealerDetail = () => {
   }, [id]);
 
   const fetchDealer = async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    
     try {
+      console.log(`Fetching dealer with id: ${id}`);
       const response = await api.get(`/dealers/${id}`);
+      console.log('Dealer fetched:', response.data);
       setDealer(response.data);
       setRating(response.data.rating || 0);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dealer:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      if (error.response?.status === 404) {
+        // Dealer not found - show error message
+        alert('Dealer not found. It may have been deleted or you may not have access to it.');
+        navigate('/dealers');
+      }
     } finally {
       setLoading(false);
     }

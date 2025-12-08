@@ -123,21 +123,56 @@ router.get('/', async (req: AuthRequest, res) => {
                     }
                   }
                 }
+              },
+              buyingGroupHistory: {
+                where: {
+                  endDate: null // Only active buying group associations
+                },
+                include: {
+                  buyingGroup: {
+                    select: {
+                      name: true
+                    }
+                  }
+                }
               }
             }
           });
 
-          // Apply fuzzy matching with lower threshold for better typo tolerance
+          // Apply fuzzy matching with improved word-by-word matching
           const fuzzyMatches = allDealers.filter(dealer => {
             const groupNames = dealer.groups?.map((dg: any) => dg.group.name).join(' ') || '';
+            const buyingGroupNames = dealer.buyingGroupHistory?.map((h: any) => h.buyingGroup.name).join(' ') || '';
+            
+            // First try exact contains match with word-by-word for contact names
+            const searchLower = searchTerm.toLowerCase().trim();
+            if (dealer.companyName?.toLowerCase().includes(searchLower)) return true;
+            if (dealer.contactName) {
+              const contactLower = dealer.contactName.toLowerCase();
+              if (contactLower.includes(searchLower)) return true;
+              // Word-by-word check for last names
+              const words = contactLower.split(/\s+/);
+              for (const word of words) {
+                if (word === searchLower || word.includes(searchLower) || searchLower.includes(word)) {
+                  return true;
+                }
+              }
+            }
+            if (dealer.email?.toLowerCase().includes(searchLower)) return true;
+            if (dealer.phone?.includes(searchTerm)) return true;
+            if (dealer.buyingGroup?.toLowerCase().includes(searchLower)) return true;
+            if (groupNames.toLowerCase().includes(searchLower)) return true;
+            if (buyingGroupNames.toLowerCase().includes(searchLower)) return true;
+            
+            // Then try fuzzy matching
             return fuzzyMatchDealer(searchTerm, {
               companyName: dealer.companyName,
               contactName: dealer.contactName,
               email: dealer.email,
               phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup,
+              buyingGroup: dealer.buyingGroup || buyingGroupNames,
               groups: groupNames
-            }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
+            }, 0.4) // 40% similarity threshold for better semantic matching
           });
           
           console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
@@ -199,17 +234,30 @@ router.get('/', async (req: AuthRequest, res) => {
           const buyingGroupNames = dealer.buyingGroupHistory?.map((h: any) => h.buyingGroup.name).join(' ') || '';
           
           // First try exact contains match (faster for exact matches)
-          const searchLower = searchTerm.toLowerCase();
-          const exactMatch = 
-            (dealer.companyName?.toLowerCase().includes(searchLower)) ||
-            (dealer.contactName?.toLowerCase().includes(searchLower)) ||
-            (dealer.email?.toLowerCase().includes(searchLower)) ||
-            (dealer.phone?.includes(searchTerm)) ||
-            (dealer.buyingGroup?.toLowerCase().includes(searchLower)) ||
-            (groupNames.toLowerCase().includes(searchLower)) ||
-            (buyingGroupNames.toLowerCase().includes(searchLower));
+          const searchLower = searchTerm.toLowerCase().trim();
           
-          if (exactMatch) return true;
+          // Check company name
+          if (dealer.companyName?.toLowerCase().includes(searchLower)) return true;
+          
+          // Check contact name - both full match and word-by-word (for last names like "Skolnick")
+          if (dealer.contactName) {
+            const contactLower = dealer.contactName.toLowerCase();
+            if (contactLower.includes(searchLower)) return true;
+            // Word-by-word check for last names (e.g., "Skolnick" in "Donna Skolnick")
+            const words = contactLower.split(/\s+/);
+            for (const word of words) {
+              if (word === searchLower || word.includes(searchLower) || searchLower.includes(word)) {
+                return true;
+              }
+            }
+          }
+          
+          // Check other fields
+          if (dealer.email?.toLowerCase().includes(searchLower)) return true;
+          if (dealer.phone?.includes(searchTerm)) return true;
+          if (dealer.buyingGroup?.toLowerCase().includes(searchLower)) return true;
+          if (groupNames.toLowerCase().includes(searchLower)) return true;
+          if (buyingGroupNames.toLowerCase().includes(searchLower)) return true;
           
           // Then try fuzzy/semantic matching for typos and partial matches
           return fuzzyMatchDealer(searchTerm, {
@@ -295,13 +343,39 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+// Get unique buying groups (MUST be before /:id route to avoid route conflicts)
+router.get('/buying-groups/list', async (req: AuthRequest, res) => {
+  try {
+    const buyingGroups = await prisma.dealer.findMany({
+      where: {
+        companyId: req.companyId!,
+        buyingGroup: { not: null }
+      },
+      select: {
+        buyingGroup: true
+      },
+      distinct: ['buyingGroup']
+    });
+
+    res.json(buyingGroups.map((bg: { buyingGroup: string | null }) => bg.buyingGroup).filter(Boolean));
+  } catch (error) {
+    console.error('Get buying groups list error:', error);
+    res.status(500).json({ error: 'Failed to fetch buying groups' });
+  }
+});
+
 // Get single dealer
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
+    const dealerId = req.params.id;
+    const companyId = req.companyId!;
+    
+    console.log(`Fetching dealer: id=${dealerId}, companyId=${companyId}`);
+    
     const dealer = await prisma.dealer.findFirst({
       where: {
-        id: req.params.id,
-        companyId: req.companyId! // Ensure data isolation
+        id: dealerId,
+        companyId: companyId // Ensure data isolation
       },
       include: {
         dealerNotes: {
@@ -353,9 +427,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
     });
 
     if (!dealer) {
+      console.log(`Dealer not found: id=${dealerId}, companyId=${companyId}`);
+      // Check if dealer exists but belongs to different company
+      const dealerExists = await prisma.dealer.findFirst({
+        where: { id: dealerId },
+        select: { id: true, companyId: true, companyName: true }
+      });
+      if (dealerExists) {
+        console.log(`Dealer exists but belongs to different company: ${dealerExists.companyId} vs ${companyId}`);
+      }
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    console.log(`Dealer found: ${dealer.companyName} (id: ${dealer.id})`);
     res.json(dealer);
   } catch (error) {
     console.error('Get dealer error:', error);
