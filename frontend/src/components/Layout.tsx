@@ -21,6 +21,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Trade Shows', href: '/trade-shows', icon: '📅' },
     { name: 'Reports', href: '/reports', icon: '📊' },
     { name: 'To-Dos', href: '/todos', icon: '✅' },
+    { name: 'Buying Group Maintenance', href: '/buying-group-maintenance', icon: '🏢' },
   ];
 
   const handleLogout = () => {

@@ -359,6 +359,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
               }
             }
           }
+        },
+        buyingGroupHistory: {
+          include: {
+            buyingGroup: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          },
+          orderBy: {
+            startDate: 'desc'
+          }
         }
       }
     });
@@ -594,12 +607,66 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
       });
     }
 
+    // Collect all buying group names from dealers
+    const allBuyingGroupNames = new Set<string>();
+    dealersToImport.forEach((dealer: any) => {
+      if (dealer.buyingGroup && typeof dealer.buyingGroup === 'string') {
+        allBuyingGroupNames.add(dealer.buyingGroup.trim());
+      }
+    });
+
+    // Create buying groups if they don't exist
+    if (allBuyingGroupNames.size > 0) {
+      console.log(`Creating/ensuring ${allBuyingGroupNames.size} buying groups exist...`);
+      const buyingGroupNamesArray = Array.from(allBuyingGroupNames);
+      const buyingGroupsToCreate = buyingGroupNamesArray.map(name => ({
+        companyId: req.companyId!,
+        name,
+        deletedAt: null
+      }));
+
+      // Check for existing buying groups (including deleted ones)
+      const existingBuyingGroups = await prisma.buyingGroup.findMany({
+        where: {
+          companyId: req.companyId!,
+          name: { in: buyingGroupNamesArray }
+        },
+        select: { id: true, name: true, deletedAt: true }
+      });
+
+      const existingNames = new Set(existingBuyingGroups.map((bg: { name: string }) => bg.name.toLowerCase()));
+      const toCreate = buyingGroupsToCreate.filter(bg => !existingNames.has(bg.name.toLowerCase()));
+
+      if (toCreate.length > 0) {
+        await prisma.buyingGroup.createMany({
+          data: toCreate,
+          skipDuplicates: true
+        });
+      }
+
+      // Restore deleted buying groups
+      const deletedToRestore = existingBuyingGroups.filter((bg: { deletedAt: Date | null }) => bg.deletedAt !== null);
+      for (const bg of deletedToRestore) {
+        await prisma.buyingGroup.update({
+          where: { id: bg.id },
+          data: { deletedAt: null }
+        });
+      }
+    }
+
     // Get all groups for this company to map names to IDs
     const companyGroups = await prisma.group.findMany({
       where: { companyId: req.companyId! },
       select: { id: true, name: true }
     });
     const groupNameToId = new Map(companyGroups.map((g: { id: string; name: string }) => [g.name.toLowerCase(), g.id]));
+
+    // Get all buying groups for this company to map names to IDs
+    const companyBuyingGroups = await prisma.buyingGroup.findMany({
+      where: { companyId: req.companyId!, deletedAt: null },
+      select: { id: true, name: true }
+    });
+    const buyingGroupNameToId = new Map(companyBuyingGroups.map((bg: { id: string; name: string }) => [bg.name.toLowerCase(), bg.id]));
 
     // Import dealers in batches to avoid overwhelming the database
     let createdCount = 0;
@@ -709,6 +776,49 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
             }
           }
         });
+
+        // Assign dealers to buying groups (non-batch path)
+        const buyingGroupAssignments: Array<{ dealerId: string; buyingGroupId: string }> = [];
+        for (const item of dealersWithGroups) {
+          const dealer = createdDealers.find((d: { companyName: string; email: string | null; phone: string | null }) => 
+            d.companyName === item.dealerData.companyName &&
+            (!item.dealerData.email || d.email === item.dealerData.email) &&
+            (!item.dealerData.phone || d.phone === item.dealerData.phone)
+          );
+          if (dealer && item.dealerData.buyingGroup) {
+            const buyingGroupId = buyingGroupNameToId.get(item.dealerData.buyingGroup.toLowerCase());
+            if (buyingGroupId) {
+              buyingGroupAssignments.push({ dealerId: dealer.id, buyingGroupId });
+            }
+          }
+        }
+
+        if (buyingGroupAssignments.length > 0) {
+          console.log(`Assigning ${buyingGroupAssignments.length} dealers to buying groups...`);
+          const now = new Date();
+          for (const { dealerId, buyingGroupId } of buyingGroupAssignments) {
+            // End any previous active buying group associations
+            await prisma.dealerBuyingGroupHistory.updateMany({
+              where: {
+                dealerId,
+                endDate: null
+              },
+              data: {
+                endDate: now
+              }
+            });
+
+            // Create new history record
+            await prisma.dealerBuyingGroupHistory.create({
+              data: {
+                dealerId,
+                buyingGroupId,
+                startDate: now
+              }
+            });
+          }
+          console.log(`Assigned dealers to buying groups`);
+        }
       }
       
       // Assign dealers to groups

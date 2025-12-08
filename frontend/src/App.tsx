@@ -15,6 +15,7 @@ import Todos from './pages/Todos';
 import GettingStarted from './pages/GettingStarted';
 import Subscription from './pages/Subscription';
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
+import BuyingGroupMaintenance from './pages/BuyingGroupMaintenance';
 
 function App() {
   return (
@@ -109,6 +110,14 @@ function App() {
               element={
                 <PrivateRoute requireSubscription>
                   <GettingStarted />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/buying-group-maintenance"
+              element={
+                <PrivateRoute requireSubscription>
+                  <BuyingGroupMaintenance />
                 </PrivateRoute>
               }
             />

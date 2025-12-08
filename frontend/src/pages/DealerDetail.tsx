@@ -3,6 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 
+interface BuyingGroupHistory {
+  id: string;
+  startDate: string;
+  endDate: string | null;
+  buyingGroup: {
+    id: string;
+    name: string;
+  };
+}
+
 interface DealerDetail {
   id: string;
   companyName: string;
@@ -21,6 +31,7 @@ interface DealerDetail {
   photos: Array<{ id: string; originalName: string; type: string; createdAt: string }>;
   voiceRecordings: Array<{ id: string; originalName: string; createdAt: string }>;
   todos: Array<{ id: string; title: string; dueDate: string | null }>;
+  buyingGroupHistory?: BuyingGroupHistory[];
 }
 
 const DealerDetail = () => {
@@ -30,10 +41,14 @@ const DealerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [noteContent, setNoteContent] = useState('');
   const [rating, setRating] = useState(0);
+  const [showBuyingGroupModal, setShowBuyingGroupModal] = useState(false);
+  const [buyingGroups, setBuyingGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedBuyingGroupId, setSelectedBuyingGroupId] = useState<string>('');
 
   useEffect(() => {
     if (id) {
       fetchDealer();
+      fetchBuyingGroups();
     }
   }, [id]);
 
@@ -70,6 +85,53 @@ const DealerDetail = () => {
     } catch (error) {
       console.error('Failed to update rating:', error);
     }
+  };
+
+  const fetchBuyingGroups = async () => {
+    try {
+      const response = await api.get('/buying-groups');
+      setBuyingGroups(response.data);
+    } catch (error) {
+      console.error('Failed to fetch buying groups:', error);
+    }
+  };
+
+  const handleAssignBuyingGroup = async () => {
+    if (!id || !selectedBuyingGroupId) return;
+
+    try {
+      await api.post(`/buying-groups/${selectedBuyingGroupId}/assign`, { dealerId: id });
+      setShowBuyingGroupModal(false);
+      setSelectedBuyingGroupId('');
+      fetchDealer();
+    } catch (error: any) {
+      console.error('Failed to assign buying group:', error);
+      alert(error.response?.data?.error || 'Failed to assign buying group');
+    }
+  };
+
+  const handleRemoveBuyingGroup = async (buyingGroupId: string) => {
+    if (!id) return;
+
+    if (!confirm('Remove this dealer from the buying group? This will be recorded in history.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/buying-groups/${buyingGroupId}/assign/${id}`);
+      fetchDealer();
+    } catch (error: any) {
+      console.error('Failed to remove buying group:', error);
+      alert(error.response?.data?.error || 'Failed to remove buying group');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
@@ -148,12 +210,39 @@ const DealerDetail = () => {
                 <p className="text-gray-900">{dealer.city}</p>
               </div>
             )}
-            {dealer.buyingGroup && (
-              <div>
-                <span className="text-sm font-medium text-gray-600">Buying Group:</span>
-                <p className="text-gray-900">{dealer.buyingGroup}</p>
+            <div>
+              <span className="text-sm font-medium text-gray-600">Buying Group:</span>
+              <div className="flex items-center gap-2 mt-1">
+                {dealer.buyingGroup ? (
+                  <>
+                    <p className="text-gray-900">{dealer.buyingGroup}</p>
+                    {dealer.buyingGroupHistory && dealer.buyingGroupHistory.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const current = dealer.buyingGroupHistory?.find(
+                            h => h.buyingGroup.name === dealer.buyingGroup && !h.endDate
+                          );
+                          if (current) {
+                            handleRemoveBuyingGroup(current.buyingGroup.id);
+                          }
+                        }}
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-gray-400">None</span>
+                )}
+                <button
+                  onClick={() => setShowBuyingGroupModal(true)}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  {dealer.buyingGroup ? 'Change' : 'Add'}
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Lead Quality Rating */}
@@ -241,8 +330,84 @@ const DealerDetail = () => {
               </div>
             </div>
           )}
+
+          {/* Buying Group History */}
+          {dealer.buyingGroupHistory && dealer.buyingGroupHistory.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Buying Group History
+              </h3>
+              <div className="space-y-2">
+                {dealer.buyingGroupHistory.map((history) => (
+                  <div key={history.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">{history.buyingGroup.name}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {formatDate(history.startDate)}
+                          {history.endDate ? ` - ${formatDate(history.endDate)}` : ' - Present'}
+                        </p>
+                      </div>
+                      {!history.endDate && (
+                        <button
+                          onClick={() => handleRemoveBuyingGroup(history.buyingGroup.id)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Buying Group Modal */}
+      {showBuyingGroupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Assign Buying Group</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Buying Group
+              </label>
+              <select
+                value={selectedBuyingGroupId}
+                onChange={(e) => setSelectedBuyingGroupId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Select a buying group --</option>
+                {buyingGroups.map((bg) => (
+                  <option key={bg.id} value={bg.id}>
+                    {bg.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setShowBuyingGroupModal(false);
+                  setSelectedBuyingGroupId('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignBuyingGroup}
+                disabled={!selectedBuyingGroupId}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

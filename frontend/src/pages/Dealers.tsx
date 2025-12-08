@@ -49,6 +49,11 @@ const Dealers = () => {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [showBuyingGroupsModal, setShowBuyingGroupsModal] = useState(false);
+  const [showCreateBuyingGroupModal, setShowCreateBuyingGroupModal] = useState(false);
+  const [newBuyingGroupName, setNewBuyingGroupName] = useState('');
+  const [editingBuyingGroup, setEditingBuyingGroup] = useState<{ id: string; name: string } | null>(null);
+  const [buyingGroupsList, setBuyingGroupsList] = useState<Array<{ id: string; name: string; _count?: { history: number } }>>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -56,7 +61,10 @@ const Dealers = () => {
     fetchDealers();
     fetchBuyingGroups();
     fetchGroups();
-  }, [search, statusFilter, buyingGroupFilter, groupFilter]);
+    if (showBuyingGroupsModal) {
+      fetchBuyingGroupsList();
+    }
+  }, [search, statusFilter, buyingGroupFilter, groupFilter, showBuyingGroupsModal]);
 
   const fetchDealers = async () => {
     try {
@@ -148,6 +156,73 @@ const Dealers = () => {
     setShowCreateGroupModal(true);
   };
 
+  const fetchBuyingGroupsList = async () => {
+    try {
+      const response = await api.get('/buying-groups');
+      setBuyingGroupsList(response.data);
+    } catch (error) {
+      console.error('Failed to fetch buying groups:', error);
+    }
+  };
+
+  const handleCreateBuyingGroup = async () => {
+    if (!newBuyingGroupName.trim()) {
+      alert('Please enter a buying group name');
+      return;
+    }
+
+    try {
+      await api.post('/buying-groups', { name: newBuyingGroupName.trim() });
+      setNewBuyingGroupName('');
+      setShowCreateBuyingGroupModal(false);
+      fetchBuyingGroupsList();
+      fetchBuyingGroups(); // Refresh filter dropdown
+    } catch (error: any) {
+      console.error('Failed to create buying group:', error);
+      alert(error.response?.data?.error || 'Failed to create buying group');
+    }
+  };
+
+  const handleEditBuyingGroup = async () => {
+    if (!editingBuyingGroup || !newBuyingGroupName.trim()) {
+      return;
+    }
+
+    try {
+      await api.put(`/buying-groups/${editingBuyingGroup.id}`, { name: newBuyingGroupName.trim() });
+      setEditingBuyingGroup(null);
+      setNewBuyingGroupName('');
+      fetchBuyingGroupsList();
+      fetchBuyingGroups();
+      fetchDealers();
+    } catch (error: any) {
+      console.error('Failed to update buying group:', error);
+      alert(error.response?.data?.error || 'Failed to update buying group');
+    }
+  };
+
+  const handleDeleteBuyingGroup = async (buyingGroupId: string) => {
+    if (!confirm('Are you sure you want to delete this buying group? Dealers will be moved to history.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/buying-groups/${buyingGroupId}`);
+      fetchBuyingGroupsList();
+      fetchBuyingGroups();
+      fetchDealers();
+    } catch (error: any) {
+      console.error('Failed to delete buying group:', error);
+      alert(error.response?.data?.error || 'Failed to delete buying group');
+    }
+  };
+
+  const openEditBuyingGroupModal = (buyingGroup: { id: string; name: string }) => {
+    setEditingBuyingGroup(buyingGroup);
+    setNewBuyingGroupName(buyingGroup.name);
+    setShowCreateBuyingGroupModal(true);
+  };
+
   const handleBulkUpload = () => {
     setShowCSVUpload(true);
   };
@@ -197,6 +272,12 @@ const Dealers = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               👥 Manage Groups
+            </button>
+            <button
+              onClick={() => setShowBuyingGroupsModal(true)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              🏢 Manage Buying Groups
             </button>
             <button
               onClick={handleBulkUpload}
@@ -471,6 +552,123 @@ const Dealers = () => {
                 product categories, or any other criteria important to your business. Dealers can belong 
                 to multiple groups. If you have existing buyingGroup values, they will be automatically 
                 migrated to Groups.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buying Groups Management Modal */}
+      {showBuyingGroupsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Manage Buying Groups</h2>
+              <button
+                onClick={() => {
+                  setShowBuyingGroupsModal(false);
+                  setShowCreateBuyingGroupModal(false);
+                  setEditingBuyingGroup(null);
+                  setNewBuyingGroupName('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setEditingBuyingGroup(null);
+                  setNewBuyingGroupName('');
+                  setShowCreateBuyingGroupModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                ➕ Create New Buying Group
+              </button>
+            </div>
+
+            {showCreateBuyingGroupModal && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2">
+                  {editingBuyingGroup ? 'Edit Buying Group' : 'Create New Buying Group'}
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newBuyingGroupName}
+                    onChange={(e) => setNewBuyingGroupName(e.target.value)}
+                    placeholder="Enter buying group name (e.g., NEAG, DMI, West Coast)"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        editingBuyingGroup ? handleEditBuyingGroup() : handleCreateBuyingGroup();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={editingBuyingGroup ? handleEditBuyingGroup : handleCreateBuyingGroup}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    {editingBuyingGroup ? 'Save' : 'Create'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateBuyingGroupModal(false);
+                      setEditingBuyingGroup(null);
+                      setNewBuyingGroupName('');
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {buyingGroupsList.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  No buying groups yet. Create your first buying group to get started.
+                </p>
+              ) : (
+                buyingGroupsList.map((buyingGroup) => (
+                  <div
+                    key={buyingGroup.id}
+                    className="flex justify-between items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <div>
+                      <span className="font-semibold">{buyingGroup.name}</span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        ({buyingGroup._count?.history || 0} dealers)
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openEditBuyingGroupModal(buyingGroup)}
+                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBuyingGroup(buyingGroup.id)}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Buying groups allow you to organize dealers by buying group affiliations. 
+                When a buying group is deleted, dealers are moved to history with date ranges. 
+                Dealers can be assigned to buying groups individually or via CSV upload.
               </p>
             </div>
           </div>
