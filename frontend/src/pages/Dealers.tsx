@@ -75,7 +75,12 @@ const Dealers = () => {
       if (groupFilter !== 'All Groups') params.append('groupId', groupFilter);
 
       const response = await api.get(`/dealers?${params.toString()}`);
-      setDealers(response.data.dealers);
+      const dealersData = response.data.dealers || [];
+      console.log(`[DEALERS PAGE] Fetched ${dealersData.length} dealers`);
+      if (dealersData.length > 0) {
+        console.log(`[DEALERS PAGE] Sample dealer IDs:`, dealersData.slice(0, 3).map((d: any) => ({ id: d.id, name: d.companyName })));
+      }
+      setDealers(dealersData);
     } catch (error) {
       console.error('Failed to fetch dealers:', error);
     } finally {
@@ -369,73 +374,79 @@ const Dealers = () => {
                 No dealers found. Add your first dealer to get started.
               </div>
             ) : (
-              dealers.map((dealer) => (
-                <Link
-                  key={dealer.id}
-                  to={`/dealers/${dealer.id}`}
-                  className="block p-6 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {dealer.companyName}
-                      </h3>
-                      {dealer.contactName && (
-                        <p className="text-gray-600 mt-1">{dealer.contactName}</p>
-                      )}
-                      {dealer.email && (
-                        <p className="text-sm text-gray-500 mt-1">{dealer.email}</p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {dealer.buyingGroup && (
-                          <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-                            {dealer.buyingGroup}
-                          </span>
+              dealers.map((dealer) => {
+                if (!dealer.id) {
+                  console.error('[DEALERS PAGE] Dealer missing ID:', dealer);
+                }
+                return (
+                  <Link
+                    key={dealer.id}
+                    to={`/dealers/${dealer.id}`}
+                    onClick={() => console.log(`[DEALERS PAGE] Navigating to dealer: id="${dealer.id}", name="${dealer.companyName}"`)}
+                    className="block p-6 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {dealer.companyName}
+                        </h3>
+                        {dealer.contactName && (
+                          <p className="text-gray-600 mt-1">{dealer.contactName}</p>
                         )}
-                        {dealer.groups && dealer.groups.length > 0 && (
-                          <>
-                            {dealer.groups.map((dg) => (
-                              <span
-                                key={dg.id}
-                                className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
-                              >
-                                {dg.group.name}
-                              </span>
-                            ))}
-                          </>
+                        {dealer.email && (
+                          <p className="text-sm text-gray-500 mt-1">{dealer.email}</p>
                         )}
-                      </div>
-                    </div>
-                    <div className="ml-4 text-right flex items-start gap-3">
-                      <div>
-                        <span
-                          className={`inline-block px-3 py-1 text-sm rounded-full ${
-                            dealer.status === 'Active'
-                              ? 'bg-green-100 text-green-800'
-                              : dealer.status === 'Prospect'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {dealer.status}
-                        </span>
-                        <div className="mt-2 text-xs text-gray-500">
-                          {dealer._count.dealerNotes} notes • {dealer._count.photos} photos •{' '}
-                          {dealer._count.voiceRecordings} recordings
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {dealer.buyingGroup && (
+                            <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                              {dealer.buyingGroup}
+                            </span>
+                          )}
+                          {dealer.groups && dealer.groups.length > 0 && (
+                            <>
+                              {dealer.groups.map((dg) => (
+                                <span
+                                  key={dg.id}
+                                  className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
+                                >
+                                  {dg.group.name}
+                                </span>
+                              ))}
+                            </>
+                          )}
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => handleDelete(dealer.id, e)}
-                        disabled={deletingId === dealer.id}
-                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
-                        title="Delete dealer"
-                      >
-                        {deletingId === dealer.id ? '...' : '🗑️'}
-                      </button>
+                      <div className="ml-4 text-right flex items-start gap-3">
+                        <div>
+                          <span
+                            className={`inline-block px-3 py-1 text-sm rounded-full ${
+                              dealer.status === 'Active'
+                                ? 'bg-green-100 text-green-800'
+                                : dealer.status === 'Prospect'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {dealer.status}
+                          </span>
+                          <div className="mt-2 text-xs text-gray-500">
+                            {dealer._count.dealerNotes} notes • {dealer._count.photos} photos •{' '}
+                            {dealer._count.voiceRecordings} recordings
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => handleDelete(dealer.id, e)}
+                          disabled={deletingId === dealer.id}
+                          className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
+                          title="Delete dealer"
+                        >
+                          {deletingId === dealer.id ? '...' : '🗑️'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                );
+              })
             )}
           </div>
         </div>

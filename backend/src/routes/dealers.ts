@@ -367,12 +367,25 @@ router.get('/buying-groups/list', async (req: AuthRequest, res) => {
 // Get single dealer
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
-    const dealerId = req.params.id;
+    const dealerId = req.params.id?.trim();
     const companyId = req.companyId!;
     
-    console.log(`Fetching dealer: id=${dealerId}, companyId=${companyId}`);
+    // Validate dealer ID
+    if (!dealerId || dealerId.length === 0) {
+      console.error('Invalid dealer ID provided:', dealerId);
+      return res.status(400).json({ error: 'Invalid dealer ID' });
+    }
     
-    const dealer = await prisma.dealer.findFirst({
+    // Validate companyId is set
+    if (!companyId) {
+      console.error('Company ID not set in request');
+      return res.status(401).json({ error: 'Authentication error: Company ID not found' });
+    }
+    
+    console.log(`[DEALER LOOKUP] Fetching dealer: id="${dealerId}" (length: ${dealerId.length}), companyId="${companyId}"`);
+    
+    // First, try to find dealer with companyId check
+    let dealer = await prisma.dealer.findFirst({
       where: {
         id: dealerId,
         companyId: companyId // Ensure data isolation
@@ -427,19 +440,41 @@ router.get('/:id', async (req: AuthRequest, res) => {
     });
 
     if (!dealer) {
-      console.log(`Dealer not found: id=${dealerId}, companyId=${companyId}`);
+      console.error(`[DEALER LOOKUP FAILED] Dealer not found: id="${dealerId}", companyId="${companyId}"`);
+      
       // Check if dealer exists but belongs to different company
       const dealerExists = await prisma.dealer.findFirst({
         where: { id: dealerId },
         select: { id: true, companyId: true, companyName: true }
       });
+      
       if (dealerExists) {
-        console.log(`Dealer exists but belongs to different company: ${dealerExists.companyId} vs ${companyId}`);
+        console.error(`[DEALER LOOKUP] Dealer exists but belongs to different company: dealerCompanyId="${dealerExists.companyId}" vs requestCompanyId="${companyId}"`);
+        console.error(`[DEALER LOOKUP] Dealer details: name="${dealerExists.companyName}", id="${dealerExists.id}"`);
+        return res.status(403).json({ 
+          error: 'Dealer not found',
+          details: 'This dealer belongs to a different company'
+        });
+      } else {
+        console.error(`[DEALER LOOKUP] Dealer ID does not exist in database: "${dealerId}"`);
+        // Check if there are any dealers with similar IDs (for debugging)
+        const similarDealers = await prisma.dealer.findMany({
+          where: {
+            companyId: companyId,
+            id: { startsWith: dealerId.substring(0, 10) }
+          },
+          select: { id: true, companyName: true },
+          take: 5
+        });
+        if (similarDealers.length > 0) {
+          console.error(`[DEALER LOOKUP] Found similar dealer IDs:`, similarDealers.map(d => d.id));
+        }
       }
+      
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
-    console.log(`Dealer found: ${dealer.companyName} (id: ${dealer.id})`);
+    console.log(`[DEALER LOOKUP SUCCESS] Dealer found: "${dealer.companyName}" (id: "${dealer.id}")`);
     res.json(dealer);
   } catch (error) {
     console.error('Get dealer error:', error);
@@ -1017,26 +1052,7 @@ router.post('/check-duplicates', authenticate, async (req: AuthRequest, res) => 
   }
 });
 
-// Get unique buying groups
-router.get('/buying-groups/list', async (req: AuthRequest, res) => {
-  try {
-    const buyingGroups = await prisma.dealer.findMany({
-      where: {
-        companyId: req.companyId!,
-        buyingGroup: { not: null }
-      },
-      select: {
-        buyingGroup: true
-      },
-      distinct: ['buyingGroup']
-    });
-
-    res.json(buyingGroups.map((bg: { buyingGroup: string | null }) => bg.buyingGroup).filter(Boolean));
-  } catch (error) {
-    console.error('Get buying groups error:', error);
-    res.status(500).json({ error: 'Failed to fetch buying groups' });
-  }
-});
+// REMOVED DUPLICATE ROUTE - This route is defined later in the file at line 1021
 
 // Add note to dealer
 router.post('/:id/notes', async (req: AuthRequest, res) => {
