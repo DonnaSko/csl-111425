@@ -69,23 +69,24 @@ model Subscription {
 }
 
 model Dealer {
-  id          String   @id @default(cuid())
-  companyId   String
-  companyName String
-  contactName String?
-  email       String?
-  phone       String?
-  city        String?
-  state       String?
-  zip         String?
-  country     String?
-  address     String?
-  buyingGroup String?
-  status      String   @default("Prospect") // Prospect, Active, Inactive, etc.
-  rating      Int? // 1-5 star rating
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  companyId    String
+  companyName  String
+  contactName  String?
+  email        String?
+  phone        String?
+  city         String?
+  state        String?
+  zip          String?
+  country      String?
+  address      String?
+  buyingGroup  String?
+  status       String   @default("Prospect") // Prospect, Active, Inactive, etc.
+  rating       Int? // 1-5 star rating
+  notes        String?
+  customFields Json? // Store custom CSV fields as JSON
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   company            Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   dealerNotes        DealerNote[]

@@ -27,16 +27,50 @@ const GettingStarted = () => {
               Upload a CSV file with your existing dealer information, or add dealers manually.
             </p>
             <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4">
-              <li>Click "Bulk Upload CSV" to import multiple dealers at once</li>
+              <li>Click "Upload Files" to import multiple dealers at once</li>
               <li>Or click "Add New Dealer" to add dealers one at a time</li>
               <li>The system will automatically detect and help you manage duplicates</li>
+              <li>Download our sample CSV template below to see the format</li>
             </ul>
-            <Link
-              to="/dealers"
-              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Go to Dealers & Upload CSV
-            </Link>
+            <div className="flex gap-4 mb-4">
+              <a
+                href="/sample-dealers.csv"
+                download="sample-dealers.csv"
+                className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                📥 Download Sample CSV Template
+              </a>
+              <Link
+                to="/dealers"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Go to Dealers & Upload CSV
+              </Link>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 mt-4">
+              <h3 className="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Required field:</strong> Company Name
+              </p>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Optional fields:</strong> Contact Name, Email, Phone, City, State, Zip, Country, Address, Buying Group, Groups (comma-separated), Status
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Note:</strong> Column names are case-insensitive and can have spaces. The system will automatically map common variations (e.g., "Company Name", "CompanyName", "company name" all work).
+              </p>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-4 mt-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Importing from CRM Systems:</h3>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>HubSpot:</strong> Export contacts/companies to CSV. Map your fields to our format. The system will recognize common field names.
+              </p>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Salesforce:</strong> Export leads/accounts to CSV. Ensure "Company Name" or equivalent is included.
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Other CRMs:</strong> Export to CSV format. Our system is flexible and will map common field names automatically.
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">

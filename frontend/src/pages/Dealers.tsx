@@ -85,10 +85,22 @@ const Dealers = () => {
 
   const fetchBuyingGroups = async () => {
     try {
-      const response = await api.get('/dealers/buying-groups/list');
-      setBuyingGroups(response.data);
+      // Use the new BuyingGroup model endpoint - only shows buying groups for this company
+      // New users will see empty list until they create/assign buying groups
+      const response = await api.get('/buying-groups');
+      // Extract just the names for the dropdown (backward compatible with old string format)
+      const buyingGroupNames = response.data.map((bg: { name: string }) => bg.name);
+      setBuyingGroups(buyingGroupNames);
     } catch (error) {
       console.error('Failed to fetch buying groups:', error);
+      // Fallback to old endpoint if new one fails
+      try {
+        const fallbackResponse = await api.get('/dealers/buying-groups/list');
+        setBuyingGroups(fallbackResponse.data);
+      } catch (fallbackError) {
+        console.error('Failed to fetch buying groups (fallback):', fallbackError);
+        setBuyingGroups([]);
+      }
     }
   };
 
@@ -482,7 +494,7 @@ const Dealers = () => {
                     type="text"
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
-                    placeholder="Enter group name (e.g., NEAG, DMI, West Coast)"
+                    placeholder="Enter group name (e.g., Product Category X, Region West, Account Size)"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
@@ -600,7 +612,7 @@ const Dealers = () => {
                     type="text"
                     value={newBuyingGroupName}
                     onChange={(e) => setNewBuyingGroupName(e.target.value)}
-                    placeholder="Enter buying group name (e.g., NEAG, DMI, West Coast)"
+                    placeholder="Enter buying group name (e.g., Your Buying Group Name)"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {

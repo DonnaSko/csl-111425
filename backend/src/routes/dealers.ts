@@ -572,7 +572,8 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
         address: dealer.address?.trim() || null,
         buyingGroup: dealer.buyingGroup?.trim() || null,
         status: dealer.status || 'Prospect',
-        groupNames: dealer.groupNames || undefined // Support comma-separated group names
+        groupNames: dealer.groupNames || undefined, // Support comma-separated group names
+        customFields: dealer.customFields || undefined // Store custom CSV fields as JSON
       });
 
       // Add to existing set to prevent duplicates within the same import
@@ -682,7 +683,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
         for (let i = 0; i < dealersToImport.length; i += BATCH_SIZE) {
           const batch = dealersToImport.slice(i, i + BATCH_SIZE);
           
-          // Extract group names before creating dealers
+          // Extract group names and customFields before creating dealers
           const batchWithGroups = batch.map((dealer: any) => {
             const groupNames = dealer.groupNames 
               ? (typeof dealer.groupNames === 'string' 
@@ -690,9 +691,9 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
                   : Array.isArray(dealer.groupNames) ? dealer.groupNames.map((n: string) => n.trim()).filter(Boolean) : [])
               : [];
             
-            // Remove groupNames from dealer data before creating
-            const { groupNames: _, ...dealerData } = dealer;
-            return { dealerData, groupNames };
+            // Extract customFields and groupNames, keep the rest for dealer creation
+            const { groupNames: _, customFields, ...dealerData } = dealer;
+            return { dealerData: { ...dealerData, customFields: customFields || null }, groupNames };
           });
 
           // Create dealers
@@ -732,7 +733,7 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
           console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} complete: ${result.count} dealers imported`);
         }
       } else {
-        // Extract group names before creating dealers
+        // Extract group names and customFields before creating dealers
         const dealersWithGroups = dealersToImport.map((dealer: any) => {
           const groupNames = dealer.groupNames 
             ? (typeof dealer.groupNames === 'string' 
@@ -740,8 +741,9 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
                 : Array.isArray(dealer.groupNames) ? dealer.groupNames.map((n: string) => n.trim()).filter(Boolean) : [])
             : [];
           
-          const { groupNames: _, ...dealerData } = dealer;
-          return { dealerData, groupNames };
+          // Extract customFields and groupNames, keep the rest for dealer creation
+          const { groupNames: _, customFields, ...dealerData } = dealer;
+          return { dealerData: { ...dealerData, customFields: customFields || null }, groupNames };
         });
 
         const dealerDataBatch = dealersWithGroups.map((item: any) => item.dealerData);

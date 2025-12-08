@@ -20,6 +20,7 @@ interface DealerRow {
   buyingGroup?: string;
   groupNames?: string; // Comma-separated group names
   status?: string;
+  customFields?: Record<string, any>; // Custom fields from CSV
 }
 
 interface DuplicateInfo {
@@ -250,6 +251,35 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                         const buyingGroupValue = getValueForRow(['buyinggroup', 'buying group']);
                         const groupNamesValue = getValueForRow(['groups', 'group names', 'groupnames']);
                         
+                        // Standard field names we recognize (case-insensitive)
+                        const standardFields = new Set([
+                          'companyname', 'company', 'company name', 'business name', 'businessname',
+                          'contactname', 'contact', 'contact name', 'name', 'person',
+                          'email', 'e-mail', 'email address',
+                          'phone', 'telephone', 'tel', 'phone number', 'phonenumber',
+                          'city', 'state', 'province', 'zip', 'zipcode', 'postal code', 'postalcode', 'postcode',
+                          'country', 'address', 'street', 'street address',
+                          'buyinggroup', 'buying group', 'groups', 'group names', 'groupnames',
+                          'status'
+                        ]);
+                        
+                        // Collect custom fields (any column not in our standard fields)
+                        const customFields: Record<string, any> = {};
+                        const rowKeys = Object.keys(row || {});
+                        for (const key of rowKeys) {
+                          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, '');
+                          if (!standardFields.has(normalizedKey) && row[key] != null && row[key] !== '') {
+                            const value = row[key];
+                            if (typeof value === 'string') {
+                              customFields[key] = value.trim();
+                            } else if (typeof value === 'number') {
+                              customFields[key] = String(value);
+                            } else if (value != null) {
+                              customFields[key] = String(value);
+                            }
+                          }
+                        }
+                        
                         return {
                           companyName: companyName.trim(),
                           contactName: getValueForRow(['contactname', 'contact', 'contact name', 'name', 'person']) || undefined,
@@ -262,7 +292,8 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                           address: getValueForRow(['address', 'street', 'street address']) || undefined,
                           buyingGroup: buyingGroupValue || undefined,
                           groupNames: groupNamesValue || undefined, // Comma-separated group names
-                          status: getValueForRow(['status']) || 'Prospect'
+                          status: getValueForRow(['status']) || 'Prospect',
+                          customFields: Object.keys(customFields).length > 0 ? customFields : undefined
                         };
                       } catch (rowError) {
                         console.error('Error processing row:', rowError, row);
@@ -595,9 +626,22 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
           <h2 className="text-2xl font-bold mb-4">Upload File</h2>
+          <div className="mb-4">
+            <a
+              href="/dealer-import-template.csv"
+              download="dealer-import-template.csv"
+              className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mb-4"
+            >
+              📥 Download Blank CSV Template
+            </a>
+          </div>
           <p className="text-gray-600 mb-4">
             <strong>For CSV files:</strong> Upload a CSV file with your dealers. Required column: <strong>Company Name</strong>.
             Optional columns: Contact Name, Email, Phone, City, State, Zip, Country, Address, Buying Group, Groups (comma-separated), Status.
+            <br /><br />
+            <strong>Custom Fields:</strong> You can include additional columns in your CSV. These will be stored and can be exported later.
+            <br /><br />
+            <strong>CRM Exports:</strong> Our system supports CSV exports from HubSpot, Salesforce, and other CRMs. Column names are automatically mapped.
             <br /><br />
             <strong>Groups-only CSV:</strong> Upload a CSV with just a "Group" or "Name" column to create groups without dealers.
             <br /><br />
