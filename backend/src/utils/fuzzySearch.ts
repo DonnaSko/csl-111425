@@ -117,6 +117,7 @@ export function fuzzyMatchDealer(
     email: string | null;
     phone: string | null;
     buyingGroup: string | null;
+    groups?: string; // Optional: comma-separated group names
   },
   threshold: number = 0.5
 ): boolean {
@@ -130,7 +131,8 @@ export function fuzzyMatchDealer(
     { value: dealer.contactName, isName: true },
     { value: dealer.email, isName: false },
     { value: dealer.phone, isName: false },
-    { value: dealer.buyingGroup, isName: false }
+    { value: dealer.buyingGroup, isName: false },
+    { value: dealer.groups || null, isName: false }
   ];
   
   for (const { value: field, isName } of fieldsToCheck) {

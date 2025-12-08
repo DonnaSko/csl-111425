@@ -12,6 +12,7 @@ import todoRoutes from './routes/todos';
 import reportRoutes from './routes/reports';
 import uploadRoutes from './routes/uploads';
 import webhookRoutes from './routes/webhooks';
+import groupRoutes from './routes/groups';
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use('/api/trade-shows', tradeShowRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Routes (without /api prefix - DigitalOcean may strip it)
 app.use('/auth', authRoutes);
@@ -69,6 +71,7 @@ app.use('/trade-shows', tradeShowRoutes);
 app.use('/todos', todoRoutes);
 app.use('/reports', reportRoutes);
 app.use('/uploads', uploadRoutes);
+app.use('/groups', groupRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

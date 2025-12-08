@@ -18,6 +18,7 @@ interface DealerRow {
   country?: string;
   address?: string;
   buyingGroup?: string;
+  groupNames?: string; // Comma-separated group names
   status?: string;
 }
 
@@ -139,6 +140,75 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                     return;
                   }
 
+                  // Normalize column names (case-insensitive, handle spaces)
+                  const normalizeKey = (key: string) => {
+                    if (!key || typeof key !== 'string') return '';
+                    return key.toLowerCase().trim().replace(/\s+/g, '');
+                  };
+
+                  // Check if this is a groups-only CSV (has group/name column but no company name column)
+                  const firstRow = data[0];
+                  const rowKeys = firstRow ? Object.keys(firstRow) : [];
+                  const hasCompanyName = rowKeys.some(k => {
+                    const normalized = normalizeKey(k);
+                    return ['companyname', 'company', 'companyname', 'businessname', 'businessname'].includes(normalized);
+                  });
+                  const hasGroupName = rowKeys.some(k => {
+                    const normalized = normalizeKey(k);
+                    return ['group', 'name', 'groupname'].includes(normalized);
+                  });
+
+                  // If it's groups-only CSV, handle differently
+                  if (!hasCompanyName && hasGroupName) {
+                    const groupNames = data
+                      .map((row: any) => {
+                        if (!row || typeof row !== 'object') return null;
+                        const getValue = (keys: string[]) => {
+                          for (const key of keys) {
+                            const found = rowKeys.find(k => normalizeKey(k) === normalizeKey(key));
+                            if (found && row[found] != null) {
+                              const value = row[found];
+                              if (typeof value === 'string') return value.trim();
+                              if (typeof value === 'number') return String(value).trim();
+                              if (value != null) return String(value).trim();
+                            }
+                          }
+                          return '';
+                        };
+                        const name = getValue(['group', 'name', 'groupname']) || '';
+                        return name ? name : null;
+                      })
+                      .filter((name): name is string => name !== null && name.trim() !== '');
+
+                    if (groupNames.length === 0) {
+                      setError('No valid group names found in CSV. Make sure your CSV has a "Group" or "Name" column with data.');
+                      setIsParsing(false);
+                      setStep('upload');
+                      return;
+                    }
+
+                    // Import groups directly (using promise chain since we're in a callback)
+                    setIsParsing(true);
+                    api.post('/groups/bulk-create', { groups: groupNames })
+                      .then((response) => {
+                        setImportResult({
+                          message: `Successfully created ${response.data.created} groups`,
+                          count: response.data.created,
+                          skipped: response.data.skipped || 0
+                        });
+                        setStep('complete');
+                        setIsParsing(false);
+                      })
+                      .catch((err: any) => {
+                        console.error('Bulk create groups error:', err);
+                        setError(err.response?.data?.error || 'Failed to create groups');
+                        setIsParsing(false);
+                        setStep('upload');
+                      });
+                    return;
+                  }
+
+                  // Otherwise, process as dealer CSV
                   const normalizedData = data
                     .map((row): DealerRow | null => {
                       try {
@@ -146,14 +216,8 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                         if (!row || typeof row !== 'object' || Array.isArray(row)) {
                           return null;
                         }
-
-                        // Normalize column names (case-insensitive, handle spaces)
-                        const normalizeKey = (key: string) => {
-                          if (!key || typeof key !== 'string') return '';
-                          return key.toLowerCase().trim().replace(/\s+/g, '');
-                        };
                         
-                        const getValue = (keys: string[]) => {
+                        const getValueForRow = (keys: string[]) => {
                           if (!row || typeof row !== 'object') return '';
                           const rowKeys = Object.keys(row || {});
                           
@@ -165,41 +229,40 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                             
                             if (found && row[found] != null) {
                               const value = row[found];
-                              // Ensure value is a string before calling trim
-                              if (typeof value === 'string') {
-                                return value.trim();
-                              } else if (typeof value === 'number') {
-                                return String(value).trim();
-                              } else if (value != null) {
-                                return String(value).trim();
-                              }
+                              if (typeof value === 'string') return value.trim();
+                              if (typeof value === 'number') return String(value).trim();
+                              if (value != null) return String(value).trim();
                             }
                           }
                           return '';
                         };
 
-                        const phoneValue = getValue(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']);
-                        const emailValue = getValue(['email', 'e-mail', 'email address']);
+                        const phoneValue = getValueForRow(['phone', 'telephone', 'tel', 'phone number', 'phonenumber']);
+                        const emailValue = getValueForRow(['email', 'e-mail', 'email address']);
                         
-                        const companyName = getValue(['companyname', 'company', 'company name', 'business name', 'businessname']) || '';
+                        const companyName = getValueForRow(['companyname', 'company', 'company name', 'business name', 'businessname']) || '';
                         
                         // Only return valid rows with company name
                         if (!companyName || companyName.trim() === '') {
                           return null;
                         }
                         
+                        const buyingGroupValue = getValueForRow(['buyinggroup', 'buying group']);
+                        const groupNamesValue = getValueForRow(['groups', 'group names', 'groupnames']);
+                        
                         return {
                           companyName: companyName.trim(),
-                          contactName: getValue(['contactname', 'contact', 'contact name', 'name', 'person']) || undefined,
+                          contactName: getValueForRow(['contactname', 'contact', 'contact name', 'name', 'person']) || undefined,
                           email: emailValue && typeof emailValue === 'string' && emailValue.trim() ? emailValue.toLowerCase().trim() : undefined,
                           phone: phoneValue && typeof phoneValue === 'string' && phoneValue.trim() ? phoneValue.trim() : undefined,
-                          city: getValue(['city']) || undefined,
-                          state: getValue(['state', 'province']) || undefined,
-                          zip: getValue(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']) || undefined,
-                          country: getValue(['country']) || undefined,
-                          address: getValue(['address', 'street', 'street address']) || undefined,
-                          buyingGroup: getValue(['buyinggroup', 'buying group', 'group']) || undefined,
-                          status: getValue(['status']) || 'Prospect'
+                          city: getValueForRow(['city']) || undefined,
+                          state: getValueForRow(['state', 'province']) || undefined,
+                          zip: getValueForRow(['zip', 'zipcode', 'postal code', 'postalcode', 'postcode']) || undefined,
+                          country: getValueForRow(['country']) || undefined,
+                          address: getValueForRow(['address', 'street', 'street address']) || undefined,
+                          buyingGroup: buyingGroupValue || undefined,
+                          groupNames: groupNamesValue || undefined, // Comma-separated group names
+                          status: getValueForRow(['status']) || 'Prospect'
                         };
                       } catch (rowError) {
                         console.error('Error processing row:', rowError, row);
@@ -216,7 +279,7 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
                     });
 
                   if (normalizedData.length === 0) {
-                    setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data.');
+                    setError('No valid dealers found in CSV. Make sure your CSV has a "Company Name" column with data, or if uploading groups only, use a "Group" or "Name" column.');
                     setIsParsing(false);
                     setStep('upload');
                     return;
@@ -534,7 +597,9 @@ const CSVUpload = ({ onSuccess, onCancel }: CSVUploadProps) => {
           <h2 className="text-2xl font-bold mb-4">Upload File</h2>
           <p className="text-gray-600 mb-4">
             <strong>For CSV files:</strong> Upload a CSV file with your dealers. Required column: <strong>Company Name</strong>.
-            Optional columns: Contact Name, Email, Phone, City, State, Zip, Country, Address, Buying Group, Status.
+            Optional columns: Contact Name, Email, Phone, City, State, Zip, Country, Address, Buying Group, Groups (comma-separated), Status.
+            <br /><br />
+            <strong>Groups-only CSV:</strong> Upload a CSV with just a "Group" or "Name" column to create groups without dealers.
             <br /><br />
             <strong>For other files:</strong> PDF, Excel, Word, Pages, and other document formats will be uploaded and stored.
           </p>

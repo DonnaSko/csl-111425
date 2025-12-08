@@ -12,7 +12,7 @@ router.use(requireActiveSubscription);
 // Get all dealers for user's company
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const { search, status, buyingGroup, page = '1', limit = '50' } = req.query;
+    const { search, status, buyingGroup, groupId, page = '1', limit = '50' } = req.query;
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
@@ -28,6 +28,15 @@ router.get('/', async (req: AuthRequest, res) => {
 
     if (buyingGroup && buyingGroup !== 'All Buying Groups') {
       where.buyingGroup = buyingGroup;
+    }
+
+    // Apply group filter (many-to-many relationship)
+    if (groupId && groupId !== 'All Groups') {
+      where.groups = {
+        some: {
+          groupId: groupId as string
+        }
+      };
     }
 
     let dealers: any[] = [];
@@ -74,82 +83,15 @@ router.get('/', async (req: AuthRequest, res) => {
                     voiceRecordings: true,
                     todos: true
                   }
-                }
-              }
-            })
-          ]);
-          dealers = paginatedDealers;
-          total = exactTotal;
-        } else {
-          // No exact matches, try fuzzy search
-          useFuzzySearch = true;
-          // Fetch all dealers for the company (with filters applied)
-          const allDealers = await prisma.dealer.findMany({
-            where,
-            include: {
-              _count: {
-                select: {
-                  dealerNotes: true,
-                  photos: true,
-                  voiceRecordings: true,
-                  todos: true
-                }
-              }
-            }
-          });
-
-          // Apply fuzzy matching with lower threshold for better typo tolerance
-          const fuzzyMatches = allDealers.filter(dealer =>
-            fuzzyMatchDealer(searchTerm, {
-              companyName: dealer.companyName,
-              contactName: dealer.contactName,
-              email: dealer.email,
-              phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup
-            }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
-          );
-          
-          console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
-
-          // Sort fuzzy matches by creation date (newest first)
-          fuzzyMatches.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-          // Apply pagination to fuzzy matches
-          dealers = fuzzyMatches.slice(skip, skip + limitNum);
-          total = fuzzyMatches.length;
-        }
-      } else {
-        // Multi-character search - use contains
-        const exactWhere: any = {
-          ...where,
-          OR: [
-            { companyName: { contains: searchTerm, mode: 'insensitive' } },
-            { contactName: { contains: searchTerm, mode: 'insensitive' } },
-            { email: { contains: searchTerm, mode: 'insensitive' } },
-            { phone: { contains: searchTerm, mode: 'insensitive' } },
-            { buyingGroup: { contains: searchTerm, mode: 'insensitive' } }
-          ]
-        };
-
-        const exactTotal = await prisma.dealer.count({ where: exactWhere });
-
-        // If we found results with exact match, use those (with pagination)
-        if (exactTotal > 0) {
-          const [paginatedDealers] = await Promise.all([
-            prisma.dealer.findMany({
-              where: exactWhere,
-              skip,
-              take: limitNum,
-              orderBy: { createdAt: 'desc' },
-              include: {
-                _count: {
-                  select: {
-                    dealerNotes: true,
-                    photos: true,
-                    voiceRecordings: true,
-                    todos: true
+                },
+                groups: {
+                  include: {
+                    group: {
+                      select: {
+                        id: true,
+                        name: true
+                      }
+                    }
                   }
                 }
               }
@@ -171,20 +113,141 @@ router.get('/', async (req: AuthRequest, res) => {
                   voiceRecordings: true,
                   todos: true
                 }
+              },
+              groups: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
               }
             }
           });
 
           // Apply fuzzy matching with lower threshold for better typo tolerance
-          const fuzzyMatches = allDealers.filter(dealer =>
-            fuzzyMatchDealer(searchTerm, {
+          const fuzzyMatches = allDealers.filter(dealer => {
+            const groupNames = dealer.groups?.map((dg: any) => dg.group.name).join(' ') || '';
+            return fuzzyMatchDealer(searchTerm, {
               companyName: dealer.companyName,
               contactName: dealer.contactName,
               email: dealer.email,
               phone: dealer.phone,
-              buyingGroup: dealer.buyingGroup
+              buyingGroup: dealer.buyingGroup,
+              groups: groupNames
             }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
+          });
+          
+          console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
+
+          // Sort fuzzy matches by creation date (newest first)
+          fuzzyMatches.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+
+          // Apply pagination to fuzzy matches
+          dealers = fuzzyMatches.slice(skip, skip + limitNum);
+          total = fuzzyMatches.length;
+        }
+      } else {
+        // Multi-character search - use contains
+        // Also search in groups (many-to-many)
+        const exactWhere: any = {
+          ...where,
+          OR: [
+            { companyName: { contains: searchTerm, mode: 'insensitive' } },
+            { contactName: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+            { phone: { contains: searchTerm, mode: 'insensitive' } },
+            { buyingGroup: { contains: searchTerm, mode: 'insensitive' } },
+            {
+              groups: {
+                some: {
+                  group: {
+                    name: { contains: searchTerm, mode: 'insensitive' }
+                  }
+                }
+              }
+            }
+          ]
+        };
+
+        const exactTotal = await prisma.dealer.count({ where: exactWhere });
+
+        // If we found results with exact match, use those (with pagination)
+        if (exactTotal > 0) {
+          const [paginatedDealers] = await Promise.all([
+            prisma.dealer.findMany({
+              where: exactWhere,
+              skip,
+              take: limitNum,
+              orderBy: { createdAt: 'desc' },
+              include: {
+                _count: {
+                  select: {
+                    dealerNotes: true,
+                    photos: true,
+                    voiceRecordings: true,
+                    todos: true
+                  }
+                },
+                groups: {
+                  include: {
+                    group: {
+                      select: {
+                        id: true,
+                        name: true
+                      }
+                    }
+                  }
+                }
+              }
+            })
+          ]);
+          dealers = paginatedDealers;
+          total = exactTotal;
+        } else {
+          // No exact matches, try fuzzy search
+          useFuzzySearch = true;
+          // Fetch all dealers for the company (with filters applied)
+          const allDealers = await prisma.dealer.findMany({
+            where,
+            include: {
+              _count: {
+                select: {
+                  dealerNotes: true,
+                  photos: true,
+                  voiceRecordings: true,
+                  todos: true
+                }
+              },
+              groups: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          });
+
+          // Apply fuzzy matching with lower threshold for better typo tolerance
+          const fuzzyMatches = allDealers.filter(dealer => {
+            const groupNames = dealer.groups?.map((dg: any) => dg.group.name).join(' ') || '';
+            return fuzzyMatchDealer(searchTerm, {
+              companyName: dealer.companyName,
+              contactName: dealer.contactName,
+              email: dealer.email,
+              phone: dealer.phone,
+              buyingGroup: dealer.buyingGroup,
+              groups: groupNames
+            }, 0.5) // 50% similarity threshold (lowered for better typo tolerance)
+          });
           
           console.log(`Fuzzy search: "${searchTerm}" found ${fuzzyMatches.length} matches`);
 
@@ -213,6 +276,16 @@ router.get('/', async (req: AuthRequest, res) => {
                 photos: true,
                 voiceRecordings: true,
                 todos: true
+              }
+            },
+            groups: {
+              include: {
+                group: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
               }
             }
           }
@@ -276,6 +349,16 @@ router.get('/:id', async (req: AuthRequest, res) => {
         quickActions: {
           orderBy: { createdAt: 'desc' },
           take: 5
+        },
+        groups: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         }
       }
     });
@@ -475,7 +558,8 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
         country: dealer.country?.trim() || null,
         address: dealer.address?.trim() || null,
         buyingGroup: dealer.buyingGroup?.trim() || null,
-        status: dealer.status || 'Prospect'
+        status: dealer.status || 'Prospect',
+        groupNames: dealer.groupNames || undefined // Support comma-separated group names
       });
 
       // Add to existing set to prevent duplicates within the same import
@@ -484,8 +568,43 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
 
     console.log(`Processed: ${dealersToImport.length} to import, ${duplicatesCount} duplicates, ${errorsCount} errors`);
 
+    // Collect all group names from dealers
+    const allGroupNames = new Set<string>();
+    dealersToImport.forEach((dealer: any) => {
+      if (dealer.groupNames) {
+        const names = typeof dealer.groupNames === 'string' 
+          ? dealer.groupNames.split(',').map((n: string) => n.trim()).filter(Boolean)
+          : Array.isArray(dealer.groupNames) ? dealer.groupNames.map((n: string) => n.trim()).filter(Boolean) : [];
+        names.forEach((name: string) => allGroupNames.add(name));
+      }
+    });
+
+    // Create groups if they don't exist
+    if (allGroupNames.size > 0) {
+      console.log(`Creating/ensuring ${allGroupNames.size} groups exist...`);
+      const groupNamesArray = Array.from(allGroupNames);
+      const groupsToCreate = groupNamesArray.map(name => ({
+        companyId: req.companyId!,
+        name
+      }));
+
+      await prisma.group.createMany({
+        data: groupsToCreate,
+        skipDuplicates: true
+      });
+    }
+
+    // Get all groups for this company to map names to IDs
+    const companyGroups = await prisma.group.findMany({
+      where: { companyId: req.companyId! },
+      select: { id: true, name: true }
+    });
+    const groupNameToId = new Map(companyGroups.map((g: { id: string; name: string }) => [g.name.toLowerCase(), g.id]));
+
     // Import dealers in batches to avoid overwhelming the database
     let createdCount = 0;
+    const dealerGroupAssignments: Array<{ dealerId: string; groupIds: string[] }> = [];
+
     if (dealersToImport.length > 0) {
       console.log(`Importing ${dealersToImport.length} dealers...`);
       
@@ -495,19 +614,115 @@ router.post('/bulk-import', async (req: AuthRequest, res) => {
         console.log(`Large import detected (${dealersToImport.length} dealers), using batch processing...`);
         for (let i = 0; i < dealersToImport.length; i += BATCH_SIZE) {
           const batch = dealersToImport.slice(i, i + BATCH_SIZE);
+          
+          // Extract group names before creating dealers
+          const batchWithGroups = batch.map((dealer: any) => {
+            const groupNames = dealer.groupNames 
+              ? (typeof dealer.groupNames === 'string' 
+                  ? dealer.groupNames.split(',').map((n: string) => n.trim()).filter(Boolean)
+                  : Array.isArray(dealer.groupNames) ? dealer.groupNames.map((n: string) => n.trim()).filter(Boolean) : [])
+              : [];
+            
+            // Remove groupNames from dealer data before creating
+            const { groupNames: _, ...dealerData } = dealer;
+            return { dealerData, groupNames };
+          });
+
+          // Create dealers
+          const dealerDataBatch = batchWithGroups.map((item: any) => item.dealerData);
           const result = await prisma.dealer.createMany({
-            data: batch,
+            data: dealerDataBatch,
             skipDuplicates: true
           });
           createdCount += result.count;
+
+          // Get created dealer IDs (need to fetch them to match with group assignments)
+          const createdDealers = await prisma.dealer.findMany({
+            where: {
+              companyId: req.companyId!,
+              companyName: { in: batchWithGroups.map((item: any) => item.dealerData.companyName) }
+            },
+            select: { id: true, companyName: true, email: true, phone: true }
+          });
+
+          // Map dealers to their group assignments
+          batchWithGroups.forEach((item: any, idx: number) => {
+            const dealer = createdDealers.find(d => 
+              d.companyName === item.dealerData.companyName &&
+              (!item.dealerData.email || d.email === item.dealerData.email) &&
+              (!item.dealerData.phone || d.phone === item.dealerData.phone)
+            );
+            if (dealer && item.groupNames.length > 0) {
+              const groupIds = item.groupNames
+                .map((name: string) => groupNameToId.get(name.toLowerCase()))
+                .filter((id: string | undefined): id is string => id !== undefined);
+              if (groupIds.length > 0) {
+                dealerGroupAssignments.push({ dealerId: dealer.id, groupIds });
+              }
+            }
+          });
+
           console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} complete: ${result.count} dealers imported`);
         }
       } else {
+        // Extract group names before creating dealers
+        const dealersWithGroups = dealersToImport.map((dealer: any) => {
+          const groupNames = dealer.groupNames 
+            ? (typeof dealer.groupNames === 'string' 
+                ? dealer.groupNames.split(',').map((n: string) => n.trim()).filter(Boolean)
+                : Array.isArray(dealer.groupNames) ? dealer.groupNames.map((n: string) => n.trim()).filter(Boolean) : [])
+            : [];
+          
+          const { groupNames: _, ...dealerData } = dealer;
+          return { dealerData, groupNames };
+        });
+
+        const dealerDataBatch = dealersWithGroups.map((item: any) => item.dealerData);
         const result = await prisma.dealer.createMany({
-          data: dealersToImport,
+          data: dealerDataBatch,
           skipDuplicates: true
         });
         createdCount = result.count;
+
+        // Get created dealer IDs
+        const createdDealers = await prisma.dealer.findMany({
+          where: {
+            companyId: req.companyId!,
+            companyName: { in: dealersWithGroups.map((item: any) => item.dealerData.companyName) }
+          },
+          select: { id: true, companyName: true, email: true, phone: true }
+        });
+
+        // Map dealers to their group assignments
+        dealersWithGroups.forEach((item: any) => {
+          const dealer = createdDealers.find(d => 
+            d.companyName === item.dealerData.companyName &&
+            (!item.dealerData.email || d.email === item.dealerData.email) &&
+            (!item.dealerData.phone || d.phone === item.dealerData.phone)
+          );
+          if (dealer && item.groupNames.length > 0) {
+            const groupIds = item.groupNames
+              .map((name: string) => groupNameToId.get(name.toLowerCase()))
+              .filter((id: string | undefined): id is string => id !== undefined);
+            if (groupIds.length > 0) {
+              dealerGroupAssignments.push({ dealerId: dealer.id, groupIds });
+            }
+          }
+        });
+      }
+      
+      // Assign dealers to groups
+      if (dealerGroupAssignments.length > 0) {
+        console.log(`Assigning ${dealerGroupAssignments.length} dealers to groups...`);
+        const groupAssignments = dealerGroupAssignments.flatMap(({ dealerId, groupIds }) =>
+          groupIds.map(groupId => ({ dealerId, groupId }))
+        );
+
+        await prisma.dealerGroup.createMany({
+          data: groupAssignments,
+          skipDuplicates: true
+        });
+        console.log(`Assigned dealers to groups`);
       }
       
       console.log(`Import complete: ${createdCount} dealers created`);

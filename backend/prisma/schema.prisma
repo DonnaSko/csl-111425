@@ -40,6 +40,7 @@ model Company {
   dealers   Dealer[]
   tradeShows TradeShow[]
   todos     Todo[]
+  groups    Group[]
 
   @@schema("csl")
 }
@@ -92,6 +93,7 @@ model Dealer {
   todos           Todo[]
   tradeShows      DealerTradeShow[]
   quickActions    QuickAction[]
+  groups          DealerGroup[]
 
   @@index([companyId])
   @@index([companyName])
@@ -215,5 +217,36 @@ model QuickAction {
 
   @@index([dealerId])
   @@index([status])
+  @@schema("csl")
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealers DealerGroup[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([name])
+  @@schema("csl")
+}
+
+model DealerGroup {
+  id        String   @id @default(cuid())
+  dealerId  String
+  groupId   String
+  createdAt DateTime @default(now())
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([dealerId, groupId])
+  @@index([dealerId])
+  @@index([groupId])
   @@schema("csl")
 }
