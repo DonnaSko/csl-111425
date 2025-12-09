@@ -59,22 +59,29 @@ const DealerDetail = () => {
     }
     
     try {
-      console.log(`Fetching dealer with id: ${id}`);
+      console.log(`[DEALER DETAIL] Fetching dealer with id: "${id}"`);
       const response = await api.get(`/dealers/${id}`);
-      console.log('Dealer fetched:', response.data);
+      console.log('[DEALER DETAIL] Dealer fetched successfully:', response.data);
       setDealer(response.data);
       setRating(response.data.rating || 0);
     } catch (error: any) {
-      console.error('Failed to fetch dealer:', error);
-      console.error('Error details:', {
+      console.error('[DEALER DETAIL] Failed to fetch dealer:', error);
+      console.error('[DEALER DETAIL] Error details:', {
+        id: id,
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
+        url: error.config?.url
       });
       if (error.response?.status === 404) {
         // Dealer not found - show error message
-        alert('Dealer not found. It may have been deleted or you may not have access to it.');
+        alert(`Dealer not found (ID: ${id}). It may have been deleted or you may not have access to it.`);
         navigate('/dealers');
+      } else if (error.response?.status === 403) {
+        alert('You do not have access to this dealer.');
+        navigate('/dealers');
+      } else {
+        alert('Failed to load dealer. Please try again.');
       }
     } finally {
       setLoading(false);

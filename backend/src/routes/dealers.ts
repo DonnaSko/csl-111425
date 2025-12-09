@@ -367,12 +367,14 @@ router.get('/buying-groups/list', async (req: AuthRequest, res) => {
 // Get single dealer
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
-    const dealerId = req.params.id?.trim();
+    // Decode the ID in case it's URL encoded
+    const rawId = req.params.id || '';
+    const dealerId = decodeURIComponent(rawId).trim();
     const companyId = req.companyId!;
     
     // Validate dealer ID
     if (!dealerId || dealerId.length === 0) {
-      console.error('Invalid dealer ID provided:', dealerId);
+      console.error('Invalid dealer ID provided:', { raw: rawId, decoded: dealerId });
       return res.status(400).json({ error: 'Invalid dealer ID' });
     }
     
@@ -383,12 +385,13 @@ router.get('/:id', async (req: AuthRequest, res) => {
     }
     
     console.log(`[DEALER LOOKUP] Fetching dealer: id="${dealerId}" (length: ${dealerId.length}), companyId="${companyId}"`);
+    console.log(`[DEALER LOOKUP] Raw ID from params: "${rawId}"`);
     
-    // First, try to find dealer with companyId check
-    let dealer = await prisma.dealer.findFirst({
+    // Use findUnique for primary key lookup (more efficient)
+    // First check if dealer exists with this ID
+    let dealer = await prisma.dealer.findUnique({
       where: {
-        id: dealerId,
-        companyId: companyId // Ensure data isolation
+        id: dealerId
       },
       include: {
         dealerNotes: {
@@ -439,39 +442,40 @@ router.get('/:id', async (req: AuthRequest, res) => {
       }
     });
 
+    // Check if dealer exists and belongs to the correct company
     if (!dealer) {
       console.error(`[DEALER LOOKUP FAILED] Dealer not found: id="${dealerId}", companyId="${companyId}"`);
       
-      // Check if dealer exists but belongs to different company
-      const dealerExists = await prisma.dealer.findFirst({
-        where: { id: dealerId },
-        select: { id: true, companyId: true, companyName: true }
+      // Check if there are any dealers with similar IDs (for debugging)
+      const similarDealers = await prisma.dealer.findMany({
+        where: {
+          companyId: companyId,
+          id: { startsWith: dealerId.substring(0, Math.min(10, dealerId.length)) }
+        },
+        select: { id: true, companyName: true },
+        take: 5
       });
-      
-      if (dealerExists) {
-        console.error(`[DEALER LOOKUP] Dealer exists but belongs to different company: dealerCompanyId="${dealerExists.companyId}" vs requestCompanyId="${companyId}"`);
-        console.error(`[DEALER LOOKUP] Dealer details: name="${dealerExists.companyName}", id="${dealerExists.id}"`);
-        return res.status(403).json({ 
-          error: 'Dealer not found',
-          details: 'This dealer belongs to a different company'
-        });
-      } else {
-        console.error(`[DEALER LOOKUP] Dealer ID does not exist in database: "${dealerId}"`);
-        // Check if there are any dealers with similar IDs (for debugging)
-        const similarDealers = await prisma.dealer.findMany({
-          where: {
-            companyId: companyId,
-            id: { startsWith: dealerId.substring(0, 10) }
-          },
-          select: { id: true, companyName: true },
-          take: 5
-        });
-        if (similarDealers.length > 0) {
-          console.error(`[DEALER LOOKUP] Found similar dealer IDs:`, similarDealers.map(d => d.id));
-        }
+      if (similarDealers.length > 0) {
+        console.error(`[DEALER LOOKUP] Found similar dealer IDs:`, similarDealers.map(d => ({ id: d.id, name: d.companyName })));
       }
       
+      // Also check total dealers for this company
+      const totalDealers = await prisma.dealer.count({
+        where: { companyId: companyId }
+      });
+      console.error(`[DEALER LOOKUP] Total dealers for company: ${totalDealers}`);
+      
       return res.status(404).json({ error: 'Dealer not found' });
+    }
+    
+    // Verify company ownership
+    if (dealer.companyId !== companyId) {
+      console.error(`[DEALER LOOKUP] Dealer exists but belongs to different company: dealerCompanyId="${dealer.companyId}" vs requestCompanyId="${companyId}"`);
+      console.error(`[DEALER LOOKUP] Dealer details: name="${dealer.companyName}", id="${dealer.id}"`);
+      return res.status(403).json({ 
+        error: 'Dealer not found',
+        details: 'This dealer belongs to a different company'
+      });
     }
 
     console.log(`[DEALER LOOKUP SUCCESS] Dealer found: "${dealer.companyName}" (id: "${dealer.id}")`);

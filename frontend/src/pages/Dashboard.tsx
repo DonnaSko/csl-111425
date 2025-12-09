@@ -199,6 +199,7 @@ const Dashboard = () => {
   };
 
   const handleDealerClick = (dealerId: string) => {
+    console.log(`[DASHBOARD] Navigating to dealer: id="${dealerId}"`);
     navigate(`/dealers/${dealerId}`);
   };
 
