@@ -199,8 +199,24 @@ const Dashboard = () => {
   };
 
   const handleDealerClick = (dealerId: string) => {
-    console.log(`[DASHBOARD] Navigating to dealer: id="${dealerId}"`);
-    navigate(`/dealers/${dealerId}`);
+    // Validate dealer ID before navigation
+    if (!dealerId || dealerId.trim().length === 0) {
+      console.error('[DASHBOARD] Invalid dealer ID:', dealerId);
+      alert('Invalid dealer ID. Please try again.');
+      return;
+    }
+    
+    // Ensure ID is properly trimmed (React Router will handle URL encoding)
+    const trimmedId = dealerId.trim();
+    const targetUrl = `/dealers/${trimmedId}`;
+    
+    console.log(`[DASHBOARD] Navigating to dealer:`, {
+      originalId: dealerId,
+      trimmedId: trimmedId,
+      targetUrl: targetUrl
+    });
+    
+    navigate(targetUrl);
   };
 
   const renderDealerList = (dealers: Dealer[], sectionKey: string) => {

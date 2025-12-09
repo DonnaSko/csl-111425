@@ -54,57 +54,103 @@ const DealerDetail = () => {
 
   const fetchDealer = async () => {
     if (!id) {
+      console.error('[DEALER DETAIL] No dealer ID provided');
+      setLoading(false);
+      return;
+    }
+    
+    // Validate ID format (should be a non-empty string)
+    const trimmedId = id.trim();
+    if (!trimmedId || trimmedId.length === 0) {
+      console.error('[DEALER DETAIL] Invalid dealer ID (empty or whitespace)');
+      alert('Invalid dealer ID. Please try again.');
+      navigate('/dealers');
       setLoading(false);
       return;
     }
     
     try {
-      console.log(`[DEALER DETAIL] Fetching dealer with id: "${id}"`);
-      const response = await api.get(`/dealers/${id}`);
-      console.log('[DEALER DETAIL] Dealer fetched successfully:', response.data);
+      // Properly encode the dealer ID for the URL
+      const encodedId = encodeURIComponent(trimmedId);
+      const apiUrl = `/dealers/${encodedId}`;
+      
+      console.log(`[DEALER DETAIL] Fetching dealer:`, {
+        originalId: id,
+        trimmedId: trimmedId,
+        encodedId: encodedId,
+        apiUrl: apiUrl,
+        fullUrl: `${api.defaults.baseURL}${apiUrl}`
+      });
+      
+      const response = await api.get(apiUrl);
+      
+      console.log('[DEALER DETAIL] Dealer fetched successfully:', {
+        dealerId: response.data?.id,
+        companyName: response.data?.companyName,
+        hasNotes: !!response.data?.dealerNotes,
+        notesCount: response.data?.dealerNotes?.length || 0
+      });
+      
+      if (!response.data) {
+        throw new Error('Empty response from server');
+      }
+      
       setDealer(response.data);
       setRating(response.data.rating || 0);
     } catch (error: any) {
-      console.error('[DEALER DETAIL] Failed to fetch dealer:', error);
-      console.error('[DEALER DETAIL] Error details:', {
+      // Comprehensive error logging
+      const errorDetails = {
         id: id,
+        trimmedId: trimmedId,
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullUrl: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
         code: error.code,
-        name: error.name
-      });
+        name: error.name,
+        stack: error.stack
+      };
       
-      // Handle different error types
+      console.error('[DEALER DETAIL] Failed to fetch dealer:', error);
+      console.error('[DEALER DETAIL] Complete error details:', errorDetails);
+      
+      // Handle different error types with specific messages
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         alert('Request timed out. Please check your connection and try again.');
         return;
       }
       
       if (error.code === 'ERR_NETWORK' || !error.response) {
+        console.error('[DEALER DETAIL] Network error - no response from server');
         alert('Network error. Please check your internet connection and try again.');
         return;
       }
       
       if (error.response?.status === 404) {
-        // Dealer not found - show error message
-        alert(`Dealer not found (ID: ${id}). It may have been deleted or you may not have access to it.`);
+        console.error('[DEALER DETAIL] Dealer not found (404)');
+        alert(`Dealer not found (ID: ${trimmedId}). It may have been deleted or you may not have access to it.`);
         navigate('/dealers');
       } else if (error.response?.status === 403) {
+        console.error('[DEALER DETAIL] Access denied (403)');
         alert('You do not have access to this dealer.');
         navigate('/dealers');
+      } else if (error.response?.status === 401) {
+        console.error('[DEALER DETAIL] Authentication failed (401)');
+        alert('Your session has expired. Please log in again.');
+        // Auth interceptor should handle redirect
       } else if (error.response?.status === 500) {
         // Server error - show backend error message if available
         const errorMsg = error.response?.data?.error || 'Server error. Please try again later.';
-        console.error('[DEALER DETAIL] Server error:', error.response?.data);
-        alert(errorMsg);
+        console.error('[DEALER DETAIL] Server error (500):', error.response?.data);
+        alert(`Server error: ${errorMsg}`);
       } else {
         // Show more detailed error message
         const errorMsg = error.response?.data?.error || error.message || 'Failed to load dealer. Please try again.';
-        console.error('[DEALER DETAIL] Full error:', error);
-        alert(errorMsg);
+        console.error('[DEALER DETAIL] Unexpected error:', errorMsg);
+        alert(`Error: ${errorMsg}`);
         // Don't navigate away on generic errors - let user try again
       }
     } finally {
@@ -116,7 +162,8 @@ const DealerDetail = () => {
     if (!noteContent.trim() || !id) return;
 
     try {
-      await api.post(`/dealers/${id}/notes`, { content: noteContent });
+      const encodedId = encodeURIComponent(id.trim());
+      await api.post(`/dealers/${encodedId}/notes`, { content: noteContent });
       setNoteContent('');
       fetchDealer();
     } catch (error) {
@@ -129,7 +176,8 @@ const DealerDetail = () => {
     if (!id) return;
     setRating(newRating);
     try {
-      await api.put(`/dealers/${id}/rating`, { rating: newRating });
+      const encodedId = encodeURIComponent(id.trim());
+      await api.put(`/dealers/${encodedId}/rating`, { rating: newRating });
     } catch (error) {
       console.error('Failed to update rating:', error);
     }
@@ -148,7 +196,8 @@ const DealerDetail = () => {
     if (!id || !selectedBuyingGroupId) return;
 
     try {
-      await api.post(`/buying-groups/${selectedBuyingGroupId}/assign`, { dealerId: id });
+      const encodedBuyingGroupId = encodeURIComponent(selectedBuyingGroupId.trim());
+      await api.post(`/buying-groups/${encodedBuyingGroupId}/assign`, { dealerId: id.trim() });
       setShowBuyingGroupModal(false);
       setSelectedBuyingGroupId('');
       fetchDealer();
@@ -166,7 +215,9 @@ const DealerDetail = () => {
     }
 
     try {
-      await api.delete(`/buying-groups/${buyingGroupId}/assign/${id}`);
+      const encodedBuyingGroupId = encodeURIComponent(buyingGroupId.trim());
+      const encodedDealerId = encodeURIComponent(id.trim());
+      await api.delete(`/buying-groups/${encodedBuyingGroupId}/assign/${encodedDealerId}`);
       fetchDealer();
     } catch (error: any) {
       console.error('Failed to remove buying group:', error);

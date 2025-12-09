@@ -13,7 +13,7 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Add token to requests and log requests for debugging
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -23,19 +23,60 @@ api.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
+  
+  // Log API requests for debugging (only in development or when debugging)
+  if (process.env.NODE_ENV === 'development' || localStorage.getItem('debug_api') === 'true') {
+    console.log('[API REQUEST]', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullUrl: `${config.baseURL}${config.url}`,
+      hasToken: !!token,
+      tokenLength: token?.length || 0
+    });
+  }
+  
   return config;
 });
 
-// Handle 401 errors (unauthorized)
+// Handle 401 errors (unauthorized) and log responses for debugging
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful API responses for debugging
+    if (process.env.NODE_ENV === 'development' || localStorage.getItem('debug_api') === 'true') {
+      console.log('[API RESPONSE SUCCESS]', {
+        method: response.config.method?.toUpperCase(),
+        url: response.config.url,
+        status: response.status,
+        statusText: response.statusText
+      });
+    }
+    return response;
+  },
   (error) => {
+    // Log API errors for debugging
+    const errorLog = {
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      fullUrl: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code
+    };
+    
+    console.error('[API RESPONSE ERROR]', errorLog);
+    
     if (error.response?.status === 401) {
+      console.error('[API] Authentication failed - redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
     if (error.response?.status === 403 && error.response?.data?.code === 'SUBSCRIPTION_REQUIRED') {
+      console.error('[API] Subscription required - redirecting to subscription page');
       window.location.href = '/subscription';
     }
     return Promise.reject(error);
