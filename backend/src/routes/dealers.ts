@@ -388,59 +388,71 @@ router.get('/:id', async (req: AuthRequest, res) => {
     console.log(`[DEALER LOOKUP] Raw ID from params: "${rawId}"`);
     
     // Use findUnique for primary key lookup (more efficient)
-    // First check if dealer exists with this ID
-    let dealer = await prisma.dealer.findUnique({
-      where: {
-        id: dealerId
-      },
-      include: {
-        dealerNotes: {
-          orderBy: { createdAt: 'desc' }
+    // Fetch dealer with all relations
+    let dealer;
+    try {
+      dealer = await prisma.dealer.findUnique({
+        where: {
+          id: dealerId
         },
-        photos: {
-          orderBy: { createdAt: 'desc' }
-        },
-        voiceRecordings: {
-          orderBy: { createdAt: 'desc' }
-        },
-        todos: {
-          where: { completed: false },
-          orderBy: { dueDate: 'asc' }
-        },
-        tradeShows: {
-          include: {
-            tradeShow: true
-          }
-        },
-        quickActions: {
-          orderBy: { createdAt: 'desc' },
-          take: 5
-        },
-        groups: {
-          include: {
-            group: {
-              select: {
-                id: true,
-                name: true
-              }
+        include: {
+          dealerNotes: {
+            orderBy: { createdAt: 'desc' }
+          },
+          photos: {
+            orderBy: { createdAt: 'desc' }
+          },
+          voiceRecordings: {
+            orderBy: { createdAt: 'desc' }
+          },
+          todos: {
+            where: { completed: false },
+            orderBy: { dueDate: 'asc' }
+          },
+          tradeShows: {
+            include: {
+              tradeShow: true
             }
-          }
-        },
-        buyingGroupHistory: {
-          include: {
-            buyingGroup: {
-              select: {
-                id: true,
-                name: true
+          },
+          quickActions: {
+            orderBy: { createdAt: 'desc' },
+            take: 5
+          },
+          groups: {
+            include: {
+              group: {
+                select: {
+                  id: true,
+                  name: true
+                }
               }
             }
           },
-          orderBy: {
-            startDate: 'desc'
+          buyingGroupHistory: {
+            include: {
+              buyingGroup: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            },
+            orderBy: {
+              startDate: 'desc'
+            }
           }
         }
-      }
-    });
+      });
+    } catch (queryError: any) {
+      console.error('[DEALER LOOKUP] Prisma query error:', queryError);
+      console.error('[DEALER LOOKUP] Query error details:', {
+        code: queryError?.code,
+        message: queryError?.message,
+        meta: queryError?.meta
+      });
+      // Re-throw to be caught by outer catch block
+      throw queryError;
+    }
 
     // Check if dealer exists and belongs to the correct company
     if (!dealer) {
@@ -478,11 +490,49 @@ router.get('/:id', async (req: AuthRequest, res) => {
       });
     }
 
+    // Transform response to ensure buyingGroup field is set correctly
+    // The dealer model has buyingGroup as a string, but we also include buyingGroupHistory
+    // Ensure the response includes both fields properly formatted
+    const responseData = {
+      ...dealer,
+      // buyingGroup field is already on the dealer model, but ensure it's included
+      buyingGroup: dealer.buyingGroup || null,
+      // buyingGroupHistory is included in the query
+      buyingGroupHistory: dealer.buyingGroupHistory || []
+    };
+
     console.log(`[DEALER LOOKUP SUCCESS] Dealer found: "${dealer.companyName}" (id: "${dealer.id}")`);
-    res.json(dealer);
-  } catch (error) {
-    console.error('Get dealer error:', error);
-    res.status(500).json({ error: 'Failed to fetch dealer' });
+    console.log(`[DEALER LOOKUP SUCCESS] Response includes ${responseData.dealerNotes?.length || 0} notes, ${responseData.photos?.length || 0} photos`);
+    
+    res.json(responseData);
+  } catch (error: any) {
+    console.error('[DEALER LOOKUP ERROR] Failed to fetch dealer:', error);
+    console.error('[DEALER LOOKUP ERROR] Error details:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+      dealerId: req.params.id,
+      companyId: req.companyId
+    });
+    
+    // Handle specific Prisma errors
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ error: 'Database constraint violation' });
+    }
+    if (error?.code === 'P2025') {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+    
+    // Return more detailed error in development, generic in production
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? `Failed to fetch dealer: ${error?.message || 'Unknown error'}`
+      : 'Failed to fetch dealer. Please try again.';
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      ...(process.env.NODE_ENV === 'development' && { details: error?.message })
+    });
   }
 });
 

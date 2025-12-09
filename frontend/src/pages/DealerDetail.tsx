@@ -71,8 +71,23 @@ const DealerDetail = () => {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        url: error.config?.url
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        code: error.code,
+        name: error.name
       });
+      
+      // Handle different error types
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        alert('Request timed out. Please check your connection and try again.');
+        return;
+      }
+      
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        alert('Network error. Please check your internet connection and try again.');
+        return;
+      }
+      
       if (error.response?.status === 404) {
         // Dealer not found - show error message
         alert(`Dealer not found (ID: ${id}). It may have been deleted or you may not have access to it.`);
@@ -80,8 +95,17 @@ const DealerDetail = () => {
       } else if (error.response?.status === 403) {
         alert('You do not have access to this dealer.');
         navigate('/dealers');
+      } else if (error.response?.status === 500) {
+        // Server error - show backend error message if available
+        const errorMsg = error.response?.data?.error || 'Server error. Please try again later.';
+        console.error('[DEALER DETAIL] Server error:', error.response?.data);
+        alert(errorMsg);
       } else {
-        alert('Failed to load dealer. Please try again.');
+        // Show more detailed error message
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to load dealer. Please try again.';
+        console.error('[DEALER DETAIL] Full error:', error);
+        alert(errorMsg);
+        // Don't navigate away on generic errors - let user try again
       }
     } finally {
       setLoading(false);
