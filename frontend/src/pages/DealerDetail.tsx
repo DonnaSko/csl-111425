@@ -70,16 +70,18 @@ const DealerDetail = () => {
     }
     
     try {
-      // Properly encode the dealer ID for the URL
-      const encodedId = encodeURIComponent(trimmedId);
-      const apiUrl = `/dealers/${encodedId}`;
+      // CUIDs don't contain special characters that need encoding, but encode anyway to be safe
+      // Note: React Router's useParams() already decodes the ID, so we have the raw ID here
+      const apiUrl = `/dealers/${trimmedId}`;
       
       console.log(`[DEALER DETAIL] Fetching dealer:`, {
         originalId: id,
         trimmedId: trimmedId,
-        encodedId: encodedId,
+        idLength: trimmedId.length,
         apiUrl: apiUrl,
-        fullUrl: `${api.defaults.baseURL}${apiUrl}`
+        baseURL: api.defaults.baseURL,
+        fullUrl: `${api.defaults.baseURL}${apiUrl}`,
+        tokenExists: !!localStorage.getItem('token')
       });
       
       const response = await api.get(apiUrl);
@@ -162,8 +164,8 @@ const DealerDetail = () => {
     if (!noteContent.trim() || !id) return;
 
     try {
-      const encodedId = encodeURIComponent(id.trim());
-      await api.post(`/dealers/${encodedId}/notes`, { content: noteContent });
+      const trimmedId = id.trim();
+      await api.post(`/dealers/${trimmedId}/notes`, { content: noteContent });
       setNoteContent('');
       fetchDealer();
     } catch (error) {
@@ -176,8 +178,8 @@ const DealerDetail = () => {
     if (!id) return;
     setRating(newRating);
     try {
-      const encodedId = encodeURIComponent(id.trim());
-      await api.put(`/dealers/${encodedId}/rating`, { rating: newRating });
+      const trimmedId = id.trim();
+      await api.put(`/dealers/${trimmedId}/rating`, { rating: newRating });
     } catch (error) {
       console.error('Failed to update rating:', error);
     }
@@ -196,8 +198,8 @@ const DealerDetail = () => {
     if (!id || !selectedBuyingGroupId) return;
 
     try {
-      const encodedBuyingGroupId = encodeURIComponent(selectedBuyingGroupId.trim());
-      await api.post(`/buying-groups/${encodedBuyingGroupId}/assign`, { dealerId: id.trim() });
+      const trimmedBuyingGroupId = selectedBuyingGroupId.trim();
+      await api.post(`/buying-groups/${trimmedBuyingGroupId}/assign`, { dealerId: id.trim() });
       setShowBuyingGroupModal(false);
       setSelectedBuyingGroupId('');
       fetchDealer();
@@ -215,9 +217,9 @@ const DealerDetail = () => {
     }
 
     try {
-      const encodedBuyingGroupId = encodeURIComponent(buyingGroupId.trim());
-      const encodedDealerId = encodeURIComponent(id.trim());
-      await api.delete(`/buying-groups/${encodedBuyingGroupId}/assign/${encodedDealerId}`);
+      const trimmedBuyingGroupId = buyingGroupId.trim();
+      const trimmedDealerId = id.trim();
+      await api.delete(`/buying-groups/${trimmedBuyingGroupId}/assign/${trimmedDealerId}`);
       fetchDealer();
     } catch (error: any) {
       console.error('Failed to remove buying group:', error);

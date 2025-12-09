@@ -384,13 +384,22 @@ router.get('/:id', async (req: AuthRequest, res) => {
       return res.status(401).json({ error: 'Authentication error: Company ID not found' });
     }
     
-    console.log(`[DEALER LOOKUP] Fetching dealer: id="${dealerId}" (length: ${dealerId.length}), companyId="${companyId}"`);
-    console.log(`[DEALER LOOKUP] Raw ID from params: "${rawId}"`);
+    console.log(`[DEALER LOOKUP] Fetching dealer:`, {
+      rawId: rawId,
+      rawIdLength: rawId.length,
+      decodedId: dealerId,
+      decodedIdLength: dealerId.length,
+      companyId: companyId,
+      url: req.url,
+      path: req.path,
+      originalUrl: req.originalUrl
+    });
     
     // Use findUnique for primary key lookup (more efficient)
     // Fetch dealer with all relations
     let dealer;
     try {
+      console.log(`[DEALER LOOKUP] Prisma query: findUnique where id="${dealerId}"`);
       dealer = await prisma.dealer.findUnique({
         where: {
           id: dealerId
@@ -456,7 +465,31 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
     // Check if dealer exists and belongs to the correct company
     if (!dealer) {
-      console.error(`[DEALER LOOKUP FAILED] Dealer not found: id="${dealerId}", companyId="${companyId}"`);
+      console.error(`[DEALER LOOKUP FAILED] Dealer not found:`, {
+        searchedId: dealerId,
+        searchedIdLength: dealerId.length,
+        companyId: companyId,
+        rawId: rawId
+      });
+      
+      // Check if dealer exists with exact ID but different company
+      const dealerAnyCompany = await prisma.dealer.findUnique({
+        where: { id: dealerId },
+        select: { id: true, companyName: true, companyId: true }
+      });
+      
+      if (dealerAnyCompany) {
+        console.error(`[DEALER LOOKUP] Dealer exists but wrong company:`, {
+          dealerId: dealerAnyCompany.id,
+          dealerCompanyId: dealerAnyCompany.companyId,
+          requestCompanyId: companyId,
+          dealerName: dealerAnyCompany.companyName
+        });
+        return res.status(403).json({ 
+          error: 'Dealer not found',
+          details: 'This dealer belongs to a different company'
+        });
+      }
       
       // Check if there are any dealers with similar IDs (for debugging)
       const similarDealers = await prisma.dealer.findMany({
@@ -477,7 +510,18 @@ router.get('/:id', async (req: AuthRequest, res) => {
       });
       console.error(`[DEALER LOOKUP] Total dealers for company: ${totalDealers}`);
       
-      return res.status(404).json({ error: 'Dealer not found' });
+      // Try to find dealer by first few characters to see if there's a mismatch
+      const sampleDealers = await prisma.dealer.findMany({
+        where: { companyId: companyId },
+        select: { id: true, companyName: true },
+        take: 3
+      });
+      console.error(`[DEALER LOOKUP] Sample dealer IDs for this company:`, sampleDealers.map(d => ({ id: d.id, name: d.companyName })));
+      
+      return res.status(404).json({ 
+        error: 'Dealer not found',
+        details: `No dealer found with ID "${dealerId}" for company "${companyId}"`
+      });
     }
     
     // Verify company ownership
