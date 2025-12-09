@@ -395,8 +395,17 @@ router.get('/:id', async (req: AuthRequest, res) => {
       originalUrl: req.originalUrl
     });
     
-    // Use findUnique for primary key lookup (more efficient)
-    // Fetch dealer with all relations
+    // Validate CUID format (should be 25 characters, start with 'c')
+    if (!dealerId.match(/^c[a-z0-9]{24}$/i)) {
+      console.error(`[DEALER LOOKUP] Invalid CUID format: "${dealerId}" (length: ${dealerId.length})`);
+      return res.status(400).json({ 
+        error: 'Invalid dealer ID format',
+        details: `Dealer ID must be a valid CUID (25 characters starting with 'c')`
+      });
+    }
+    
+    // Use findUnique for primary key lookup (most efficient)
+    // Then verify companyId matches (security check)
     let dealer;
     try {
       console.log(`[DEALER LOOKUP] Prisma query: findUnique where id="${dealerId}"`);
@@ -469,7 +478,8 @@ router.get('/:id', async (req: AuthRequest, res) => {
         searchedId: dealerId,
         searchedIdLength: dealerId.length,
         companyId: companyId,
-        rawId: rawId
+        rawId: rawId,
+        rawIdLength: rawId.length
       });
       
       // Check if dealer exists with exact ID but different company
@@ -483,12 +493,23 @@ router.get('/:id', async (req: AuthRequest, res) => {
           dealerId: dealerAnyCompany.id,
           dealerCompanyId: dealerAnyCompany.companyId,
           requestCompanyId: companyId,
-          dealerName: dealerAnyCompany.companyName
+          dealerName: dealerAnyCompany.companyName,
+          companyIdsMatch: dealerAnyCompany.companyId === companyId
         });
         return res.status(403).json({ 
           error: 'Dealer not found',
           details: 'This dealer belongs to a different company'
         });
+      }
+      
+      // Try to find dealer by ID only (without company filter) to see if it exists at all
+      const dealerByIdOnly = await prisma.dealer.findUnique({
+        where: { id: dealerId },
+        select: { id: true, companyName: true, companyId: true }
+      });
+      
+      if (!dealerByIdOnly) {
+        console.error(`[DEALER LOOKUP] Dealer ID does not exist in database at all`);
       }
       
       // Check if there are any dealers with similar IDs (for debugging)

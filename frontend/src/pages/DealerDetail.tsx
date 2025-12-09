@@ -69,19 +69,38 @@ const DealerDetail = () => {
       return;
     }
     
+    // Validate CUID format (should be 25 characters, start with 'c')
+    // CUIDs are like: clxxx1234567890123456789
+    if (!trimmedId.match(/^c[a-z0-9]{24}$/i)) {
+      console.error('[DEALER DETAIL] Invalid CUID format:', {
+        id: trimmedId,
+        length: trimmedId.length,
+        firstChar: trimmedId[0],
+        matchesPattern: trimmedId.match(/^c[a-z0-9]{24}$/i)
+      });
+      alert(`Invalid dealer ID format. Expected CUID format (25 characters starting with 'c'), got: "${trimmedId.substring(0, 10)}..."`);
+      navigate('/dealers');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      // CUIDs don't contain special characters that need encoding, but encode anyway to be safe
+      // CUIDs don't contain special characters that need encoding
       // Note: React Router's useParams() already decodes the ID, so we have the raw ID here
+      // Axios will handle URL encoding automatically if needed
       const apiUrl = `/dealers/${trimmedId}`;
       
       console.log(`[DEALER DETAIL] Fetching dealer:`, {
         originalId: id,
         trimmedId: trimmedId,
         idLength: trimmedId.length,
+        idFormat: 'CUID',
         apiUrl: apiUrl,
         baseURL: api.defaults.baseURL,
         fullUrl: `${api.defaults.baseURL}${apiUrl}`,
-        tokenExists: !!localStorage.getItem('token')
+        tokenExists: !!localStorage.getItem('token'),
+        currentUrl: window.location.href,
+        pathname: window.location.pathname
       });
       
       const response = await api.get(apiUrl);
