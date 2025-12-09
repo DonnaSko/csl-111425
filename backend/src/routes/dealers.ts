@@ -368,7 +368,20 @@ router.get('/buying-groups/list', async (req: AuthRequest, res) => {
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
     // Decode the ID in case it's URL encoded
-    const rawId = req.params.id || '';
+    // Handle edge case where id might be undefined
+    const rawId = req.params?.id || '';
+    if (!rawId) {
+      console.error('[DEALER LOOKUP] No dealer ID in request params:', {
+        params: req.params,
+        url: req.url,
+        path: req.path
+      });
+      return res.status(400).json({ 
+        error: 'Invalid dealer ID',
+        details: 'No dealer ID provided in the request'
+      });
+    }
+    
     const dealerId = decodeURIComponent(rawId).trim();
     const companyId = req.companyId!;
     
@@ -589,14 +602,17 @@ router.get('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Dealer not found' });
     }
     
-    // Return more detailed error in development, generic in production
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Failed to fetch dealer: ${error?.message || 'Unknown error'}`
-      : 'Failed to fetch dealer. Please try again.';
+    // Return more detailed error message with actionable information
+    // Always include details in error response for better debugging
+    const errorMessage = error?.message || 'Unknown error occurred while fetching dealer';
     
     res.status(500).json({ 
-      error: errorMessage,
-      ...(process.env.NODE_ENV === 'development' && { details: error?.message })
+      error: 'Failed to fetch dealer. Please try again.',
+      details: errorMessage,
+      // Include dealer ID for debugging (safe to expose)
+      dealerId: req.params.id,
+      // Include error code if available (for Prisma errors)
+      ...(error?.code && { code: error.code })
     });
   }
 });

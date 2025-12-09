@@ -140,13 +140,16 @@ const DealerDetail = () => {
       
       // Handle different error types with specific messages
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        alert('Request timed out. Please check your connection and try again.');
+        console.error('[DEALER DETAIL] Request timeout:', errorDetails);
+        alert('Request timed out. The server may be slow or overloaded. Please try again.');
+        setLoading(false);
         return;
       }
       
       if (error.code === 'ERR_NETWORK' || !error.response) {
-        console.error('[DEALER DETAIL] Network error - no response from server');
-        alert('Network error. Please check your internet connection and try again.');
+        console.error('[DEALER DETAIL] Network error - no response from server:', errorDetails);
+        alert('Network error. Please check your internet connection and ensure the server is running. If the problem persists, contact support.');
+        setLoading(false);
         return;
       }
       
@@ -164,14 +167,26 @@ const DealerDetail = () => {
         // Auth interceptor should handle redirect
       } else if (error.response?.status === 500) {
         // Server error - show backend error message if available
-        const errorMsg = error.response?.data?.error || 'Server error. Please try again later.';
+        const errorMsg = error.response?.data?.error || error.response?.data?.details || 'Server error. Please try again later.';
+        const errorDetails = error.response?.data?.details || '';
         console.error('[DEALER DETAIL] Server error (500):', error.response?.data);
-        alert(`Server error: ${errorMsg}`);
+        // Show more informative error message
+        if (errorDetails) {
+          alert(`Server error: ${errorMsg}\n\nDetails: ${errorDetails}`);
+        } else {
+          alert(`Server error: ${errorMsg}`);
+        }
+        // Don't navigate away - let user try again or go back manually
       } else {
         // Show more detailed error message
-        const errorMsg = error.response?.data?.error || error.message || 'Failed to load dealer. Please try again.';
-        console.error('[DEALER DETAIL] Unexpected error:', errorMsg);
-        alert(`Error: ${errorMsg}`);
+        const errorMsg = error.response?.data?.error || error.response?.data?.details || error.message || 'Failed to load dealer. Please try again.';
+        const errorDetails = error.response?.data?.details || '';
+        console.error('[DEALER DETAIL] Unexpected error:', errorMsg, errorDetails);
+        if (errorDetails && errorDetails !== errorMsg) {
+          alert(`Error: ${errorMsg}\n\nDetails: ${errorDetails}`);
+        } else {
+          alert(`Error: ${errorMsg}`);
+        }
         // Don't navigate away on generic errors - let user try again
       }
     } finally {
