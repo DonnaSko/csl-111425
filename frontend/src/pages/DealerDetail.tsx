@@ -137,6 +137,8 @@ const DealerDetail = () => {
     data_sharing: false,
     phone_contact: false,
     snail_mail: false,
+    badge_photo: false,
+    audio_notes: false,
   });
 
   useEffect(() => {
