@@ -982,6 +982,11 @@ const DealerDetail = () => {
           <AccordionSection section={sections[6]} />
           {sections[6].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <p className="text-sm text-gray-700">
+                  Checking any box below, signifies that the User of the App asked for specific permission from the Dealer to be able to eg. send emails, take a photo of the tradeshow badge etc.
+                </p>
+              </div>
               <div className="space-y-4">
                 {Object.entries(privacyPermissions).map(([permission, granted]) => (
                   <div key={permission} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
