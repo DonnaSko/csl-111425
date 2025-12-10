@@ -437,8 +437,10 @@ router.get('/:id', async (req: AuthRequest, res) => {
             orderBy: { createdAt: 'desc' }
           },
           todos: {
-            where: { completed: false },
-            orderBy: { dueDate: 'asc' }
+            orderBy: [
+              { completed: 'asc' },
+              { dueDate: 'asc' }
+            ]
           },
           tradeShows: {
             include: {
@@ -471,6 +473,18 @@ router.get('/:id', async (req: AuthRequest, res) => {
             orderBy: {
               startDate: 'desc'
             }
+          },
+          products: {
+            include: {
+              product: true
+            }
+          },
+          privacyPermissions: {
+            orderBy: { createdAt: 'asc' }
+          },
+          privacyPermissionHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: 50
           }
         }
       });
@@ -1217,6 +1231,42 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
   }
 });
 
+// Delete note
+router.delete('/:id/notes/:noteId', async (req: AuthRequest, res) => {
+  try {
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    const note = await prisma.dealerNote.findFirst({
+      where: {
+        id: req.params.noteId,
+        dealerId: req.params.id
+      }
+    });
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    await prisma.dealerNote.delete({
+      where: { id: req.params.noteId }
+    });
+
+    res.json({ message: 'Note deleted successfully' });
+  } catch (error) {
+    console.error('Delete note error:', error);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
 // Update dealer rating
 router.put('/:id/rating', async (req: AuthRequest, res) => {
   try {
@@ -1246,6 +1296,279 @@ router.put('/:id/rating', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Update rating error:', error);
     res.status(500).json({ error: 'Failed to update rating' });
+  }
+});
+
+// Get all products for a dealer
+router.get('/:id/products', async (req: AuthRequest, res) => {
+  try {
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    res.json(dealer.products.map(dp => dp.product));
+  } catch (error) {
+    console.error('Get products error:', error);
+    res.status(500).json({ error: 'Failed to get products' });
+  }
+});
+
+// Add product to dealer
+router.post('/:id/products', async (req: AuthRequest, res) => {
+  try {
+    const { productName } = req.body;
+
+    if (!productName || !productName.trim()) {
+      return res.status(400).json({ error: 'Product name is required' });
+    }
+
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    // Find or create product
+    let product = await prisma.product.findFirst({
+      where: {
+        companyId: req.companyId!,
+        name: productName.trim()
+      }
+    });
+
+    if (!product) {
+      product = await prisma.product.create({
+        data: {
+          companyId: req.companyId!,
+          name: productName.trim()
+        }
+      });
+    }
+
+    // Check if dealer already has this product
+    const existing = await prisma.dealerProduct.findFirst({
+      where: {
+        dealerId: req.params.id,
+        productId: product.id
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'Dealer already has this product' });
+    }
+
+    // Add product to dealer
+    await prisma.dealerProduct.create({
+      data: {
+        dealerId: req.params.id,
+        productId: product.id
+      }
+    });
+
+    res.status(201).json(product);
+  } catch (error: any) {
+    console.error('Add product error:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Product already exists for this dealer' });
+    }
+    res.status(500).json({ error: 'Failed to add product' });
+  }
+});
+
+// Remove product from dealer
+router.delete('/:id/products/:productId', async (req: AuthRequest, res) => {
+  try {
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    await prisma.dealerProduct.deleteMany({
+      where: {
+        dealerId: req.params.id,
+        productId: req.params.productId
+      }
+    });
+
+    res.json({ message: 'Product removed successfully' });
+  } catch (error) {
+    console.error('Remove product error:', error);
+    res.status(500).json({ error: 'Failed to remove product' });
+  }
+});
+
+// Get privacy permissions for a dealer
+router.get('/:id/privacy-permissions', async (req: AuthRequest, res) => {
+  try {
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      },
+      include: {
+        privacyPermissions: {
+          orderBy: { createdAt: 'asc' }
+        },
+        privacyPermissionHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 50
+        }
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    res.json({
+      permissions: dealer.privacyPermissions,
+      history: dealer.privacyPermissionHistory
+    });
+  } catch (error) {
+    console.error('Get privacy permissions error:', error);
+    res.status(500).json({ error: 'Failed to get privacy permissions' });
+  }
+});
+
+// Update privacy permission
+router.put('/:id/privacy-permissions', async (req: AuthRequest, res) => {
+  try {
+    const { permission, granted, action, changedData } = req.body;
+
+    if (!permission) {
+      return res.status(400).json({ error: 'Permission is required' });
+    }
+
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    // Get current permission state
+    const currentPermission = await prisma.privacyPermission.findFirst({
+      where: {
+        dealerId: req.params.id,
+        permission
+      }
+    });
+
+    const wasGranted = currentPermission?.granted || false;
+    const newGranted = granted !== undefined ? granted : !wasGranted;
+
+    // Update or create permission
+    const updated = await prisma.privacyPermission.upsert({
+      where: {
+        dealerId_permission: {
+          dealerId: req.params.id,
+          permission
+        }
+      },
+      update: {
+        granted: newGranted,
+        updatedAt: new Date()
+      },
+      create: {
+        dealerId: req.params.id,
+        permission,
+        granted: newGranted
+      }
+    });
+
+    // Create history entry
+    await prisma.privacyPermissionHistory.create({
+      data: {
+        dealerId: req.params.id,
+        permission,
+        granted: newGranted,
+        action: action || (wasGranted !== newGranted ? (newGranted ? 'granted' : 'revoked') : 'changed'),
+        changedData: changedData ? JSON.parse(JSON.stringify(changedData)) : null
+      }
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Update privacy permission error:', error);
+    res.status(500).json({ error: 'Failed to update privacy permission' });
+  }
+});
+
+// Delete privacy permission
+router.delete('/:id/privacy-permissions/:permission', async (req: AuthRequest, res) => {
+  try {
+    const dealer = await prisma.dealer.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    const permission = await prisma.privacyPermission.findFirst({
+      where: {
+        dealerId: req.params.id,
+        permission: req.params.permission
+      }
+    });
+
+    if (permission) {
+      // Create history entry before deletion
+      await prisma.privacyPermissionHistory.create({
+        data: {
+          dealerId: req.params.id,
+          permission: req.params.permission,
+          granted: permission.granted,
+          action: 'deleted',
+          changedData: {
+            previousState: permission.granted
+          }
+        }
+      });
+
+      await prisma.privacyPermission.delete({
+        where: {
+          id: permission.id
+        }
+      });
+    }
+
+    res.json({ message: 'Privacy permission deleted successfully' });
+  } catch (error) {
+    console.error('Delete privacy permission error:', error);
+    res.status(500).json({ error: 'Failed to delete privacy permission' });
   }
 });
 

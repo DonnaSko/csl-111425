@@ -51,7 +51,16 @@ router.get('/', async (req: AuthRequest, res) => {
 // Create todo
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { title, description, dueDate, dealerId } = req.body;
+    const { 
+      title, 
+      description, 
+      dueDate, 
+      dealerId, 
+      type, 
+      emailContent, 
+      followUp, 
+      followUpDate 
+    } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -77,7 +86,11 @@ router.post('/', async (req: AuthRequest, res) => {
         title,
         description,
         dueDate: dueDate ? new Date(dueDate) : null,
-        dealerId: dealerId || null
+        dealerId: dealerId || null,
+        type: type || 'general',
+        emailContent: emailContent || null,
+        followUp: followUp || false,
+        followUpDate: followUpDate ? new Date(followUpDate) : null
       }
     });
 
@@ -102,13 +115,30 @@ router.put('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Todo not found' });
     }
 
+    const updateData: any = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+
+    // Handle date fields
+    if (req.body.dueDate !== undefined) {
+      updateData.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+    }
+    if (req.body.followUpDate !== undefined) {
+      updateData.followUpDate = req.body.followUpDate ? new Date(req.body.followUpDate) : null;
+    }
+    if (req.body.emailSentDate !== undefined) {
+      updateData.emailSentDate = req.body.emailSentDate ? new Date(req.body.emailSentDate) : null;
+    }
+
+    // If marking email as sent, set emailSentDate if not provided
+    if (req.body.emailSent === true && !updateData.emailSentDate) {
+      updateData.emailSentDate = new Date();
+    }
+
     const updated = await prisma.todo.update({
       where: { id: req.params.id },
-      data: {
-        ...req.body,
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
-        updatedAt: new Date()
-      }
+      data: updateData
     });
 
     res.json(updated);
