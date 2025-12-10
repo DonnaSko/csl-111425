@@ -98,7 +98,6 @@ const DealerDetail = () => {
     { id: 'badges', title: 'Badge Scanning', expanded: false },
     { id: 'todos', title: 'Tasks & Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
-    { id: 'history', title: 'Buying Group History', expanded: false },
   ]);
 
   // Auto-save debounce refs
@@ -395,6 +394,36 @@ const DealerDetail = () => {
     } catch (error: any) {
       console.error('Failed to assign buying group:', error);
       alert(error.response?.data?.error || 'Failed to assign buying group');
+    }
+  };
+
+  const handleRemoveBuyingGroup = async () => {
+    if (!id || !dealer || !dealer.buyingGroup) return;
+
+    const buyingGroupName = dealer.buyingGroup;
+    const buyingGroupHistory = dealer.buyingGroupHistory;
+
+    // Find the current buying group ID
+    const currentHistory = buyingGroupHistory?.find(
+      h => h.buyingGroup.name === buyingGroupName && !h.endDate
+    );
+
+    if (!currentHistory) {
+      alert('Could not find current buying group assignment');
+      return;
+    }
+
+    if (!confirm(`Remove this dealer from "${buyingGroupName}"? This will be recorded in history.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/buying-groups/${currentHistory.buyingGroup.id}/assign/${id}`);
+      setShowBuyingGroupModal(false);
+      fetchDealer();
+    } catch (error: any) {
+      console.error('Failed to remove buying group:', error);
+      alert(error.response?.data?.error || 'Failed to remove buying group');
     }
   };
 
@@ -963,25 +992,44 @@ const DealerDetail = () => {
           )}
         </div>
 
-        {/* Buying Group History Section */}
+        {/* Buying Group History Section - Always Visible */}
         {dealer.buyingGroupHistory && dealer.buyingGroupHistory.length > 0 && (
-          <div className="mb-4">
-            <AccordionSection section={sections[7]} />
-            {sections[7].expanded && (
-              <div className="mt-2 bg-white rounded-lg shadow p-6">
-                <div className="space-y-2">
-                  {dealer.buyingGroupHistory.map((history) => (
-                    <div key={history.id} className="bg-gray-50 rounded-lg p-4">
-                      <p className="font-semibold text-gray-900">{history.buyingGroup.name}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {formatDate(history.startDate)}
-                        {history.endDate ? ` - ${formatDate(history.endDate)}` : ' - Present'}
-                      </p>
+          <div className="mb-4 mt-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                Buying Group History
+              </h3>
+              <div className="space-y-3">
+                {dealer.buyingGroupHistory.map((history) => (
+                  <div key={history.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{history.buyingGroup.name}</p>
+                        <div className="mt-2 text-sm text-gray-600">
+                          <p>
+                            <span className="font-medium">Start Date:</span>{' '}
+                            {formatDate(history.startDate)}
+                          </p>
+                          {history.endDate ? (
+                            <p>
+                              <span className="font-medium">End Date:</span>{' '}
+                              {formatDate(history.endDate)}
+                            </p>
+                          ) : (
+                            <p className="text-green-600 font-medium">Currently Active</p>
+                          )}
+                        </div>
+                      </div>
+                      {!history.endDate && (
+                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                          Active
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -990,10 +1038,21 @@ const DealerDetail = () => {
       {showBuyingGroupModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">Assign Buying Group</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              {dealer.buyingGroup ? 'Change Buying Group' : 'Assign Buying Group'}
+            </h2>
+            
+            {/* Current Buying Group Display */}
+            {dealer.buyingGroup && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Current Buying Group:</p>
+                <p className="font-semibold text-gray-900">{dealer.buyingGroup}</p>
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Buying Group
+                Select New Buying Group
               </label>
               <select
                 value={selectedBuyingGroupId}
@@ -1008,23 +1067,36 @@ const DealerDetail = () => {
                 ))}
               </select>
             </div>
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setShowBuyingGroupModal(false);
-                  setSelectedBuyingGroupId('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssignBuyingGroup}
-                disabled={!selectedBuyingGroupId}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Assign
-              </button>
+            
+            <div className="flex flex-col gap-2">
+              {/* Remove Current Button - only show if dealer has a buying group */}
+              {dealer.buyingGroup && (
+                <button
+                  onClick={handleRemoveBuyingGroup}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Remove Current Buying Group
+                </button>
+              )}
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowBuyingGroupModal(false);
+                    setSelectedBuyingGroupId('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignBuyingGroup}
+                  disabled={!selectedBuyingGroupId}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {dealer.buyingGroup ? 'Change' : 'Assign'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
