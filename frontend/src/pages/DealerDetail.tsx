@@ -88,6 +88,8 @@ const DealerDetail = () => {
   const [showBuyingGroupModal, setShowBuyingGroupModal] = useState(false);
   const [buyingGroups, setBuyingGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedBuyingGroupId, setSelectedBuyingGroupId] = useState<string>('');
+  const [showCreateBuyingGroup, setShowCreateBuyingGroup] = useState(false);
+  const [newBuyingGroupName, setNewBuyingGroupName] = useState('');
   
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
@@ -390,10 +392,33 @@ const DealerDetail = () => {
       await api.post(`/buying-groups/${selectedBuyingGroupId}/assign`, { dealerId: id });
       setShowBuyingGroupModal(false);
       setSelectedBuyingGroupId('');
+      setShowCreateBuyingGroup(false);
+      setNewBuyingGroupName('');
       fetchDealer();
+      fetchBuyingGroups(); // Refresh the list
     } catch (error: any) {
       console.error('Failed to assign buying group:', error);
       alert(error.response?.data?.error || 'Failed to assign buying group');
+    }
+  };
+
+  const handleCreateBuyingGroup = async () => {
+    if (!newBuyingGroupName.trim()) {
+      alert('Please enter a buying group name');
+      return;
+    }
+
+    try {
+      const response = await api.post('/buying-groups', { name: newBuyingGroupName.trim() });
+      // Add the new buying group to the list
+      setBuyingGroups([...buyingGroups, response.data]);
+      // Automatically select the newly created buying group
+      setSelectedBuyingGroupId(response.data.id);
+      setShowCreateBuyingGroup(false);
+      setNewBuyingGroupName('');
+    } catch (error: any) {
+      console.error('Failed to create buying group:', error);
+      alert(error.response?.data?.error || 'Failed to create buying group');
     }
   };
 
@@ -1051,21 +1076,57 @@ const DealerDetail = () => {
             )}
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select New Buying Group
-              </label>
-              <select
-                value={selectedBuyingGroupId}
-                onChange={(e) => setSelectedBuyingGroupId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">-- Select a buying group --</option>
-                {buyingGroups.map((bg) => (
-                  <option key={bg.id} value={bg.id}>
-                    {bg.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Select Buying Group
+                </label>
+                <button
+                  onClick={() => {
+                    setShowCreateBuyingGroup(!showCreateBuyingGroup);
+                    setNewBuyingGroupName('');
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {showCreateBuyingGroup ? 'Cancel' : '+ Create New'}
+                </button>
+              </div>
+              
+              {showCreateBuyingGroup ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newBuyingGroupName}
+                    onChange={(e) => setNewBuyingGroupName(e.target.value)}
+                    placeholder="Enter new buying group name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateBuyingGroup();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleCreateBuyingGroup}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Create & Assign
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={selectedBuyingGroupId}
+                  onChange={(e) => setSelectedBuyingGroupId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select a buying group --</option>
+                  {buyingGroups.map((bg) => (
+                    <option key={bg.id} value={bg.id}>
+                      {bg.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             
             <div className="flex flex-col gap-2">
@@ -1084,6 +1145,8 @@ const DealerDetail = () => {
                   onClick={() => {
                     setShowBuyingGroupModal(false);
                     setSelectedBuyingGroupId('');
+                    setShowCreateBuyingGroup(false);
+                    setNewBuyingGroupName('');
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
@@ -1091,7 +1154,7 @@ const DealerDetail = () => {
                 </button>
                 <button
                   onClick={handleAssignBuyingGroup}
-                  disabled={!selectedBuyingGroupId}
+                  disabled={!selectedBuyingGroupId && !showCreateBuyingGroup}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {dealer.buyingGroup ? 'Change' : 'Assign'}
