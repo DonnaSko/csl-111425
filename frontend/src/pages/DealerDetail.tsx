@@ -66,7 +66,7 @@ interface DealerDetail {
   rating: number | null;
   dealerNotes: Array<{ id: string; content: string; createdAt: string }>;
   photos: Array<{ id: string; originalName: string; type: string; createdAt: string }>;
-  voiceRecordings: Array<{ id: string; originalName: string; createdAt: string }>;
+  voiceRecordings: Array<{ id: string; originalName: string; createdAt: string; date: string | null; tradeshowName: string | null }>;
   todos: Todo[];
   buyingGroupHistory?: BuyingGroupHistory[];
   products?: Array<{ product: Product }>;
@@ -101,7 +101,9 @@ const DealerDetail = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string } }>({});
+  const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string; followUpDate: string } }>({});
+  const [recordingDate, setRecordingDate] = useState<string>('');
+  const [recordingTradeshowName, setRecordingTradeshowName] = useState<string>('');
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
   const [audioLoadingErrors, setAudioLoadingErrors] = useState<{ [recordingId: string]: boolean }>({});
   
@@ -539,6 +541,12 @@ const DealerDetail = () => {
     const audioFile = new File([audioBlob], `recording-${Date.now()}${extension}`, { type: mimeType });
     formData.append('recording', audioFile);
     formData.append('duration', Math.floor(audioBlob.size / 1000).toString()); // Approximate duration
+    if (recordingDate) {
+      formData.append('date', recordingDate);
+    }
+    if (recordingTradeshowName) {
+      formData.append('tradeshowName', recordingTradeshowName);
+    }
 
     try {
       console.log('Uploading recording:', audioFile.name, audioBlob.size, 'bytes');
@@ -546,6 +554,9 @@ const DealerDetail = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       console.log('Recording uploaded successfully');
+      // Reset form fields
+      setRecordingDate('');
+      setRecordingTradeshowName('');
       await fetchDealer();
     } catch (error: any) {
       console.error('Failed to upload recording:', error);
@@ -580,8 +591,8 @@ const DealerDetail = () => {
         type: 'general',
         dealerId: id,
         dueDate: null,
-        followUp: false,
-        followUpDate: null,
+        followUp: todo.followUpDate ? true : false,
+        followUpDate: todo.followUpDate || null,
       });
       // Clear the todo input for this recording
       setTodoFromRecording(prev => {
@@ -1052,7 +1063,29 @@ const DealerDetail = () => {
                         </div>
                       </div>
                     ) : !isRecording ? (
-                      <div className="flex flex-col items-center gap-3">
+                      <div className="flex flex-col items-center gap-4 w-full">
+                        {/* Date and Tradeshow Name Inputs */}
+                        <div className="w-full space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <input
+                              type="date"
+                              value={recordingDate}
+                              onChange={(e) => setRecordingDate(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tradeshow Name</label>
+                            <input
+                              type="text"
+                              value={recordingTradeshowName}
+                              onChange={(e) => setRecordingTradeshowName(e.target.value)}
+                              placeholder="Enter tradeshow name"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
                         <button
                           onClick={handleStartRecording}
                           className="px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center gap-2"
@@ -1106,7 +1139,15 @@ const DealerDetail = () => {
                               <span className="text-lg">🎙️</span>
                               <div>
                                 <p className="text-sm font-medium text-gray-900">{recording.originalName}</p>
-                                <p className="text-xs text-gray-500">{formatDate(recording.createdAt)}</p>
+                                <div className="flex flex-col gap-1">
+                                  <p className="text-xs text-gray-500">Recorded: {formatDate(recording.createdAt)}</p>
+                                  {recording.date && (
+                                    <p className="text-xs text-blue-600">Date: {new Date(recording.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                  )}
+                                  {recording.tradeshowName && (
+                                    <p className="text-xs text-blue-600">Tradeshow: {recording.tradeshowName}</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <button
@@ -1148,7 +1189,8 @@ const DealerDetail = () => {
                                   [recording.id]: {
                                     ...prev[recording.id],
                                     title: e.target.value,
-                                    description: prev[recording.id]?.description || ''
+                                    description: prev[recording.id]?.description || '',
+                                    followUpDate: prev[recording.id]?.followUpDate || ''
                                   }
                                 }))}
                                 placeholder="Task title"
@@ -1161,13 +1203,33 @@ const DealerDetail = () => {
                                   [recording.id]: {
                                     ...prev[recording.id],
                                     title: prev[recording.id]?.title || '',
-                                    description: e.target.value
+                                    description: e.target.value,
+                                    followUpDate: prev[recording.id]?.followUpDate || ''
                                   }
                                 }))}
                                 placeholder="Task description (optional)"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 rows={2}
                               />
+                              {hasActiveSubscription && (
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Date (optional)</label>
+                                  <input
+                                    type="date"
+                                    value={todoFromRecording[recording.id]?.followUpDate || ''}
+                                    onChange={(e) => setTodoFromRecording(prev => ({
+                                      ...prev,
+                                      [recording.id]: {
+                                        ...prev[recording.id],
+                                        title: prev[recording.id]?.title || '',
+                                        description: prev[recording.id]?.description || '',
+                                        followUpDate: e.target.value
+                                      }
+                                    }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              )}
                               <button
                                 onClick={() => handleCreateTodoFromRecording(recording.id)}
                                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

@@ -237,7 +237,9 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
         mimeType: req.file.mimetype,
         size: req.file.size,
         path: req.file.path,
-        duration: req.body.duration ? parseInt(req.body.duration) : null
+        duration: req.body.duration ? parseInt(req.body.duration) : null,
+        date: req.body.date ? new Date(req.body.date) : null,
+        tradeshowName: req.body.tradeshowName || null
       }
     });
 

@@ -141,19 +141,22 @@ model Photo {
 }
 
 model VoiceRecording {
-  id           String   @id @default(cuid())
-  dealerId     String
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int
-  path         String
-  duration     Int? // in seconds
-  createdAt    DateTime @default(now())
+  id            String    @id @default(cuid())
+  dealerId      String
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  path          String
+  duration      Int?      // in seconds
+  date          DateTime? // Date associated with the recording
+  tradeshowName String?   // Name of the tradeshow
+  createdAt     DateTime  @default(now())
 
   dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@index([dealerId])
+  @@index([date])
   @@schema("csl")
 }
 
