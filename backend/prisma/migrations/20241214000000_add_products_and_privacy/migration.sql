@@ -89,3 +89,4 @@ ALTER TABLE "csl"."PrivacyPermission" ADD CONSTRAINT "PrivacyPermission_dealerId
 
 -- AddForeignKey
 ALTER TABLE "csl"."PrivacyPermissionHistory" ADD CONSTRAINT "PrivacyPermissionHistory_dealerId_fkey" FOREIGN KEY ("dealerId") REFERENCES "csl"."Dealer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

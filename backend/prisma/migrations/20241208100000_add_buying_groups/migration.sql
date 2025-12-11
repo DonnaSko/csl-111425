@@ -52,3 +52,4 @@ ALTER TABLE "csl"."DealerBuyingGroupHistory" ADD CONSTRAINT "DealerBuyingGroupHi
 -- AddForeignKey
 ALTER TABLE "csl"."DealerBuyingGroupHistory" ADD CONSTRAINT "DealerBuyingGroupHistory_buyingGroupId_fkey" FOREIGN KEY ("buyingGroupId") REFERENCES "csl"."BuyingGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
