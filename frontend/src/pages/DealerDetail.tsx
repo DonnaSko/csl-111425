@@ -103,9 +103,12 @@ const DealerDetail = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string; followUpDate: string } }>({});
   const [recordingDate, setRecordingDate] = useState<string>(() => {
-    // Set default to today's date in YYYY-MM-DD format
+    // Set default to today's date in YYYY-MM-DD format (using local time, not UTC)
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
   const [recordingTradeshowName, setRecordingTradeshowName] = useState<string>('');
   const [tradeShows, setTradeShows] = useState<Array<{ id: string; name: string }>>([]);
@@ -586,9 +589,12 @@ const DealerDetail = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       console.log('Recording uploaded successfully');
-      // Reset form fields - set date back to today
+      // Reset form fields - set date back to today (using local time, not UTC)
       const today = new Date();
-      setRecordingDate(today.toISOString().split('T')[0]);
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      setRecordingDate(`${year}-${month}-${day}`);
       setRecordingTradeshowName('');
       await fetchDealer();
     } catch (error: any) {

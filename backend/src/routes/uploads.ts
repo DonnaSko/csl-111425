@@ -276,19 +276,34 @@ router.get('/recording/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Recording file not found' });
     }
 
-    // Set appropriate headers
-    res.setHeader('Content-Type', recording.mimeType || 'audio/webm');
-    res.setHeader('Content-Disposition', `inline; filename="${recording.originalName}"`);
-    res.setHeader('Accept-Ranges', 'bytes');
+    // Get file stats to verify it's readable
+    const stats = fs.statSync(filePath);
+    if (stats.size === 0) {
+      console.error(`Recording file is empty: ${filePath}`);
+      return res.status(404).json({ error: 'Recording file is empty' });
+    }
 
-    res.sendFile(filePath, (err) => {
-      if (err) {
-        console.error('Error sending recording file:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to send recording file' });
-        }
+    // Set appropriate headers before sending
+    const mimeType = recording.mimeType || 'audio/webm';
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Length', stats.size);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(recording.originalName)}"`);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    // Read and send file as stream for better reliability
+    const fileStream = fs.createReadStream(filePath);
+    
+    fileStream.on('error', (err) => {
+      console.error('Error reading recording file:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to read recording file' });
+      } else {
+        res.end();
       }
     });
+
+    fileStream.pipe(res);
   } catch (error) {
     console.error('Get recording error:', error);
     if (!res.headersSent) {
