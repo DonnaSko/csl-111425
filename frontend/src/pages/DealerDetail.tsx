@@ -102,8 +102,13 @@ const DealerDetail = () => {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string; followUpDate: string } }>({});
-  const [recordingDate, setRecordingDate] = useState<string>('');
+  const [recordingDate, setRecordingDate] = useState<string>(() => {
+    // Set default to today's date in YYYY-MM-DD format
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
   const [recordingTradeshowName, setRecordingTradeshowName] = useState<string>('');
+  const [tradeShows, setTradeShows] = useState<Array<{ id: string; name: string }>>([]);
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
   const [audioLoadingErrors, setAudioLoadingErrors] = useState<{ [recordingId: string]: boolean }>({});
   
@@ -162,8 +167,20 @@ const DealerDetail = () => {
     if (id) {
       fetchDealer();
       fetchBuyingGroups();
+      if (hasActiveSubscription) {
+        fetchTradeShows();
+      }
     }
-  }, [id]);
+  }, [id, hasActiveSubscription]);
+
+  const fetchTradeShows = async () => {
+    try {
+      const response = await api.get('/trade-shows');
+      setTradeShows(response.data.map((ts: any) => ({ id: ts.id, name: ts.name })));
+    } catch (error) {
+      console.error('Failed to fetch trade shows:', error);
+    }
+  };
 
   // Load audio URLs for recordings
   useEffect(() => {
@@ -554,8 +571,9 @@ const DealerDetail = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       console.log('Recording uploaded successfully');
-      // Reset form fields
-      setRecordingDate('');
+      // Reset form fields - set date back to today
+      const today = new Date();
+      setRecordingDate(today.toISOString().split('T')[0]);
       setRecordingTradeshowName('');
       await fetchDealer();
     } catch (error: any) {
@@ -1066,25 +1084,58 @@ const DealerDetail = () => {
                       <div className="flex flex-col items-center gap-4 w-full">
                         {/* Date and Tradeshow Name Inputs */}
                         <div className="w-full space-y-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input
-                              type="date"
-                              value={recordingDate}
-                              onChange={(e) => setRecordingDate(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tradeshow Name</label>
-                            <input
-                              type="text"
-                              value={recordingTradeshowName}
-                              onChange={(e) => setRecordingTradeshowName(e.target.value)}
-                              placeholder="Enter tradeshow name"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
+                          {hasActiveSubscription ? (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                              <input
+                                type="date"
+                                value={recordingDate}
+                                onChange={(e) => setRecordingDate(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                              <input
+                                type="date"
+                                value={recordingDate}
+                                disabled
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                                title="Active subscription required to change date"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Date set to today (subscription required to change)</p>
+                            </div>
+                          )}
+                          {hasActiveSubscription ? (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Tradeshow Name</label>
+                              <select
+                                value={recordingTradeshowName}
+                                onChange={(e) => setRecordingTradeshowName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="">-- Select a tradeshow --</option>
+                                {tradeShows.map((ts) => (
+                                  <option key={ts.id} value={ts.name}>
+                                    {ts.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Tradeshow Name</label>
+                              <select
+                                disabled
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                                title="Active subscription required"
+                              >
+                                <option value="">Active subscription required</option>
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1">Active subscription required to select tradeshow</p>
+                            </div>
+                          )}
                         </div>
                         <button
                           onClick={handleStartRecording}
