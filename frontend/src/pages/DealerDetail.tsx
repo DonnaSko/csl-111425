@@ -96,11 +96,14 @@ const DealerDetail = () => {
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string } }>({});
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
+  const [audioLoadingErrors, setAudioLoadingErrors] = useState<{ [recordingId: string]: boolean }>({});
   
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
@@ -163,27 +166,43 @@ const DealerDetail = () => {
   // Load audio URLs for recordings
   useEffect(() => {
     if (!dealer?.voiceRecordings || dealer.voiceRecordings.length === 0) {
+      setAudioUrls({});
+      setAudioLoadingErrors({});
       return;
     }
 
     const loadAudioUrls = async () => {
       const urls: { [key: string]: string } = {};
+      const errors: { [key: string]: boolean } = {};
+      
       for (const recording of dealer.voiceRecordings) {
         try {
           const response = await api.get(`/uploads/recording/${recording.id}`, {
-            responseType: 'blob'
+            responseType: 'blob',
+            timeout: 10000 // 10 second timeout
           });
-          const blob = new Blob([response.data], { type: 'audio/webm' });
-          urls[recording.id] = URL.createObjectURL(blob);
-        } catch (error) {
+          
+          if (response.data && response.data.size > 0) {
+            // Try to determine MIME type from response or use default
+            const mimeType = response.data.type || 'audio/webm';
+            const blob = new Blob([response.data], { type: mimeType });
+            urls[recording.id] = URL.createObjectURL(blob);
+          } else {
+            console.error(`Empty audio blob for recording ${recording.id}`);
+            errors[recording.id] = true;
+          }
+        } catch (error: any) {
           console.error(`Failed to load audio for recording ${recording.id}:`, error);
+          errors[recording.id] = true;
         }
       }
+      
       setAudioUrls(prev => {
         // Cleanup old URLs
         Object.values(prev).forEach(url => URL.revokeObjectURL(url));
         return urls;
       });
+      setAudioLoadingErrors(errors);
     };
     
     loadAudioUrls();
@@ -358,11 +377,27 @@ const DealerDetail = () => {
       return;
     }
 
+    // Clean up any existing recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      streamRef.current = stream;
       
       // Check if MediaRecorder is supported
-      if (!MediaRecorder.isTypeSupported) {
+      if (typeof MediaRecorder === 'undefined') {
         alert('MediaRecorder is not supported in this browser');
         stream.getTracks().forEach(track => track.stop());
         return;
@@ -378,17 +413,22 @@ const DealerDetail = () => {
         }
       }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(stream, { 
+        mimeType,
+        audioBitsPerSecond: 128000
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log('Data available:', event.data.size, 'bytes');
         if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      mediaRecorder.onerror = (event) => {
+      mediaRecorder.onerror = (event: any) => {
         console.error('MediaRecorder error:', event);
         alert('Recording error occurred. Please try again.');
         setIsRecording(false);
@@ -396,44 +436,85 @@ const DealerDetail = () => {
           clearInterval(recordingTimerRef.current);
           recordingTimerRef.current = null;
         }
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
       };
 
       mediaRecorder.onstop = async () => {
+        console.log('Recording stopped. Total chunks:', audioChunksRef.current.length);
+        console.log('Total size:', audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0), 'bytes');
+        
         if (audioChunksRef.current.length > 0) {
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          await handleUploadRecording(audioBlob, mimeType);
+          const totalSize = audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+          if (totalSize > 0) {
+            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+            console.log('Created blob:', audioBlob.size, 'bytes, type:', mimeType);
+            await handleUploadRecording(audioBlob, mimeType);
+          } else {
+            alert('No audio data recorded. Please try again.');
+          }
         } else {
           alert('No audio data recorded. Please try again.');
         }
         
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
       };
 
       // Start recording with timeslice to ensure data is collected
-      mediaRecorder.start(1000); // Request data every second
-      setIsRecording(true);
-      setRecordingTime(0);
+      try {
+        mediaRecorder.start(100); // Request data every 100ms for more frequent updates
+        console.log('Recording started with MIME type:', mimeType);
+        setIsRecording(true);
+        setRecordingTime(0);
 
-      // Start timer
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } catch (error) {
+        // Start timer
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+      } catch (startError) {
+        console.error('Failed to start MediaRecorder:', startError);
+        alert('Failed to start recording. Please try again.');
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecording(false);
+      }
+    } catch (error: any) {
       console.error('Failed to start recording:', error);
-      alert('Failed to access microphone. Please check permissions.');
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        alert('Microphone permission denied. Please allow microphone access and try again.');
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        alert('No microphone found. Please connect a microphone and try again.');
+      } else {
+        alert('Failed to access microphone. Please check permissions and try again.');
+      }
       setIsRecording(false);
     }
   };
 
   const handleStopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      // Request any remaining data before stopping
-      if (mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.requestData();
+      try {
+        // Request any remaining data before stopping
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.requestData();
+          // Wait a bit for the data to be available
+          setTimeout(() => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              mediaRecorderRef.current.stop();
+            }
+          }, 200);
+        } else {
+          mediaRecorderRef.current.stop();
+        }
+      } catch (error) {
+        console.error('Error stopping recording:', error);
       }
-      mediaRecorderRef.current.stop();
+      
       setIsRecording(false);
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
@@ -445,6 +526,8 @@ const DealerDetail = () => {
 
   const handleUploadRecording = async (audioBlob: Blob, mimeType: string) => {
     if (!id) return;
+
+    setIsUploading(true);
 
     // Determine file extension based on mime type
     let extension = '.webm';
@@ -458,13 +541,17 @@ const DealerDetail = () => {
     formData.append('duration', Math.floor(audioBlob.size / 1000).toString()); // Approximate duration
 
     try {
+      console.log('Uploading recording:', audioFile.name, audioBlob.size, 'bytes');
       await api.post(`/uploads/recording/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      fetchDealer();
-    } catch (error) {
+      console.log('Recording uploaded successfully');
+      await fetchDealer();
+    } catch (error: any) {
       console.error('Failed to upload recording:', error);
-      alert('Failed to upload recording');
+      alert(error.response?.data?.error || 'Failed to upload recording. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -515,11 +602,14 @@ const DealerDetail = () => {
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
       }
-      if (mediaRecorderRef.current && isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
-  }, [isRecording]);
+  }, []);
 
   const handleAddProduct = async () => {
     if (!newProductName.trim() || !id) return;
@@ -954,7 +1044,14 @@ const DealerDetail = () => {
                 <>
                   {/* Recording Controls */}
                   <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    {!isRecording ? (
+                    {isUploading ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="text-lg font-semibold text-blue-600">Uploading recording...</div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div className="bg-blue-600 h-2.5 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                        </div>
+                      </div>
+                    ) : !isRecording ? (
                       <div className="flex flex-col items-center gap-3">
                         <button
                           onClick={handleStartRecording}
@@ -966,12 +1063,28 @@ const DealerDetail = () => {
                         <p className="text-sm text-gray-500">Tap to record</p>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
-                          <span className="text-lg font-semibold text-gray-900">
-                            Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-                          </span>
+                      <div className="flex flex-col items-center gap-4 w-full">
+                        {/* Visual Recording Bar */}
+                        <div className="w-full">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-4 h-4 bg-red-600 rounded-full animate-pulse"></div>
+                              <span className="text-lg font-semibold text-gray-900">
+                                Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Animated recording bar */}
+                          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div 
+                              className="bg-red-600 h-3 rounded-full animate-pulse"
+                              style={{ 
+                                width: '100%',
+                                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                              }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 text-center">Voice recording in progress...</p>
                         </div>
                         <button
                           onClick={handleStopRecording}
@@ -1005,13 +1118,21 @@ const DealerDetail = () => {
                           </div>
                           
                           {/* Audio Player */}
-                          {audioUrls[recording.id] ? (
+                          {audioLoadingErrors[recording.id] ? (
+                            <div className="w-full mb-3 p-3 bg-red-50 border border-red-200 rounded text-center">
+                              <p className="text-red-600 text-sm font-medium">Failed to load audio</p>
+                              <p className="text-red-500 text-xs mt-1">The recording file may be corrupted or missing</p>
+                            </div>
+                          ) : audioUrls[recording.id] ? (
                             <audio controls className="w-full mb-3" src={audioUrls[recording.id]}>
                               Your browser does not support the audio element.
                             </audio>
                           ) : (
-                            <div className="w-full mb-3 p-2 bg-gray-100 rounded text-center text-gray-500 text-sm">
-                              Loading audio...
+                            <div className="w-full mb-3 p-2 bg-gray-100 rounded text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-gray-500 text-sm">Loading audio...</span>
+                              </div>
                             </div>
                           )}
 
