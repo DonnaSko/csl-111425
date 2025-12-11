@@ -68,6 +68,46 @@ const upload = multer({
   }
 });
 
+// Audio file filter for voice recordings
+const audioFileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedAudioExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.aac'];
+  const allowedAudioMimeTypes = [
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav',
+    'audio/wave',
+    'audio/x-wav',
+    'audio/ogg',
+    'audio/mp4',
+    'audio/m4a',
+    'audio/webm',
+    'audio/aac',
+    'audio/x-m4a',
+    'application/octet-stream' // Some browsers send this
+  ];
+  
+  if (allowedAudioExtensions.includes(fileExt)) {
+    if (file.mimetype && 
+        !allowedAudioMimeTypes.includes(file.mimetype) && 
+        file.mimetype !== 'application/octet-stream') {
+      console.warn(`Warning: Audio file ${file.originalname} has unexpected MIME type: ${file.mimetype}, but extension is valid: ${fileExt}`);
+    }
+    cb(null, true);
+  } else {
+    cb(new Error(`Audio file type not supported. Allowed types: ${allowedAudioExtensions.join(', ').toUpperCase()}. Received: ${fileExt || 'unknown'}`));
+  }
+};
+
+// Multer instance for audio files
+const audioUpload = multer({
+  storage,
+  fileFilter: audioFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB for audio files
+  }
+});
+
 router.use(authenticate);
 router.use(requireActiveSubscription);
 
@@ -170,7 +210,7 @@ router.delete('/photo/:id', async (req: AuthRequest, res) => {
 });
 
 // Upload voice recording
-router.post('/recording/:dealerId', upload.single('recording'), async (req: AuthRequest, res) => {
+router.post('/recording/:dealerId', audioUpload.single('recording'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

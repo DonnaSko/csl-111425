@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 interface BuyingGroupHistory {
   id: string;
@@ -82,6 +83,7 @@ interface AccordionSection {
 const DealerDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasActiveSubscription } = useSubscription();
   const [dealer, setDealer] = useState<DealerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [rating, setRating] = useState(0);
@@ -91,10 +93,20 @@ const DealerDetail = () => {
   const [showCreateBuyingGroup, setShowCreateBuyingGroup] = useState(false);
   const [newBuyingGroupName, setNewBuyingGroupName] = useState('');
   
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string } }>({});
+  const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
+  
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
     { id: 'info', title: 'Dealer Information', expanded: false },
     { id: 'products', title: 'Products', expanded: false },
+    { id: 'voiceNotes', title: 'Voice Notes', expanded: false },
     { id: 'notes', title: 'Notes', expanded: false },
     { id: 'photos', title: 'Business Cards & Photos', expanded: false },
     { id: 'badges', title: 'Badge Scanning', expanded: false },
@@ -147,6 +159,43 @@ const DealerDetail = () => {
       fetchBuyingGroups();
     }
   }, [id]);
+
+  // Load audio URLs for recordings
+  useEffect(() => {
+    if (!dealer?.voiceRecordings || dealer.voiceRecordings.length === 0) {
+      return;
+    }
+
+    const loadAudioUrls = async () => {
+      const urls: { [key: string]: string } = {};
+      for (const recording of dealer.voiceRecordings) {
+        try {
+          const response = await api.get(`/uploads/recording/${recording.id}`, {
+            responseType: 'blob'
+          });
+          const blob = new Blob([response.data], { type: 'audio/webm' });
+          urls[recording.id] = URL.createObjectURL(blob);
+        } catch (error) {
+          console.error(`Failed to load audio for recording ${recording.id}:`, error);
+        }
+      }
+      setAudioUrls(prev => {
+        // Cleanup old URLs
+        Object.values(prev).forEach(url => URL.revokeObjectURL(url));
+        return urls;
+      });
+    };
+    
+    loadAudioUrls();
+
+    // Cleanup blob URLs on unmount or when recordings change
+    return () => {
+      setAudioUrls(prev => {
+        Object.values(prev).forEach(url => URL.revokeObjectURL(url));
+        return {};
+      });
+    };
+  }, [dealer?.voiceRecordings?.map(r => r.id).join(',')]); // Depend on recording IDs
 
   const fetchDealer = async () => {
     if (!id) return;
@@ -302,6 +351,130 @@ const DealerDetail = () => {
       console.error('Failed to delete photo:', error);
     }
   };
+
+  const handleStartRecording = async () => {
+    if (!id || !hasActiveSubscription) {
+      alert('Active subscription required to record voice notes');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await handleUploadRecording(audioBlob);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      alert('Failed to access microphone. Please check permissions.');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      setRecordingTime(0);
+    }
+  };
+
+  const handleUploadRecording = async (audioBlob: Blob) => {
+    if (!id) return;
+
+    const formData = new FormData();
+    const audioFile = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+    formData.append('recording', audioFile);
+    formData.append('duration', Math.floor(audioBlob.size / 1000).toString()); // Approximate duration
+
+    try {
+      await api.post(`/uploads/recording/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      fetchDealer();
+    } catch (error) {
+      console.error('Failed to upload recording:', error);
+      alert('Failed to upload recording');
+    }
+  };
+
+  const handleDeleteRecording = async (recordingId: string) => {
+    if (!confirm('Delete this voice recording?')) return;
+    try {
+      await api.delete(`/uploads/recording/${recordingId}`);
+      fetchDealer();
+    } catch (error) {
+      console.error('Failed to delete recording:', error);
+    }
+  };
+
+  const handleCreateTodoFromRecording = async (recordingId: string) => {
+    if (!id) return;
+    const todo = todoFromRecording[recordingId];
+    if (!todo || !todo.title.trim()) {
+      alert('Please enter a task title');
+      return;
+    }
+
+    try {
+      await api.post('/todos', {
+        title: todo.title,
+        description: todo.description || '',
+        type: 'general',
+        dealerId: id,
+        dueDate: null,
+        followUp: false,
+        followUpDate: null,
+      });
+      // Clear the todo input for this recording
+      setTodoFromRecording(prev => {
+        const updated = { ...prev };
+        delete updated[recordingId];
+        return updated;
+      });
+      fetchDealer();
+    } catch (error) {
+      console.error('Failed to create todo:', error);
+      alert('Failed to create task');
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [isRecording]);
 
   const handleAddProduct = async () => {
     if (!newProductName.trim() || !id) return;
@@ -723,10 +896,136 @@ const DealerDetail = () => {
           )}
         </div>
 
-        {/* Notes Section */}
+        {/* Voice Notes Section */}
         <div className="mb-4">
           <AccordionSection section={sections[2]} />
           {sections[2].expanded && (
+            <div className="mt-2 bg-white rounded-lg shadow p-6">
+              {!hasActiveSubscription ? (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800">Active subscription required to record voice notes.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Recording Controls */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    {!isRecording ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <button
+                          onClick={handleStartRecording}
+                          className="px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center gap-2"
+                        >
+                          <span className="text-2xl">🎤</span>
+                          <span className="font-semibold">Tap to Record</span>
+                        </button>
+                        <p className="text-sm text-gray-500">Tap to record</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                          <span className="text-lg font-semibold text-gray-900">
+                            Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={handleStopRecording}
+                          className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        >
+                          Stop Recording
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recorded Voice Notes */}
+                  <div className="space-y-4">
+                    {dealer.voiceRecordings && dealer.voiceRecordings.length > 0 ? (
+                      dealer.voiceRecordings.map((recording) => (
+                        <div key={recording.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">🎙️</span>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{recording.originalName}</p>
+                                <p className="text-xs text-gray-500">{formatDate(recording.createdAt)}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteRecording(recording.id)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          
+                          {/* Audio Player */}
+                          {audioUrls[recording.id] ? (
+                            <audio controls className="w-full mb-3" src={audioUrls[recording.id]}>
+                              Your browser does not support the audio element.
+                            </audio>
+                          ) : (
+                            <div className="w-full mb-3 p-2 bg-gray-100 rounded text-center text-gray-500 text-sm">
+                              Loading audio...
+                            </div>
+                          )}
+
+                          {/* Todo Creation Section */}
+                          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Create a task from this voice note:</p>
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={todoFromRecording[recording.id]?.title || ''}
+                                onChange={(e) => setTodoFromRecording(prev => ({
+                                  ...prev,
+                                  [recording.id]: {
+                                    ...prev[recording.id],
+                                    title: e.target.value,
+                                    description: prev[recording.id]?.description || ''
+                                  }
+                                }))}
+                                placeholder="Task title"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              />
+                              <textarea
+                                value={todoFromRecording[recording.id]?.description || ''}
+                                onChange={(e) => setTodoFromRecording(prev => ({
+                                  ...prev,
+                                  [recording.id]: {
+                                    ...prev[recording.id],
+                                    title: prev[recording.id]?.title || '',
+                                    description: e.target.value
+                                  }
+                                }))}
+                                placeholder="Task description (optional)"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                rows={2}
+                              />
+                              <button
+                                onClick={() => handleCreateTodoFromRecording(recording.id)}
+                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                              >
+                                Add to Tasks
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No voice recordings yet</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Notes Section */}
+        <div className="mb-4">
+          <AccordionSection section={sections[3]} />
+          {sections[3].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4">
                 <textarea
@@ -767,8 +1066,8 @@ const DealerDetail = () => {
 
         {/* Business Cards & Photos Section */}
         <div className="mb-4">
-          <AccordionSection section={sections[3]} />
-          {sections[3].expanded && (
+          <AccordionSection section={sections[4]} />
+          {sections[4].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Business Card</label>
@@ -827,8 +1126,8 @@ const DealerDetail = () => {
 
         {/* Badge Scanning Section */}
         <div className="mb-4">
-          <AccordionSection section={sections[4]} />
-          {sections[4].expanded && (
+          <AccordionSection section={sections[5]} />
+          {sections[5].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Badge Photo</label>
@@ -862,8 +1161,8 @@ const DealerDetail = () => {
 
         {/* Tasks & Emails Section */}
         <div className="mb-4">
-          <AccordionSection section={sections[5]} />
-          {sections[5].expanded && (
+          <AccordionSection section={sections[6]} />
+          {sections[6].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2">Add New Task</h4>
@@ -979,8 +1278,8 @@ const DealerDetail = () => {
 
         {/* Privacy Permissions Section */}
         <div className="mb-4">
-          <AccordionSection section={sections[6]} />
-          {sections[6].expanded && (
+          <AccordionSection section={sections[7]} />
+          {sections[7].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                 <p className="text-sm text-gray-700">
