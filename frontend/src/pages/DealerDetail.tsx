@@ -360,25 +360,59 @@ const DealerDetail = () => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Check if MediaRecorder is supported
+      if (!MediaRecorder.isTypeSupported) {
+        alert('MediaRecorder is not supported in this browser');
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      // Determine the best MIME type for the browser
+      let mimeType = 'audio/webm';
+      const types = ['audio/webm', 'audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/wav'];
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          break;
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        alert('Recording error occurred. Please try again.');
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        stream.getTracks().forEach(track => track.stop());
+      };
+
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleUploadRecording(audioBlob);
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          await handleUploadRecording(audioBlob, mimeType);
+        } else {
+          alert('No audio data recorded. Please try again.');
+        }
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      // Start recording with timeslice to ensure data is collected
+      mediaRecorder.start(1000); // Request data every second
       setIsRecording(true);
       setRecordingTime(0);
 
@@ -389,11 +423,16 @@ const DealerDetail = () => {
     } catch (error) {
       console.error('Failed to start recording:', error);
       alert('Failed to access microphone. Please check permissions.');
+      setIsRecording(false);
     }
   };
 
   const handleStopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      // Request any remaining data before stopping
+      if (mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.requestData();
+      }
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (recordingTimerRef.current) {
@@ -404,11 +443,17 @@ const DealerDetail = () => {
     }
   };
 
-  const handleUploadRecording = async (audioBlob: Blob) => {
+  const handleUploadRecording = async (audioBlob: Blob, mimeType: string) => {
     if (!id) return;
 
+    // Determine file extension based on mime type
+    let extension = '.webm';
+    if (mimeType.includes('mp4')) extension = '.m4a';
+    else if (mimeType.includes('ogg')) extension = '.ogg';
+    else if (mimeType.includes('wav')) extension = '.wav';
+
     const formData = new FormData();
-    const audioFile = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+    const audioFile = new File([audioBlob], `recording-${Date.now()}${extension}`, { type: mimeType });
     formData.append('recording', audioFile);
     formData.append('duration', Math.floor(audioBlob.size / 1000).toString()); // Approximate duration
 
