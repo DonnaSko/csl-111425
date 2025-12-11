@@ -120,7 +120,8 @@ const DealerDetail = () => {
     { id: 'notes', title: 'Notes', expanded: false },
     { id: 'photos', title: 'Business Cards & Photos', expanded: false },
     { id: 'badges', title: 'Badge Scanning', expanded: false },
-    { id: 'todos', title: 'Tasks & Emails', expanded: false },
+    { id: 'todos', title: 'Tasks and To Do\'s', expanded: false },
+    { id: 'emails', title: 'Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
   ]);
 
@@ -1438,7 +1439,7 @@ const DealerDetail = () => {
           )}
         </div>
 
-        {/* Tasks & Emails Section */}
+        {/* Tasks and To Do's Section */}
         <div className="mb-4">
           <AccordionSection section={sections[6]} />
           {sections[6].expanded && (
@@ -1466,7 +1467,6 @@ const DealerDetail = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="general">General Task</option>
-                    <option value="email">Email</option>
                     <option value="snail_mail">Snail Mail</option>
                   </select>
                   <div className="flex gap-2">
@@ -1504,7 +1504,7 @@ const DealerDetail = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                {dealer.todos.map((todo) => (
+                {dealer.todos.filter(todo => todo.type !== 'email').map((todo) => (
                   <div key={todo.id} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -1524,7 +1524,115 @@ const DealerDetail = () => {
                         {todo.description && (
                           <p className="text-gray-600 mt-1">{todo.description}</p>
                         )}
-                        {todo.type === 'email' && todo.emailSent && (
+                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                          {todo.dueDate && <span>Due: {formatDate(todo.dueDate)}</span>}
+                          {todo.followUp && todo.followUpDate && (
+                            <span>Follow-up: {formatDate(todo.followUpDate)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTodo(todo.id)}
+                        className="text-red-600 hover:text-red-800 text-sm ml-2"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {dealer.todos.filter(todo => todo.type !== 'email').length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No tasks yet</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Emails Section */}
+        <div className="mb-4">
+          <AccordionSection section={sections[7]} />
+          {sections[7].expanded && (
+            <div className="mt-2 bg-white rounded-lg shadow p-6">
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-2">Add New Email Task</h4>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newTodo.title}
+                    onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })}
+                    placeholder="Email task title"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <textarea
+                    value={newTodo.description}
+                    onChange={(e) => setNewTodo({ ...newTodo, description: e.target.value })}
+                    placeholder="Description"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    rows={2}
+                  />
+                  <input
+                    type="hidden"
+                    value="email"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={newTodo.dueDate}
+                      onChange={(e) => setNewTodo({ ...newTodo, dueDate: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Due Date"
+                    />
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={newTodo.followUp}
+                        onChange={(e) => setNewTodo({ ...newTodo, followUp: e.target.checked })}
+                      />
+                      Follow-up
+                    </label>
+                  </div>
+                  {newTodo.followUp && (
+                    <input
+                      type="date"
+                      value={newTodo.followUpDate}
+                      onChange={(e) => setNewTodo({ ...newTodo, followUpDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Follow-up Date"
+                    />
+                  )}
+                  <button
+                    onClick={() => {
+                      setNewTodo({ ...newTodo, type: 'email' });
+                      handleAddTodo();
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add Email Task
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {dealer.todos.filter(todo => todo.type === 'email').map((todo) => (
+                  <div key={todo.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={todo.completed}
+                            onChange={(e) => handleUpdateTodo(todo.id, { completed: e.target.checked })}
+                          />
+                          <span className={`font-semibold ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+                            {todo.title}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                            Email
+                          </span>
+                        </div>
+                        {todo.description && (
+                          <p className="text-gray-600 mt-1">{todo.description}</p>
+                        )}
+                        {todo.emailSent && (
                           <div className="mt-2 p-2 bg-green-50 rounded">
                             <p className="text-sm text-green-800">
                               Email sent: {todo.emailSentDate ? formatDate(todo.emailSentDate) : 'N/A'}
@@ -1550,6 +1658,9 @@ const DealerDetail = () => {
                     </div>
                   </div>
                 ))}
+                {dealer.todos.filter(todo => todo.type === 'email').length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No email tasks yet</p>
+                )}
               </div>
             </div>
           )}
@@ -1557,8 +1668,8 @@ const DealerDetail = () => {
 
         {/* Privacy Permissions Section */}
         <div className="mb-4">
-          <AccordionSection section={sections[7]} />
-          {sections[7].expanded && (
+          <AccordionSection section={sections[8]} />
+          {sections[8].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                 <p className="text-sm text-gray-700">
