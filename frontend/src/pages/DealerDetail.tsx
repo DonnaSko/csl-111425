@@ -604,14 +604,20 @@ const DealerDetail = () => {
     }
 
     try {
+      // Ensure follow-up date is properly formatted or null
+      const followUpDateValue = todo.followUpDate && todo.followUpDate.trim() 
+        ? todo.followUpDate.trim() 
+        : null;
+      const hasFollowUp = !!followUpDateValue;
+
       await api.post('/todos', {
         title: todo.title,
         description: todo.description || '',
         type: 'general',
         dealerId: id,
         dueDate: null,
-        followUp: todo.followUpDate ? true : false,
-        followUpDate: todo.followUpDate || null,
+        followUp: hasFollowUp,
+        followUpDate: followUpDateValue,
       });
       // Clear the todo input for this recording
       setTodoFromRecording(prev => {
