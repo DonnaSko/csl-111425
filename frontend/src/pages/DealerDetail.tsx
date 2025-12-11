@@ -199,20 +199,34 @@ const DealerDetail = () => {
         try {
           const response = await api.get(`/uploads/recording/${recording.id}`, {
             responseType: 'blob',
-            timeout: 10000 // 10 second timeout
+            timeout: 30000 // 30 second timeout for larger files
           });
           
           if (response.data && response.data.size > 0) {
-            // Try to determine MIME type from response or use default
-            const mimeType = response.data.type || 'audio/webm';
+            // Get MIME type from response headers first, then from blob, then use default
+            const contentType = response.headers['content-type'] || 
+                               response.data.type || 
+                               'audio/webm';
+            
+            // Ensure we have a valid audio MIME type
+            const mimeType = contentType.startsWith('audio/') 
+              ? contentType 
+              : 'audio/webm';
+            
             const blob = new Blob([response.data], { type: mimeType });
             urls[recording.id] = URL.createObjectURL(blob);
+            console.log(`Successfully loaded audio for recording ${recording.id}, size: ${blob.size}, type: ${mimeType}`);
           } else {
             console.error(`Empty audio blob for recording ${recording.id}`);
             errors[recording.id] = true;
           }
         } catch (error: any) {
-          console.error(`Failed to load audio for recording ${recording.id}:`, error);
+          console.error(`Failed to load audio for recording ${recording.id}:`, {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data
+          });
           errors[recording.id] = true;
         }
       }

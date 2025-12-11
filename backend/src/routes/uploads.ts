@@ -269,10 +269,31 @@ router.get('/recording/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Recording not found' });
     }
 
-    res.sendFile(path.resolve(recording.path));
+    // Check if file exists
+    const filePath = path.resolve(recording.path);
+    if (!fs.existsSync(filePath)) {
+      console.error(`Recording file not found: ${filePath}`);
+      return res.status(404).json({ error: 'Recording file not found' });
+    }
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', recording.mimeType || 'audio/webm');
+    res.setHeader('Content-Disposition', `inline; filename="${recording.originalName}"`);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error sending recording file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to send recording file' });
+        }
+      }
+    });
   } catch (error) {
     console.error('Get recording error:', error);
-    res.status(500).json({ error: 'Failed to get recording' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to get recording' });
+    }
   }
 });
 
