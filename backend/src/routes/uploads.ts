@@ -229,6 +229,27 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    // Parse date properly - if date is provided, use it; otherwise default to today
+    let recordingDate: Date | null = null;
+    if (req.body.date) {
+      // Parse the date string (YYYY-MM-DD) and create a date at midnight in local time
+      // This ensures the date matches what the user selected, not UTC
+      const dateParts = req.body.date.split('-');
+      if (dateParts.length === 3) {
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+        const day = parseInt(dateParts[2], 10);
+        recordingDate = new Date(year, month, day);
+      } else {
+        // Fallback to parsing as-is if format is unexpected
+        recordingDate = new Date(req.body.date);
+      }
+    } else {
+      // Default to today's date if no date provided
+      const today = new Date();
+      recordingDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    }
+
     const recording = await prisma.voiceRecording.create({
       data: {
         dealerId: req.params.dealerId,
@@ -238,7 +259,7 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
         size: req.file.size,
         path: req.file.path,
         duration: req.body.duration ? parseInt(req.body.duration) : null,
-        date: req.body.date ? new Date(req.body.date) : null,
+        date: recordingDate,
         tradeshowName: req.body.tradeshowName || null
       }
     });

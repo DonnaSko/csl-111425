@@ -102,14 +102,17 @@ const DealerDetail = () => {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [todoFromRecording, setTodoFromRecording] = useState<{ [recordingId: string]: { title: string; description: string; followUpDate: string } }>({});
-  const [recordingDate, setRecordingDate] = useState<string>(() => {
-    // Set default to today's date in YYYY-MM-DD format (using local time, not UTC)
+  
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = useCallback(() => {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  });
+  }, []);
+  
+  const [recordingDate, setRecordingDate] = useState<string>(getTodayDate);
   const [recordingTradeshowName, setRecordingTradeshowName] = useState<string>('');
   const [tradeShows, setTradeShows] = useState<Array<{ id: string; name: string }>>([]);
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
@@ -414,22 +417,44 @@ const DealerDetail = () => {
       return;
     }
 
+    // Always set date to today's date when starting a new recording
+    setRecordingDate(getTodayDate());
+
     // Clean up any existing recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.warn('Error stopping previous recorder:', e);
+      }
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
+
+    // Clear previous chunks
+    audioChunksRef.current = [];
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          channelCount: 1 // Explicitly set to mono for better compatibility
         }
       });
+      
+      // Verify stream is active
+      if (!stream || stream.getAudioTracks().length === 0) {
+        throw new Error('No audio tracks available in stream');
+      }
+
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack.readyState !== 'live') {
+        throw new Error('Audio track is not live');
+      }
       
       streamRef.current = stream;
       
@@ -442,13 +467,15 @@ const DealerDetail = () => {
 
       // Determine the best MIME type for the browser
       let mimeType = 'audio/webm';
-      const types = ['audio/webm', 'audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/wav'];
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/wav'];
       for (const type of types) {
         if (MediaRecorder.isTypeSupported(type)) {
           mimeType = type;
           break;
         }
       }
+
+      console.log('Using MIME type:', mimeType, 'Supported:', MediaRecorder.isTypeSupported(mimeType));
 
       const mediaRecorder = new MediaRecorder(stream, { 
         mimeType,
@@ -458,10 +485,22 @@ const DealerDetail = () => {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      let hasReceivedData = false;
+
       mediaRecorder.ondataavailable = (event) => {
-        console.log('Data available:', event.data.size, 'bytes');
+        console.log('Data available event:', {
+          size: event.data.size,
+          type: event.data.type,
+          state: mediaRecorder.state
+        });
+        
+        // Only add non-empty blobs
         if (event.data && event.data.size > 0) {
+          hasReceivedData = true;
           audioChunksRef.current.push(event.data);
+          console.log('Added chunk:', event.data.size, 'bytes. Total chunks:', audioChunksRef.current.length);
+        } else {
+          console.warn('Received empty blob, ignoring');
         }
       };
 
@@ -477,36 +516,61 @@ const DealerDetail = () => {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
+        mediaRecorderRef.current = null;
       };
 
       mediaRecorder.onstop = async () => {
-        console.log('Recording stopped. Total chunks:', audioChunksRef.current.length);
-        console.log('Total size:', audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0), 'bytes');
+        console.log('Recording stopped. State:', mediaRecorder.state);
+        console.log('Total chunks collected:', audioChunksRef.current.length);
         
-        if (audioChunksRef.current.length > 0) {
-          const totalSize = audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
-          if (totalSize > 0) {
-            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-            console.log('Created blob:', audioBlob.size, 'bytes, type:', mimeType);
-            await handleUploadRecording(audioBlob, mimeType);
-          } else {
-            alert('No audio data recorded. Please try again.');
-          }
-        } else {
-          alert('No audio data recorded. Please try again.');
-        }
+        const totalSize = audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+        console.log('Total size:', totalSize, 'bytes');
         
-        // Stop all tracks
+        // Stop all tracks first
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
+        
+        // Wait a bit for any final data to arrive
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (audioChunksRef.current.length > 0 && totalSize > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          console.log('Created final blob:', {
+            size: audioBlob.size,
+            type: audioBlob.type,
+            chunks: audioChunksRef.current.length
+          });
+          
+          // Verify blob is valid
+          if (audioBlob.size > 0) {
+            await handleUploadRecording(audioBlob, mimeType);
+          } else {
+            console.error('Blob is empty after combining chunks');
+            alert('No audio data recorded. Please try again.');
+          }
+        } else {
+          console.error('No valid audio data collected:', {
+            chunks: audioChunksRef.current.length,
+            totalSize,
+            hasReceivedData
+          });
+          alert('No audio data recorded. Please check your microphone and try again.');
+        }
       };
 
-      // Start recording with timeslice to ensure data is collected
+      // Start recording with timeslice to ensure data is collected regularly
       try {
-        mediaRecorder.start(100); // Request data every 100ms for more frequent updates
-        console.log('Recording started with MIME type:', mimeType);
+        // Use a timeslice of 1000ms (1 second) for more reliable data collection
+        mediaRecorder.start(1000);
+        console.log('Recording started successfully:', {
+          mimeType,
+          state: mediaRecorder.state,
+          streamActive: stream.active,
+          trackState: audioTrack.readyState
+        });
+        
         setIsRecording(true);
         setRecordingTime(0);
 
@@ -514,11 +578,12 @@ const DealerDetail = () => {
         recordingTimerRef.current = setInterval(() => {
           setRecordingTime(prev => prev + 1);
         }, 1000);
-      } catch (startError) {
+      } catch (startError: any) {
         console.error('Failed to start MediaRecorder:', startError);
-        alert('Failed to start recording. Please try again.');
         stream.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
         setIsRecording(false);
+        alert(`Failed to start recording: ${startError.message || 'Unknown error'}`);
       }
     } catch (error: any) {
       console.error('Failed to start recording:', error);
@@ -527,9 +592,13 @@ const DealerDetail = () => {
       } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
         alert('No microphone found. Please connect a microphone and try again.');
       } else {
-        alert('Failed to access microphone. Please check permissions and try again.');
+        alert(`Failed to access microphone: ${error.message || 'Please check permissions and try again.'}`);
       }
       setIsRecording(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     }
   };
 
@@ -538,18 +607,38 @@ const DealerDetail = () => {
       try {
         // Request any remaining data before stopping
         if (mediaRecorderRef.current.state === 'recording') {
+          console.log('Requesting final data before stopping...');
           mediaRecorderRef.current.requestData();
-          // Wait a bit for the data to be available
+          
+          // Wait a bit for the data to be available, then stop
+          setTimeout(() => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              console.log('Stopping recorder, state:', mediaRecorderRef.current.state);
+              mediaRecorderRef.current.stop();
+            }
+          }, 300);
+        } else if (mediaRecorderRef.current.state === 'paused') {
+          // If paused, resume then stop to ensure we get all data
+          mediaRecorderRef.current.resume();
+          mediaRecorderRef.current.requestData();
           setTimeout(() => {
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
               mediaRecorderRef.current.stop();
             }
-          }, 200);
+          }, 300);
         } else {
           mediaRecorderRef.current.stop();
         }
       } catch (error) {
         console.error('Error stopping recording:', error);
+        // Force stop if there's an error
+        try {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+          }
+        } catch (e) {
+          console.error('Error force stopping:', e);
+        }
       }
       
       setIsRecording(false);
@@ -584,17 +673,21 @@ const DealerDetail = () => {
     }
 
     try {
-      console.log('Uploading recording:', audioFile.name, audioBlob.size, 'bytes');
+      console.log('Uploading recording:', {
+        filename: audioFile.name,
+        size: audioBlob.size,
+        type: mimeType,
+        date: recordingDate
+      });
+      
       await api.post(`/uploads/recording/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       console.log('Recording uploaded successfully');
-      // Reset form fields - set date back to today (using local time, not UTC)
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      setRecordingDate(`${year}-${month}-${day}`);
+      
+      // Reset form fields - always set date to today's date
+      setRecordingDate(getTodayDate());
       setRecordingTradeshowName('');
       await fetchDealer();
     } catch (error: any) {
