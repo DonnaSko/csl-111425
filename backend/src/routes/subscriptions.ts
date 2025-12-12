@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import prisma from '../utils/prisma';
 import { authenticate, requireActiveSubscription, AuthRequest } from '../middleware/auth';
 import { canCancelSubscription } from '../utils/subscription';
+import { sendEmail } from '../utils/email';
 
 const router = express.Router();
 
@@ -109,6 +110,11 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' } // Get most recent subscription
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      select: { email: true, firstName: true, lastName: true }
+    });
+
     console.log(`Subscription status check for user ${req.userId}:`, {
       found: !!subscription,
       status: subscription?.status,
@@ -124,6 +130,32 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
     const isActive = 
       subscription.status === 'active' && 
       subscription.currentPeriodEnd >= now;
+
+    // If subscription expired, send a one-time expiry notification with resubscribe link
+    const isExpired = subscription.currentPeriodEnd < now;
+    if (isExpired && !subscription.expiryEmailSentAt && user?.email) {
+      const resubscribeUrl = `${process.env.FRONTEND_URL}/subscription`;
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Your subscription has expired',
+          text: `Hi ${user.firstName ?? 'there'}, your subscription has expired. You can resubscribe any time at ${resubscribeUrl}`,
+          html: `<p>Hi ${user.firstName ?? 'there'},</p>
+                 <p>Your subscription has expired. You can resubscribe any time using the link below:</p>
+                 <p><a href="${resubscribeUrl}">Resubscribe now</a></p>
+                 <p>If you have questions, reply to this email and we'll help you out.</p>`
+        });
+
+        await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: { expiryEmailSentAt: new Date() }
+        });
+
+        console.log(`Expiry email sent for subscription ${subscription.id}`);
+      } catch (emailError) {
+        console.error('Failed to send expiry email:', emailError);
+      }
+    }
 
     console.log(`Subscription active check:`, {
       status: subscription.status,
@@ -142,6 +174,7 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
         currentPeriodEnd: subscription.currentPeriodEnd,
         cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
         canceledAt: subscription.canceledAt,
+        expiryEmailSentAt: subscription.expiryEmailSentAt,
         canCancel: canCancelSubscription(subscription.currentPeriodEnd),
         stripeSubscriptionId: subscription.stripeSubscriptionId
       }
