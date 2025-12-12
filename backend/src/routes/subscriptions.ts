@@ -33,11 +33,32 @@ router.post('/create-checkout-session', authenticate, async (req: AuthRequest, r
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user already has a Stripe customer
+    // Check if user already has a Stripe customer and subscription
     let customerId: string;
     const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId: user.id }
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
     });
+
+    // Prevent paid users from creating a new checkout session
+    const hasActiveSubscription =
+      existingSubscription &&
+      ['active', 'trialing'].includes(existingSubscription.status) &&
+      existingSubscription.currentPeriodEnd >= new Date();
+
+    if (hasActiveSubscription) {
+      const now = new Date();
+      const millisLeft = existingSubscription.currentPeriodEnd.getTime() - now.getTime();
+      const daysLeft = Math.max(0, Math.ceil(millisLeft / (1000 * 60 * 60 * 24)));
+
+      return res.status(400).json({
+        error: 'You already have an active subscription. No need to subscribe again.',
+        code: 'SUBSCRIPTION_EXISTS',
+        status: existingSubscription.status,
+        currentPeriodEnd: existingSubscription.currentPeriodEnd,
+        daysLeft
+      });
+    }
 
     if (existingSubscription?.stripeCustomerId) {
       customerId = existingSubscription.stripeCustomerId;

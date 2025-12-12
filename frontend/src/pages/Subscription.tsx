@@ -1,18 +1,62 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
 
 const Subscription = () => {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const { refreshSubscription } = useSubscription();
+  const { refreshSubscription, hasActiveSubscription, loading: subscriptionLoading, subscription } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Make sure we have the freshest subscription status when landing on this page
+  useEffect(() => {
+    refreshSubscription();
+    // We intentionally call this once on mount to ensure freshest status
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // If user already has an active subscription, inform and redirect them to the dashboard
+  useEffect(() => {
+    if (!subscriptionLoading && hasActiveSubscription) {
+      setRedirecting(true);
+      const timer = setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [subscriptionLoading, hasActiveSubscription, navigate]);
+
+  const subscriptionEndsOn = subscription?.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+    : null;
+
+  const subscriptionDaysLeft = subscription?.currentPeriodEnd
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : null;
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
-    setLoading(plan);
+    // Extra guard: prevent paid users from starting a new checkout
+    if (hasActiveSubscription) {
+      const suffix =
+        subscriptionDaysLeft !== null
+          ? ` You have ${subscriptionDaysLeft} day${subscriptionDaysLeft === 1 ? '' : 's'} remaining.`
+          : '';
+      alert(`You already have an active subscription.${suffix} Redirecting you to your dashboard.`);
+      navigate('/dashboard');
+      return;
+    }
+
+    setLoadingPlan(plan);
     try {
       const response = await api.post('/subscriptions/create-checkout-session', { plan });
       if (response.data.url) {
@@ -20,8 +64,23 @@ const Subscription = () => {
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      alert(error.response?.data?.error || 'Failed to create checkout session');
-      setLoading(null);
+      const errorMessage = error.response?.data?.error || 'Failed to create checkout session';
+
+      if (error.response?.data?.code === 'SUBSCRIPTION_EXISTS') {
+        const daysLeft = error.response?.data?.daysLeft;
+        const currentPeriodEnd = error.response?.data?.currentPeriodEnd;
+        const readableEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString() : null;
+        const suffix =
+          daysLeft !== undefined
+            ? ` You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining${readableEnd ? ` (through ${readableEnd})` : ''}.`
+            : '';
+        await refreshSubscription();
+        alert(`${errorMessage}${suffix} Redirecting you to your dashboard.`);
+        navigate('/dashboard');
+      } else {
+        alert(errorMessage);
+        setLoadingPlan(null);
+      }
     }
   };
 
@@ -55,6 +114,41 @@ const Subscription = () => {
       setSyncing(false);
     }
   };
+
+  if (subscriptionLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Checking your subscription...</div>
+      </div>
+    );
+  }
+
+  if (hasActiveSubscription) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-green-900 mb-2">You're already subscribed</h2>
+            <p className="text-green-800 mb-4">
+              Thank you! Your subscription is active
+              {subscriptionEndsOn ? ` through ${subscriptionEndsOn}` : ''}.
+              {subscriptionDaysLeft !== null ? ` (${subscriptionDaysLeft} day${subscriptionDaysLeft === 1 ? '' : 's'} remaining).` : ''}{' '}
+              We'll take you to your dashboard.
+            </p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700"
+            >
+              Go to Dashboard
+            </button>
+            {redirecting && (
+              <p className="text-sm text-green-700 mt-3">Redirecting...</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -104,10 +198,10 @@ const Subscription = () => {
             </ul>
             <button
               onClick={() => handleSubscribe('monthly')}
-              disabled={loading !== null}
+              disabled={loadingPlan !== null || hasActiveSubscription}
               className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
+              {loadingPlan === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
             </button>
           </div>
 
@@ -160,10 +254,10 @@ const Subscription = () => {
             </ul>
             <button
               onClick={() => handleSubscribe('annual')}
-              disabled={loading !== null}
+              disabled={loadingPlan !== null || hasActiveSubscription}
               className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading === 'annual' ? 'Processing...' : 'Subscribe Annually'}
+              {loadingPlan === 'annual' ? 'Processing...' : 'Subscribe Annually'}
             </button>
           </div>
         </div>
