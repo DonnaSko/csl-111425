@@ -232,22 +232,22 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
     // Parse date properly - if date is provided, use it; otherwise default to today
     let recordingDate: Date | null = null;
     if (req.body.date) {
-      // Parse the date string (YYYY-MM-DD) and create a date at midnight in local time
-      // This ensures the date matches what the user selected, not UTC
+      // Parse the date string (YYYY-MM-DD) and set to noon UTC to avoid TZ rollover issues
       const dateParts = req.body.date.split('-');
       if (dateParts.length === 3) {
         const year = parseInt(dateParts[0], 10);
         const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
         const day = parseInt(dateParts[2], 10);
-        recordingDate = new Date(year, month, day);
+        recordingDate = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
       } else {
         // Fallback to parsing as-is if format is unexpected
-        recordingDate = new Date(req.body.date);
+        const parsed = new Date(req.body.date);
+        recordingDate = isNaN(parsed.getTime()) ? new Date() : parsed;
       }
     } else {
-      // Default to today's date if no date provided
+      // Default to today's date (noon UTC) if no date provided
       const today = new Date();
-      recordingDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      recordingDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 12, 0, 0, 0));
     }
 
     const recording = await prisma.voiceRecording.create({

@@ -12,9 +12,10 @@ router.use(requireActiveSubscription);
 // Get all dealers for user's company
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const { search, status, buyingGroup, groupId, page = '1', limit = '50' } = req.query;
+    const { search, status, buyingGroup, groupId, page = '1', limit = '1000' } = req.query;
     const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const limitNumRaw = parseInt(limit as string);
+    const limitNum = Math.min(isNaN(limitNumRaw) ? 1000 : limitNumRaw, 5000); // hard cap to prevent runaway queries
     const skip = (pageNum - 1) * limitNum;
 
     const where: any = {
