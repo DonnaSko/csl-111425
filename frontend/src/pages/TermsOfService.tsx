@@ -56,7 +56,7 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Payments & Refunds</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
               <li>Payments are processed by <strong>Stripe</strong>.</li>
-              <li>Subscriptions renew automatically each billing period until canceled.</li>
+              <li><strong>Subscriptions renew automatically each billing period until canceled.</strong></li>
             </ul>
           </section>
 
