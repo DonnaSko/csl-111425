@@ -14,6 +14,10 @@ import uploadRoutes from './routes/uploads';
 import webhookRoutes from './routes/webhooks';
 import groupRoutes from './routes/groups';
 import buyingGroupRoutes from './routes/buyingGroups';
+import notificationRoutes from './routes/notifications';
+
+// Import scheduler
+import { startScheduler } from './utils/scheduler';
 
 dotenv.config();
 
@@ -63,6 +67,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/buying-groups', buyingGroupRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Routes (without /api prefix - DigitalOcean may strip it)
 app.use('/auth', authRoutes);
@@ -75,6 +80,7 @@ app.use('/reports', reportRoutes);
 app.use('/uploads', uploadRoutes);
 app.use('/groups', groupRoutes);
 app.use('/buying-groups', buyingGroupRoutes);
+app.use('/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -99,6 +105,10 @@ try {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`✅ Health check available at http://0.0.0.0:${PORT}/health`);
+    
+    // Start the notification scheduler (sends daily todo reminders at 8 AM)
+    startScheduler();
+    console.log(`✅ Notification scheduler started (8:00 AM daily)`);
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error);
