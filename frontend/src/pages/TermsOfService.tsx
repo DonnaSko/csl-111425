@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 const TermsOfService = () => {
@@ -71,7 +72,7 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Privacy & Security</h2>
             <p className="text-gray-700 leading-relaxed">
               We protect data in transit and at rest using industry-standard methods. 
-              See our <a href="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</a> for full details.
+              See our <Link to="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link> for full details.
             </p>
           </section>
 
