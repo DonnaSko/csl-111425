@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 const PrivacyPolicy = () => {
@@ -98,12 +99,32 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Your Rights and Choices</h2>
             <p className="text-gray-700 leading-relaxed mb-4">You have the right to:</p>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>Access and download your data</li>
-              <li>Correct inaccurate information</li>
-              <li>Delete your account and associated data</li>
-              <li>Opt-out of marketing communications</li>
-              <li>Export your lead data at any time</li>
+            <ul className="list-disc list-inside text-gray-700 space-y-3 ml-4">
+              <li>
+                <Link to="/account-settings" className="text-blue-600 hover:underline font-medium">
+                  Access and download your data →
+                </Link>
+              </li>
+              <li>
+                <Link to="/dealers" className="text-blue-600 hover:underline font-medium">
+                  Correct inaccurate information →
+                </Link>
+              </li>
+              <li>
+                <Link to="/account-settings" className="text-blue-600 hover:underline font-medium">
+                  Delete your account and associated data →
+                </Link>
+              </li>
+              <li>
+                <Link to="/account-settings" className="text-blue-600 hover:underline font-medium">
+                  Opt-out of marketing communications →
+                </Link>
+              </li>
+              <li>
+                <Link to="/account-settings" className="text-blue-600 hover:underline font-medium">
+                  Export your lead data at any time →
+                </Link>
+              </li>
             </ul>
           </section>
 
