@@ -29,14 +29,22 @@ type UserWithTodos = {
 
 /**
  * Get all todos due today for users with active subscriptions
+ * Uses a time window to account for US timezone differences (EST=UTC-5 to PST=UTC-8)
  */
 export async function getTodosDueToday(): Promise<UserWithTodos[]> {
-  // Get start and end of today in UTC
-  const today = new Date();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  // Create a window that covers "today" in all US timezones
+  // - "Today" in EST starts at UTC 05:00 (midnight EST = UTC+5 hours)
+  // - "Today" in PST ends at UTC+8 hours the next day (midnight PST = UTC+8 hours)
+  // So for Dec 16: we search from Dec 16 00:00 UTC to Dec 17 08:00 UTC
+  const now = new Date();
+  
+  // Start: beginning of today in UTC (catches early AM in eastern timezones)
+  const startWindow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  
+  // End: 8 AM UTC the next day (catches 11:59 PM PST which is 07:59 UTC next day)
+  const endWindow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 8, 0, 0, 0));
 
-  console.log(`[Notifications] Checking todos due between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
+  console.log(`[Notifications] Checking todos due between ${startWindow.toISOString()} and ${endWindow.toISOString()}`);
 
   // Find all users with active subscriptions
   const activeSubscriptions = await prisma.subscription.findMany({
@@ -68,15 +76,15 @@ export async function getTodosDueToday(): Promise<UserWithTodos[]> {
         OR: [
           {
             dueDate: {
-              gte: startOfDay,
-              lte: endOfDay,
+              gte: startWindow,
+              lte: endWindow,
             },
           },
           {
             followUp: true,
             followUpDate: {
-              gte: startOfDay,
-              lte: endOfDay,
+              gte: startWindow,
+              lte: endWindow,
             },
           },
         ],
