@@ -405,7 +405,7 @@ function formatRenewalReminderHTML(
     <div class="content">
       <p>Hi ${firstName},</p>
       
-      <p>This is a friendly reminder that your <strong>${planType}</strong> subscription to Capture Show Leads will automatically renew in <span class="important">5 days</span>.</p>
+      <p>This is a friendly reminder that your <strong>${planType}</strong> to Capture Show Leads will automatically renew in <span class="important">5 days</span>.</p>
       
       <div class="highlight-box">
         <h3>📅 Renewal Details</h3>
@@ -463,7 +463,7 @@ SUBSCRIPTION RENEWAL REMINDER
 
 Hi ${firstName},
 
-This is a friendly reminder that your ${planType} subscription to Capture Show Leads will automatically renew in 5 DAYS.
+This is a friendly reminder that your ${planType} to Capture Show Leads will automatically renew in 5 DAYS.
 
 RENEWAL DETAILS:
 - Plan: ${planType}
