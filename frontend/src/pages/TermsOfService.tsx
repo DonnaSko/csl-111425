@@ -64,8 +64,6 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Support & Admin Access</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
               <li>We provide email support (and priority support for Enterprise).</li>
-              <li>With your permission, our admin may "view as user" to troubleshoot.</li>
-              <li>All impersonation access is logged (who, when, what).</li>
             </ul>
           </section>
 
