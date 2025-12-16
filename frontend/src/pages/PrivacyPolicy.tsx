@@ -107,8 +107,35 @@ const PrivacyPolicy = () => {
             </ul>
           </section>
 
+          <section className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Your Responsibility: Obtaining Consent from Booth Visitors</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Important:</strong> As a paid user of Capture Show Leads, you are responsible for obtaining appropriate consent from individuals before collecting their information at trade shows and events.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Before capturing any data, you must obtain verbal or written permission from booth visitors to:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4 mb-4">
+              <li><strong>Photograph their badge</strong> – Always ask before taking a photo of someone's event badge or business card</li>
+              <li><strong>Record voice notes</strong> – Inform visitors if you are recording audio notes about your conversation</li>
+              <li><strong>Capture their contact information</strong> – Ensure visitors understand their information will be stored for follow-up purposes</li>
+              <li><strong>Take photos</strong> – Get consent before photographing individuals or their materials</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When obtaining consent, we recommend informing booth visitors that:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4 mb-4">
+              <li>Their information will be captured for follow-up after the show</li>
+              <li>They may decline to have their information recorded</li>
+              <li>They can request removal of their data at any time</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              <strong>Capture Show Leads is not responsible for any failure by paid users to obtain proper consent.</strong> You are solely responsible for complying with all applicable privacy laws, event/venue policies, and recording consent requirements in your jurisdiction.
+            </p>
+          </section>
+
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Data Retention</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Data Retention</h2>
             <p className="text-gray-700 leading-relaxed">
               We retain your account information and lead data for as long as your account is active or as needed 
               to provide you services. If you cancel your subscription, your data will be retained for 30 days 
@@ -118,7 +145,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Cookies and Tracking</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Cookies and Tracking</h2>
             <p className="text-gray-700 leading-relaxed">
               We use essential cookies to maintain your session and preferences. We do not use third-party 
               advertising cookies. You can control cookie settings through your browser preferences.
@@ -126,7 +153,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Children's Privacy</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">10. Children's Privacy</h2>
             <p className="text-gray-700 leading-relaxed">
               Our service is not intended for users under 18 years of age. We do not knowingly collect 
               information from children under 18.
@@ -134,7 +161,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">10. Changes to This Policy</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">11. Changes to This Policy</h2>
             <p className="text-gray-700 leading-relaxed">
               We may update this Privacy Policy from time to time. We will notify you of any material changes 
               by email and by posting the updated policy on this page with a new "Last Updated" date.
@@ -142,7 +169,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">11. Contact Us</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">12. Contact Us</h2>
             <p className="text-gray-700 leading-relaxed">
               If you have questions about this Privacy Policy or our data practices, please contact us at:
             </p>
