@@ -1,7 +1,7 @@
 // Simple scheduler for daily notifications
 // Runs at 8:00 AM every day
 
-import { sendDailyTodoNotifications } from './notifications';
+import { sendDailyTodoNotifications, sendRenewalReminderEmails } from './notifications';
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 let lastRunDate: string | null = null;
@@ -32,13 +32,22 @@ async function runScheduledCheck() {
     const today = new Date().toISOString().split('T')[0];
     lastRunDate = today;
     
-    console.log(`[Scheduler] Running daily notification job at ${new Date().toISOString()}`);
+    console.log(`[Scheduler] Running daily notification jobs at ${new Date().toISOString()}`);
     
+    // Send daily todo notifications
     try {
-      const results = await sendDailyTodoNotifications();
-      console.log(`[Scheduler] Daily notification complete:`, results);
+      const todoResults = await sendDailyTodoNotifications();
+      console.log(`[Scheduler] Daily todo notification complete:`, todoResults);
     } catch (error) {
-      console.error('[Scheduler] Error running daily notification:', error);
+      console.error('[Scheduler] Error running daily todo notification:', error);
+    }
+    
+    // Send renewal reminder emails (5 days before renewal)
+    try {
+      const renewalResults = await sendRenewalReminderEmails();
+      console.log(`[Scheduler] Renewal reminder job complete:`, renewalResults);
+    } catch (error) {
+      console.error('[Scheduler] Error running renewal reminder job:', error);
     }
   }
 }

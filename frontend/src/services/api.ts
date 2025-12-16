@@ -75,8 +75,10 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    if (error.response?.status === 403 && error.response?.data?.code === 'SUBSCRIPTION_REQUIRED') {
-      console.error('[API] Subscription required - redirecting to subscription page');
+    if (error.response?.status === 403 && 
+        (error.response?.data?.code === 'SUBSCRIPTION_REQUIRED' || 
+         error.response?.data?.code === 'SUBSCRIPTION_CANCELED_EXPIRED')) {
+      console.error('[API] Subscription required or canceled - redirecting to subscription page');
       window.location.href = '/subscription';
     }
     return Promise.reject(error);

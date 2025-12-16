@@ -3,6 +3,8 @@ import prisma from './prisma';
 import { sendEmail } from './email';
 import { sendSMS, formatPhoneForSMS } from './sms';
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app';
+
 type TodoWithDealer = {
   id: string;
   title: string;
@@ -355,6 +357,235 @@ export async function sendDailyTodoNotifications(): Promise<{
     return results;
   } catch (error) {
     console.error('[Notifications] Fatal error:', error);
+    results.errors.push(`Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return results;
+  }
+}
+
+/**
+ * Format renewal reminder email HTML
+ */
+function formatRenewalReminderHTML(
+  firstName: string,
+  planType: string,
+  renewalDate: Date,
+  amount: string
+): string {
+  const renewalDateFormatted = renewalDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .content { background: #fffbeb; padding: 20px; border: 1px solid #fcd34d; }
+    .highlight-box { background: white; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .highlight-box h3 { margin-top: 0; color: #b45309; }
+    .btn { display: inline-block; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; margin-right: 10px; margin-top: 10px; }
+    .btn-primary { background: #3B82F6; color: white; }
+    .btn-danger { background: #EF4444; color: white; }
+    .footer { padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; background: white; }
+    .important { color: #b45309; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⏰ Subscription Renewal Reminder</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${firstName},</p>
+      
+      <p>This is a friendly reminder that your <strong>${planType}</strong> subscription to Capture Show Leads will automatically renew in <span class="important">5 days</span>.</p>
+      
+      <div class="highlight-box">
+        <h3>📅 Renewal Details</h3>
+        <p><strong>Plan:</strong> ${planType}</p>
+        <p><strong>Renewal Date:</strong> ${renewalDateFormatted}</p>
+        <p><strong>Amount:</strong> ${amount}</p>
+        <p>Your credit card on file will be charged automatically.</p>
+      </div>
+      
+      <p><strong>Want to continue?</strong> No action needed! Your subscription will renew automatically and you'll continue to have full access to all features.</p>
+      
+      <p><strong>Need to cancel?</strong> You can cancel your subscription anytime before the renewal date. After cancellation, you will have 5 days of continued access before your account is restricted.</p>
+      
+      <div style="margin-top: 20px;">
+        <a href="${FRONTEND_URL}/account-settings" class="btn btn-primary">
+          Manage Subscription →
+        </a>
+        <a href="${FRONTEND_URL}/account-settings" class="btn btn-danger">
+          Cancel Subscription
+        </a>
+      </div>
+      
+      <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+        Questions? Contact us at <a href="mailto:support@CaptureShowLeads.com">support@CaptureShowLeads.com</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>This is an automated reminder from Capture Show Leads.</p>
+      <p>© ${new Date().getFullYear()} Capture Show Leads</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
+/**
+ * Format renewal reminder email plain text
+ */
+function formatRenewalReminderText(
+  firstName: string,
+  planType: string,
+  renewalDate: Date,
+  amount: string
+): string {
+  const renewalDateFormatted = renewalDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return `
+SUBSCRIPTION RENEWAL REMINDER
+
+Hi ${firstName},
+
+This is a friendly reminder that your ${planType} subscription to Capture Show Leads will automatically renew in 5 DAYS.
+
+RENEWAL DETAILS:
+- Plan: ${planType}
+- Renewal Date: ${renewalDateFormatted}
+- Amount: ${amount}
+
+Your credit card on file will be charged automatically.
+
+WANT TO CONTINUE?
+No action needed! Your subscription will renew automatically.
+
+NEED TO CANCEL?
+You can cancel your subscription anytime before the renewal date:
+${FRONTEND_URL}/account-settings
+
+After cancellation, you will have 5 days of continued access before your account is restricted.
+
+Questions? Contact us at support@CaptureShowLeads.com
+
+---
+This is an automated reminder from Capture Show Leads.
+`;
+}
+
+/**
+ * Send renewal reminder emails to users whose subscriptions renew in 5 days
+ */
+export async function sendRenewalReminderEmails(): Promise<{
+  emailsSent: number;
+  usersNotified: string[];
+  errors: string[];
+}> {
+  console.log('[Notifications] Starting renewal reminder job...');
+  
+  const results = {
+    emailsSent: 0,
+    usersNotified: [] as string[],
+    errors: [] as string[],
+  };
+
+  try {
+    const now = new Date();
+    
+    // Calculate the date range for subscriptions renewing in 5 days
+    const fiveDaysFromNow = new Date(now);
+    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+    
+    // Start of day 5 days from now
+    const startOfDay5 = new Date(fiveDaysFromNow);
+    startOfDay5.setHours(0, 0, 0, 0);
+    
+    // End of day 5 days from now
+    const endOfDay5 = new Date(fiveDaysFromNow);
+    endOfDay5.setHours(23, 59, 59, 999);
+
+    console.log(`[Notifications] Looking for subscriptions renewing between ${startOfDay5.toISOString()} and ${endOfDay5.toISOString()}`);
+
+    // Find active subscriptions that:
+    // 1. Renew in 5 days
+    // 2. Have NOT been canceled (cancelAtPeriodEnd = false)
+    // 3. Have NOT already received a renewal reminder this period
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: {
+          gte: startOfDay5,
+          lte: endOfDay5,
+        },
+        // Only send if we haven't sent a reminder for this period
+        OR: [
+          { expiryEmailSentAt: null },
+          {
+            expiryEmailSentAt: {
+              lt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000), // More than 25 days ago (for monthly)
+            },
+          },
+        ],
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    console.log(`[Notifications] Found ${subscriptions.length} subscriptions renewing in 5 days`);
+
+    for (const sub of subscriptions) {
+      const user = sub.user;
+      
+      // Determine plan type based on price ID or other logic
+      const isAnnual = sub.stripePriceId?.includes('annual') || sub.stripePriceId?.includes('year');
+      const planType = isAnnual ? 'Annual Subscription' : 'Monthly Subscription';
+      const amount = isAnnual ? '$99.00/year' : '$19.00/month'; // Adjust these amounts as needed
+      
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `⏰ Your Capture Show Leads subscription renews in 5 days`,
+          text: formatRenewalReminderText(user.firstName, planType, sub.currentPeriodEnd, amount),
+          html: formatRenewalReminderHTML(user.firstName, planType, sub.currentPeriodEnd, amount),
+        });
+
+        // Mark that we sent the renewal reminder
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { expiryEmailSentAt: now },
+        });
+
+        results.emailsSent++;
+        results.usersNotified.push(user.email);
+        console.log(`[Notifications] Renewal reminder sent to ${user.email}`);
+      } catch (error) {
+        const errorMsg = `Failed to send renewal reminder to ${user.email}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        console.error(`[Notifications] ${errorMsg}`);
+        results.errors.push(errorMsg);
+      }
+    }
+
+    console.log(`[Notifications] Renewal reminder job completed. Emails sent: ${results.emailsSent}`);
+    return results;
+  } catch (error) {
+    console.error('[Notifications] Fatal error in renewal reminder job:', error);
     results.errors.push(`Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return results;
   }

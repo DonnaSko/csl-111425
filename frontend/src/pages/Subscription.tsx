@@ -274,7 +274,11 @@ const Subscription = () => {
             </div>
             <div className="flex items-start gap-2">
               <span className="text-green-500 font-bold">•</span>
-              <p><strong>Easy Cancellation:</strong> Cancel anytime from your Account Settings. Cancellation stops future renewals — you keep access through the end of your current paid term.</p>
+              <p><strong>Easy Cancellation:</strong> Cancel at least 5 days before your renewal date from your Account Settings. After cancellation, you'll have 5 days of continued access.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-purple-500 font-bold">•</span>
+              <p><strong>Renewal Reminder:</strong> We'll email you 5 days before your subscription renews so you can cancel if needed.</p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-blue-500 font-bold">•</span>
