@@ -15,7 +15,7 @@ const TermsOfService = () => {
               You're using our trade-show lead app ("Service"). You can buy:
             </p>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li><strong>Monthly Subscription</strong> – Use for shows from the paid date + 30 days</li>
+              <li><strong>Monthly Subscription</strong> – Use for shows from the paid date + 32 days</li>
               <li><strong>Annual Subscription</strong> – Use from paid date + 365 days</li>
             </ul>
           </section>
@@ -96,7 +96,7 @@ const TermsOfService = () => {
             
             <h3 className="text-lg font-medium text-gray-800 mt-6 mb-2">Refund Policy (B2B)</h3>
             <p className="text-gray-700 leading-relaxed">
-              All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term.
+              <strong>All fees are non-refundable</strong>, including for partially used subscription periods. You may cancel at any time; <strong>cancellation stops future renewals</strong> and you will retain access through the end of the current paid term.
             </p>
             
             <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Billing Errors</h3>
