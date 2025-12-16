@@ -365,7 +365,7 @@ const Dashboard = () => {
                         handleSearch('all-dealers');
                       }
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('all-dealers')}
@@ -416,7 +416,7 @@ const Dashboard = () => {
                         handleSearch('with-notes');
                       }
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-notes')}
@@ -467,7 +467,7 @@ const Dashboard = () => {
                         handleSearch('with-photos');
                       }
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-photos')}
@@ -518,7 +518,7 @@ const Dashboard = () => {
                         handleSearch('with-recordings');
                       }
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-recordings')}
@@ -682,7 +682,7 @@ const Dashboard = () => {
                               handleSearch('by-status', statusGroup.status);
                             }
                           }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                         />
                         <button
                           onClick={() => handleSearch('by-status', statusGroup.status)}
@@ -742,7 +742,7 @@ const Dashboard = () => {
                               handleSearch('by-rating', ratingGroup.rating);
                             }
                           }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                         />
                         <button
                           onClick={() => handleSearch('by-rating', ratingGroup.rating)}
