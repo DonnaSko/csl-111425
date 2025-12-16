@@ -262,7 +262,38 @@ const Subscription = () => {
           </div>
         </div>
 
-        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        {/* Billing Terms - Clear before checkout */}
+        <div className="mt-8 bg-gray-100 border border-gray-300 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            📋 Billing Terms & Cancellation Policy
+          </h3>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div className="flex items-start gap-2">
+              <span className="text-red-500 font-bold">•</span>
+              <p><strong>No Refunds:</strong> All fees are non-refundable, including for partially used subscription periods.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-green-500 font-bold">•</span>
+              <p><strong>Easy Cancellation:</strong> Cancel anytime from your Account Settings. Cancellation stops future renewals — you keep access through the end of your current paid term.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 font-bold">•</span>
+              <p><strong>Auto-Renewal:</strong> Subscriptions automatically renew at the end of each billing period until canceled.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-yellow-600 font-bold">•</span>
+              <p><strong>Billing Errors:</strong> Contact us within 7 days of any billing error for correction or refund.</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-4">
+            By subscribing, you agree to our{' '}
+            <a href="/terms-of-service" target="_blank" className="text-blue-600 hover:underline">Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy-policy" target="_blank" className="text-blue-600 hover:underline">Privacy Policy</a>.
+          </p>
+        </div>
+
+        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-yellow-900 mb-2">
             Already Paid? Sync Your Subscription
           </h3>
@@ -277,12 +308,6 @@ const Subscription = () => {
           >
             {syncing ? 'Syncing...' : 'Sync Subscription from Stripe'}
           </button>
-        </div>
-
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>
-            <strong>No refunds</strong> on current plans. You can cancel renewals 5 or more days before renewal date.
-          </p>
         </div>
       </div>
     </div>

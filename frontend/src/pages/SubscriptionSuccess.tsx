@@ -21,7 +21,7 @@ const SubscriptionSuccess = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="max-w-lg w-full bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-4">
           <svg
             className="mx-auto h-16 w-16 text-green-500"
@@ -40,9 +40,21 @@ const SubscriptionSuccess = () => {
         <h1 className="text-2xl font-bold text-gray-900 mb-4">
           Subscription Successful!
         </h1>
-        <p className="text-gray-600 mb-6">
-          Your subscription has been activated. Redirecting to dashboard...
+        <p className="text-gray-600 mb-4">
+          Your subscription has been activated. A confirmation email has been sent to your email address.
         </p>
+        
+        {/* Billing reminder */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left text-sm">
+          <p className="font-semibold text-gray-800 mb-2">📋 Quick Reminder:</p>
+          <ul className="text-gray-600 space-y-1">
+            <li>• Your subscription will <strong>auto-renew</strong> at the end of each billing period</li>
+            <li>• Cancel anytime from <strong>Account Settings</strong> — you keep access through your paid term</li>
+            <li>• All fees are <strong>non-refundable</strong></li>
+          </ul>
+        </div>
+        
+        <p className="text-gray-500 text-sm mb-4">Redirecting to dashboard...</p>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
       </div>
     </div>
