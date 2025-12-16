@@ -15,8 +15,8 @@ const TermsOfService = () => {
               You're using our trade-show lead app ("Service"). You can buy:
             </p>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li><strong>Per-Show License</strong> (use for one show between your start and end dates), or</li>
-              <li><strong>Subscription</strong> (monthly/annual) with device and concurrent-show limits.</li>
+              <li><strong>Monthly Subscription</strong> – Use for shows from the paid date + 30 days</li>
+              <li><strong>Annual Subscription</strong> – Use from paid date + 365 days</li>
             </ul>
           </section>
 
