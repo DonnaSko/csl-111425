@@ -98,7 +98,7 @@ const TermsOfService = () => {
             
             <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Billing Errors</h3>
             <p className="text-gray-700 leading-relaxed">
-              If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), contact us within 7 days of the charge. Verified billing errors will be corrected or refunded.
+              If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), <strong>contact us within 7 days of the charge.</strong> Verified billing errors will be corrected or refunded.
             </p>
             
             <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Service Unavailability</h3>
