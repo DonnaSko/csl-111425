@@ -65,6 +65,7 @@ interface DealerDetail {
   buyingGroup: string | null;
   status: string;
   rating: number | null;
+  customFields?: Record<string, any>;
   dealerNotes: Array<{ id: string; content: string; createdAt: string }>;
   photos: Array<{ id: string; originalName: string; type: string; createdAt: string }>;
   voiceRecordings: Array<{ id: string; originalName: string; createdAt: string; date: string | null; tradeshowName: string | null }>;
@@ -170,6 +171,15 @@ const DealerDetail = () => {
     snail_mail: false,
     badge_photo: false,
     audio_notes: false,
+  });
+
+  // Consent permissions (user must obtain from booth visitors)
+  const [consentExpanded, setConsentExpanded] = useState(false);
+  const [consentPermissions, setConsentPermissions] = useState({
+    photos: false,
+    badgeScan: false,
+    audioRecording: false,
+    otherPermission: '',
   });
 
   useEffect(() => {
@@ -296,6 +306,14 @@ const DealerDetail = () => {
           perms[p.permission] = p.granted;
         });
         setPrivacyPermissions(prev => ({ ...prev, ...perms }));
+        
+        // Set consent permissions from privacy permissions
+        setConsentPermissions({
+          photos: perms['consent_photos'] || false,
+          badgeScan: perms['consent_badge_scan'] || false,
+          audioRecording: perms['consent_audio_recording'] || false,
+          otherPermission: (dealerData.customFields as any)?.otherConsentPermission || '',
+        });
       }
     } catch (error: any) {
       console.error('Failed to fetch dealer:', error);
@@ -345,6 +363,33 @@ const DealerDetail = () => {
     autoSave(`dealer_${field}`, value, async () => {
       await api.put(`/dealers/${id}`, { [field]: value });
     });
+  };
+
+  // Handle consent permission changes
+  const handleConsentChange = async (field: string, value: boolean | string) => {
+    const newConsent = { ...consentPermissions, [field]: value };
+    setConsentPermissions(newConsent);
+    
+    // Save to dealer's privacy permissions
+    try {
+      const permissionKey = field === 'photos' ? 'consent_photos' 
+        : field === 'badgeScan' ? 'consent_badge_scan'
+        : field === 'audioRecording' ? 'consent_audio_recording'
+        : 'consent_other';
+      
+      if (field === 'otherPermission') {
+        // Save as custom field or note
+        await api.put(`/dealers/${id}`, { 
+          customFields: { ...dealer?.customFields as object, otherConsentPermission: value }
+        });
+      } else {
+        await api.put(`/dealers/${id}/privacy/${permissionKey}`, { 
+          granted: value as boolean 
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save consent permission:', error);
+    }
   };
 
   const handleRatingChange = async (newRating: number) => {
@@ -1015,6 +1060,92 @@ const DealerDetail = () => {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Consent Permissions Accordion - Immediately under dealer name/rating */}
+      <div className="max-w-6xl mx-auto px-6 mb-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setConsentExpanded(!consentExpanded)}
+            className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-yellow-100 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚠️</span>
+              <span className="font-semibold text-gray-900">Booth Visitor Consent Permissions</span>
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Required</span>
+            </div>
+            <span className="text-gray-500 text-lg">{consentExpanded ? '▼' : '▶'}</span>
+          </button>
+          
+          {consentExpanded && (
+            <div className="px-4 pb-4 border-t border-yellow-200">
+              <p className="text-sm text-gray-700 mt-3 mb-4 bg-white p-3 rounded border-l-4 border-red-500">
+                <strong>You are solely responsible</strong> for obtaining permission from this dealer/customer before capturing their information. 
+                Check each box below to confirm you have received their consent.
+              </p>
+              
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={consentPermissions.photos}
+                    onChange={(e) => handleConsentChange('photos', e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="font-medium text-gray-900">📸 Photos Permission</span>
+                    <p className="text-sm text-gray-600">I have permission to take photos of this person or their materials</p>
+                  </div>
+                </label>
+                
+                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={consentPermissions.badgeScan}
+                    onChange={(e) => handleConsentChange('badgeScan', e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="font-medium text-gray-900">🎫 Badge Scan Permission</span>
+                    <p className="text-sm text-gray-600">I have permission to photograph or scan their event badge</p>
+                  </div>
+                </label>
+                
+                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={consentPermissions.audioRecording}
+                    onChange={(e) => handleConsentChange('audioRecording', e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="font-medium text-gray-900">🎙️ Audio Recording Permission</span>
+                    <p className="text-sm text-gray-600">I have permission to record audio notes about our conversation</p>
+                  </div>
+                </label>
+                
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <label className="block">
+                    <span className="font-medium text-gray-900">📝 Other Permissions</span>
+                    <p className="text-sm text-gray-600 mb-2">Note any additional permissions obtained</p>
+                    <input
+                      type="text"
+                      value={consentPermissions.otherPermission}
+                      onChange={(e) => handleConsentChange('otherPermission', e.target.value)}
+                      placeholder="e.g., Permission to share contact info with partner company..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </label>
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                See our <a href="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</a> and{' '}
+                <a href="/terms-of-service" className="text-blue-600 hover:underline">Terms of Service</a> for more information.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
