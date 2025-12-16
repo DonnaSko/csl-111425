@@ -24,6 +24,7 @@ type UserWithTodos = {
   userLastName: string;
   userPhone?: string | null;
   companyName: string;
+  dailyEmailReminders: boolean;
   todos: TodoWithDealer[];
 };
 
@@ -103,6 +104,7 @@ export async function getTodosDueToday(): Promise<UserWithTodos[]> {
         userFirstName: user.firstName,
         userLastName: user.lastName,
         companyName: user.company.name,
+        dailyEmailReminders: (user as any).dailyEmailReminders ?? true,
         todos,
       });
     }
@@ -293,6 +295,12 @@ export async function sendDailyTodoNotifications(): Promise<{
     }
 
     for (const user of usersTodos) {
+      // Skip users who have opted out of daily email reminders
+      if (!user.dailyEmailReminders) {
+        console.log(`[Notifications] Skipping ${user.userEmail} - daily email reminders disabled`);
+        continue;
+      }
+      
       console.log(`[Notifications] Processing ${user.userEmail} with ${user.todos.length} todos...`);
 
       // Send email

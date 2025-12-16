@@ -7,6 +7,10 @@ interface User {
   firstName: string;
   lastName: string;
   companyId: string;
+  company?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface AuthContextType {

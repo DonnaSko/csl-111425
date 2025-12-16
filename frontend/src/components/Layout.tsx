@@ -22,6 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Reports', href: '/reports', icon: '📊' },
     { name: 'To-Dos', href: '/todos', icon: '✅' },
     { name: 'Buying Group Maintenance', href: '/buying-group-maintenance', icon: '🏢' },
+    { name: 'Account Settings', href: '/account-settings', icon: '⚙️' },
     { name: 'Privacy Policy', href: '/privacy-policy', icon: '🔒' },
     { name: 'Terms of Service', href: '/terms-of-service', icon: '📜' },
   ];

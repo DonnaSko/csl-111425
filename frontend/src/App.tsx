@@ -18,6 +18,7 @@ import SubscriptionSuccess from './pages/SubscriptionSuccess';
 import BuyingGroupMaintenance from './pages/BuyingGroupMaintenance';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import AccountSettings from './pages/AccountSettings';
 
 function App() {
   return (
@@ -120,6 +121,14 @@ function App() {
               element={
                 <PrivateRoute requireSubscription>
                   <BuyingGroupMaintenance />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/account-settings"
+              element={
+                <PrivateRoute requireSubscription>
+                  <AccountSettings />
                 </PrivateRoute>
               }
             />

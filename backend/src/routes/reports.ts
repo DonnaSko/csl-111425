@@ -434,6 +434,102 @@ router.get('/dashboard/todos', async (req: AuthRequest, res) => {
   }
 });
 
+// Export all data (comprehensive export)
+router.get('/export/all-data', async (req: AuthRequest, res) => {
+  try {
+    // Fetch all user data
+    const [dealers, tradeShows, todos, groups, buyingGroups, products] = await Promise.all([
+      prisma.dealer.findMany({
+        where: { companyId: req.companyId! },
+        include: {
+          dealerNotes: true,
+          photos: { select: { id: true, filename: true, type: true, createdAt: true } },
+          voiceRecordings: { select: { id: true, filename: true, duration: true, date: true, tradeshowName: true, createdAt: true } },
+          groups: { include: { group: { select: { name: true } } } },
+          products: { include: { product: { select: { name: true } } } },
+          privacyPermissions: true
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.tradeShow.findMany({
+        where: { companyId: req.companyId! },
+        include: {
+          dealers: {
+            include: {
+              dealer: { select: { id: true, companyName: true } }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.todo.findMany({
+        where: { companyId: req.companyId! },
+        include: {
+          dealer: { select: { id: true, companyName: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.group.findMany({
+        where: { companyId: req.companyId! },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.buyingGroup.findMany({
+        where: { companyId: req.companyId! },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.product.findMany({
+        where: { companyId: req.companyId! },
+        orderBy: { name: 'asc' }
+      })
+    ]);
+
+    // Get user info
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      include: { company: true }
+    });
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      account: {
+        email: user?.email,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        company: user?.company.name
+      },
+      summary: {
+        totalDealers: dealers.length,
+        totalTradeShows: tradeShows.length,
+        totalTodos: todos.length,
+        totalGroups: groups.length,
+        totalBuyingGroups: buyingGroups.length,
+        totalProducts: products.length
+      },
+      dealers: dealers.map(d => ({
+        ...d,
+        groups: d.groups.map(g => g.group.name),
+        products: d.products.map(p => p.product.name)
+      })),
+      tradeShows: tradeShows.map(ts => ({
+        ...ts,
+        dealers: ts.dealers.map(d => d.dealer)
+      })),
+      todos,
+      groups,
+      buyingGroups,
+      products
+    };
+
+    // Return as JSON file
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=capture-show-leads-export.json');
+    res.send(JSON.stringify(exportData, null, 2));
+  } catch (error) {
+    console.error('Export all data error:', error);
+    res.status(500).json({ error: 'Failed to export all data' });
+  }
+});
+
 // Get dealers with recordings for dashboard
 router.get('/dashboard/dealers-with-recordings', async (req: AuthRequest, res) => {
   try {

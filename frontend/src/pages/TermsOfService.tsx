@@ -30,7 +30,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">3. Using the Service</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li><strong>Who can use it:</strong> Your employees/contractors that you invite.</li>
+              <li><strong>Who can use it:</strong> A Paid User with a current monthly or annual subscription. Each person from a Company/Team will need to buy a seat or a subscription to have access to the app.</li>
               <li><strong>What you can do:</strong> Capture leads at shows, add notes/photos/voice notes, export CSV, manage follow-ups.</li>
               <li><strong>What you can't do:</strong> Anything illegal, spammy, or that breaks someone else's rights.</li>
             </ul>
