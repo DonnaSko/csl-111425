@@ -403,6 +403,37 @@ router.get('/dashboard/dealers-with-photos', async (req: AuthRequest, res) => {
   }
 });
 
+// Get all incomplete todos for dashboard
+router.get('/dashboard/todos', async (req: AuthRequest, res) => {
+  try {
+    const todos = await prisma.todo.findMany({
+      where: {
+        companyId: req.companyId!,
+        completed: false
+      },
+      include: {
+        dealer: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true
+          }
+        }
+      },
+      orderBy: [
+        { dueDate: 'asc' },
+        { followUpDate: 'asc' },
+        { createdAt: 'desc' }
+      ]
+    });
+
+    res.json({ todos });
+  } catch (error) {
+    console.error('Get todos error:', error);
+    res.status(500).json({ error: 'Failed to fetch todos' });
+  }
+});
+
 // Get dealers with recordings for dashboard
 router.get('/dashboard/dealers-with-recordings', async (req: AuthRequest, res) => {
   try {

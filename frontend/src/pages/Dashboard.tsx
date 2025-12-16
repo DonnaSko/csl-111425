@@ -23,6 +23,22 @@ interface Dealer {
   rating?: number | null;
 }
 
+interface Todo {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  followUpDate: string | null;
+  followUp: boolean;
+  type: string;
+  completed: boolean;
+  dealer: {
+    id: string;
+    companyName: string;
+    contactName: string | null;
+  } | null;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -39,6 +55,7 @@ const Dashboard = () => {
   const [dealersWithNotes, setDealersWithNotes] = useState<Dealer[]>([]);
   const [dealersWithPhotos, setDealersWithPhotos] = useState<Dealer[]>([]);
   const [dealersWithRecordings, setDealersWithRecordings] = useState<Dealer[]>([]);
+  const [todos, setTodos] = useState<Todo[]>([]);
   
   // Track search terms for each section
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
@@ -130,6 +147,10 @@ const Dashboard = () => {
         const url = searchTerm ? `/reports/dashboard/dealers-with-recordings?search=${encodeURIComponent(searchTerm)}` : '/reports/dashboard/dealers-with-recordings';
         response = await api.get<{ dealers: Dealer[] }>(url);
         setDealersWithRecordings(Array.isArray(response.data?.dealers) ? response.data.dealers : []);
+      } else if (sectionType === 'todos') {
+        const todosResponse = await api.get<{ todos: Todo[] }>('/reports/dashboard/todos');
+        setTodos(Array.isArray(todosResponse.data?.todos) ? todosResponse.data.todos : []);
+        return; // Early return since we don't use the response variable for todos
       } else {
         // TypeScript needs this to know response is always assigned
         return;
@@ -149,6 +170,8 @@ const Dashboard = () => {
         setDealersWithPhotos([]);
       } else if (sectionType === 'with-recordings') {
         setDealersWithRecordings([]);
+      } else if (sectionType === 'todos') {
+        setTodos([]);
       }
     } finally {
       setLoadingDealers(prev => ({ ...prev, [loadingKey]: false }));
@@ -189,6 +212,10 @@ const Dashboard = () => {
       } else if (sectionType === 'with-recordings') {
         if (dealersWithRecordings.length === 0) {
           fetchDealersForSection('with-recordings');
+        }
+      } else if (sectionType === 'todos') {
+        if (todos.length === 0) {
+          fetchDealersForSection('todos');
         }
       }
     }
@@ -501,6 +528,118 @@ const Dashboard = () => {
                   </button>
                 </div>
                 {renderDealerList(dealersWithRecordings, 'with-recordings-all')}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* To Do's and Follow Up Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-lg shadow">
+            <div 
+              className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => handleSectionClick('todos')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">To Do's and Follow Up</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats?.activeTodos || 0}</p>
+                  </div>
+                </div>
+                <span className="text-gray-400 text-lg">
+                  {expandedSection === 'todos' ? '▼' : '▶'}
+                </span>
+              </div>
+            </div>
+            
+            {expandedSection === 'todos' && (
+              <div className="px-6 pb-6">
+                {loadingDealers['todos-all'] ? (
+                  <div className="p-4 text-center text-gray-500">
+                    Loading todos...
+                  </div>
+                ) : todos.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No pending to-dos or follow-ups
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 mt-4 pt-4">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {todos.map((todo) => {
+                        const isPastDue = (todo.dueDate && new Date(todo.dueDate) < new Date()) || 
+                                          (todo.followUpDate && new Date(todo.followUpDate) < new Date());
+                        return (
+                          <div
+                            key={todo.id}
+                            onClick={() => todo.dealer && handleDealerClick(todo.dealer.id)}
+                            className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                              isPastDue 
+                                ? 'bg-red-50 hover:bg-red-100 border-l-4 border-red-500' 
+                                : 'bg-gray-50 hover:bg-gray-100'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-gray-900">{todo.title}</span>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    todo.type === 'email' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {todo.type}
+                                  </span>
+                                  {isPastDue && (
+                                    <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-medium">
+                                      PAST DUE
+                                    </span>
+                                  )}
+                                </div>
+                                {todo.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{todo.description}</p>
+                                )}
+                                {todo.dealer && (
+                                  <p className="text-sm text-blue-600 mt-1">
+                                    👤 {todo.dealer.companyName}
+                                    {todo.dealer.contactName && ` (${todo.dealer.contactName})`}
+                                  </p>
+                                )}
+                                <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                                  {todo.dueDate && (
+                                    <span className={isPastDue ? 'text-red-600 font-medium' : ''}>
+                                      Due: {new Date(todo.dueDate).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  )}
+                                  {todo.followUp && todo.followUpDate && (
+                                    <span className={isPastDue ? 'text-red-600 font-medium' : ''}>
+                                      Follow-up: {new Date(todo.followUpDate).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
