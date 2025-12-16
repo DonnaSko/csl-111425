@@ -185,7 +185,7 @@ router.get('/preferences', authenticate, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId! },
-      select: { dailyEmailReminders: true }
+      select: { dailyEmailReminders: true, marketingEmails: true }
     });
 
     if (!user) {
@@ -193,30 +193,33 @@ router.get('/preferences', authenticate, async (req: AuthRequest, res) => {
     }
 
     res.json({
-      dailyEmailReminders: user.dailyEmailReminders ?? true // Default to true
+      dailyEmailReminders: user.dailyEmailReminders ?? true,
+      marketingEmails: (user as any).marketingEmails ?? false
     });
   } catch (error) {
     console.error('Get preferences error:', error);
     // Return defaults if the field doesn't exist yet
-    res.json({ dailyEmailReminders: true });
+    res.json({ dailyEmailReminders: true, marketingEmails: false });
   }
 });
 
 // Update user preferences
 router.put('/preferences', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { dailyEmailReminders } = req.body;
+    const { dailyEmailReminders, marketingEmails } = req.body;
 
     await prisma.user.update({
       where: { id: req.userId! },
       data: {
-        dailyEmailReminders: dailyEmailReminders === true
+        dailyEmailReminders: dailyEmailReminders === true,
+        marketingEmails: marketingEmails === true
       }
     });
 
     res.json({ 
       success: true,
-      dailyEmailReminders: dailyEmailReminders === true
+      dailyEmailReminders: dailyEmailReminders === true,
+      marketingEmails: marketingEmails === true
     });
   } catch (error) {
     console.error('Update preferences error:', error);

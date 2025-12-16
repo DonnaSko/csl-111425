@@ -20,6 +20,7 @@ model User {
   lastName            String
   companyId           String
   dailyEmailReminders Boolean  @default(true)
+  marketingEmails     Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
