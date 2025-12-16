@@ -39,7 +39,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">4. Show Windows & Edit-Lock</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>You can add/edit leads from Show Start to Show End + 4 days.</li>
+              <li>You can add/edit leads from Tradeshows during your subscription term – Start at the paid date + 32 days for the Monthly plan, or the Paid Date + 366 days for the Annual plan.</li>
               <li>After that, the show becomes read-only (you can still view/export).</li>
               <li>This helps teams follow up instead of "polishing" forever.</li>
             </ul>
