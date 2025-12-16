@@ -47,26 +47,8 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">5. Plans, Limits, and Pricing</h2>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-800">Starter (Free Trial)</h3>
-                <p className="text-gray-700">5 total leads, 1 device, no custom fields.</p>
-              </div>
-              
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-gray-800">Pro</h3>
-                <p className="text-gray-700">3 devices, custom fields, unlimited voice notes, follow-ups, CSV export, 4-day edit-lock.</p>
-              </div>
-              
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <h3 className="font-semibold text-gray-800">Enterprise</h3>
-                <p className="text-gray-700">6 devices, priority support, admin "view as user," audit logs, show templates, bulk import, hot-leads report, optional SSO.</p>
-              </div>
-            </div>
-            
-            <p className="text-gray-700 mt-4">
-              Per-Show pricing or Subscription pricing as listed on our site/app. You can buy add-ons (e.g., extra devices, custom form setup, hot-leads report).
+            <p className="text-gray-700">
+              <strong>Subscription Pricing:</strong> Monthly pricing or Annual pricing as listed on our app/site. You can buy add-ons (e.g., extra devices, custom form setup, hot-leads report).
             </p>
           </section>
 
