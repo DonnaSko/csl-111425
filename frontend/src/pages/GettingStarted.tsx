@@ -98,6 +98,40 @@ const GettingStarted = () => {
               <li>Export data to CSV for external use</li>
             </ul>
           </div>
+
+          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">📋 Refund & Cancellation Policy</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-2">Refund Policy (B2B)</h3>
+                <p className="text-gray-600">
+                  All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-2">Billing Errors</h3>
+                <p className="text-gray-600">
+                  If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), contact us within 7 days of the charge. Verified billing errors will be corrected or refunded.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-2">Service Unavailability</h3>
+                <p className="text-gray-600">
+                  If the service is unavailable due to our fault for a material period of time, we may issue a service credit or prorated refund at our discretion.
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-500 mt-4">
+              For questions about billing or cancellations, contact us at{' '}
+              <a href="mailto:support@captureshowleads.com" className="text-blue-600 hover:underline">
+                support@captureshowleads.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </Layout>

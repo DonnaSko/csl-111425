@@ -105,12 +105,27 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">10. Termination</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">10. Termination & Refund Policy</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
               <li>You may stop using the Service anytime. Subscriptions remain active until canceled.</li>
               <li>We can suspend/terminate for abuse, non-payment, or security risks.</li>
               <li>On termination, you can export your data. We may retain backups for a time as described in the Privacy Policy.</li>
             </ul>
+            
+            <h3 className="text-lg font-medium text-gray-800 mt-6 mb-2">Refund Policy (B2B)</h3>
+            <p className="text-gray-700 leading-relaxed">
+              All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term.
+            </p>
+            
+            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Billing Errors</h3>
+            <p className="text-gray-700 leading-relaxed">
+              If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), contact us within 7 days of the charge. Verified billing errors will be corrected or refunded.
+            </p>
+            
+            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Service Unavailability</h3>
+            <p className="text-gray-700 leading-relaxed">
+              If the service is unavailable due to our fault for a material period of time, we may issue a service credit or prorated refund at our discretion.
+            </p>
           </section>
 
           <section>
