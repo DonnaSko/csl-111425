@@ -136,6 +136,15 @@ router.put('/:id', async (req: AuthRequest, res) => {
       updateData.emailSentDate = new Date();
     }
 
+    // If marking as completed, set completedAt timestamp
+    if (req.body.completed === true && !todo.completed) {
+      updateData.completedAt = new Date();
+    }
+    // If marking as incomplete, clear completedAt
+    if (req.body.completed === false && todo.completed) {
+      updateData.completedAt = null;
+    }
+
     const updated = await prisma.todo.update({
       where: { id: req.params.id },
       data: updateData

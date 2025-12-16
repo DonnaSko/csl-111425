@@ -42,6 +42,7 @@ interface Todo {
   description: string | null;
   dueDate: string | null;
   completed: boolean;
+  completedAt: string | null;
   type: string;
   emailSent: boolean;
   emailSentDate: string | null;
@@ -129,6 +130,7 @@ const DealerDetail = () => {
     { id: 'todos', title: 'Tasks and To Do\'s', expanded: false },
     { id: 'emails', title: 'Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
+    { id: 'completedTasks', title: 'Completed Tasks', expanded: false },
   ]);
 
   // Auto-save debounce refs
@@ -1623,7 +1625,7 @@ const DealerDetail = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                {dealer.todos.filter(todo => todo.type !== 'email').map((todo) => (
+                {dealer.todos.filter(todo => todo.type !== 'email' && !todo.completed).map((todo) => (
                   <div key={todo.id} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -1633,7 +1635,7 @@ const DealerDetail = () => {
                             checked={todo.completed}
                             onChange={(e) => handleUpdateTodo(todo.id, { completed: e.target.checked })}
                           />
-                          <span className={`font-semibold ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+                          <span className="font-semibold">
                             {todo.title}
                           </span>
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
@@ -1659,8 +1661,8 @@ const DealerDetail = () => {
                     </div>
                   </div>
                 ))}
-                {dealer.todos.filter(todo => todo.type !== 'email').length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No tasks yet</p>
+                {dealer.todos.filter(todo => todo.type !== 'email' && !todo.completed).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No pending tasks</p>
                 )}
               </div>
             </div>
@@ -1731,7 +1733,7 @@ const DealerDetail = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                {dealer.todos.filter(todo => todo.type === 'email').map((todo) => (
+                {dealer.todos.filter(todo => todo.type === 'email' && !todo.completed).map((todo) => (
                   <div key={todo.id} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -1741,7 +1743,7 @@ const DealerDetail = () => {
                             checked={todo.completed}
                             onChange={(e) => handleUpdateTodo(todo.id, { completed: e.target.checked })}
                           />
-                          <span className={`font-semibold ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+                          <span className="font-semibold">
                             {todo.title}
                           </span>
                           <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
@@ -1777,8 +1779,8 @@ const DealerDetail = () => {
                     </div>
                   </div>
                 ))}
-                {dealer.todos.filter(todo => todo.type === 'email').length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No email tasks yet</p>
+                {dealer.todos.filter(todo => todo.type === 'email' && !todo.completed).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No pending email tasks</p>
                 )}
               </div>
             </div>
@@ -1828,6 +1830,66 @@ const DealerDetail = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Completed Tasks Section */}
+        <div className="mb-4">
+          <AccordionSection section={sections[9]} />
+          {sections[9].expanded && (
+            <div className="mt-2 bg-white rounded-lg shadow p-6">
+              <div className="space-y-2">
+                {dealer.todos.filter(todo => todo.completed).length > 0 ? (
+                  dealer.todos.filter(todo => todo.completed).map((todo) => (
+                    <div key={todo.id} className="bg-gray-100 rounded-lg p-4 opacity-75">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={todo.completed}
+                              onChange={(e) => handleUpdateTodo(todo.id, { completed: e.target.checked })}
+                            />
+                            <span className="font-semibold line-through text-gray-500">
+                              {todo.title}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              todo.type === 'email' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {todo.type}
+                            </span>
+                          </div>
+                          {todo.description && (
+                            <p className="text-gray-400 mt-1 line-through">{todo.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-500">
+                            {todo.dueDate && <span className="line-through">Due: {formatDate(todo.dueDate)}</span>}
+                            {todo.followUp && todo.followUpDate && (
+                              <span className="line-through">Follow-up: {formatDate(todo.followUpDate)}</span>
+                            )}
+                            {todo.completedAt && (
+                              <span className="text-green-600 font-medium">
+                                ✓ Completed: {formatDate(todo.completedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteTodo(todo.id)}
+                          className="text-red-600 hover:text-red-800 text-sm ml-2"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No completed tasks yet</p>
+                )}
+              </div>
             </div>
           )}
         </div>

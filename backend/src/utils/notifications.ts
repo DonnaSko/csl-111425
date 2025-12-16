@@ -28,23 +28,14 @@ type UserWithTodos = {
 };
 
 /**
- * Get all todos due today for users with active subscriptions
- * Uses a time window to account for US timezone differences (EST=UTC-5 to PST=UTC-8)
+ * Get all INCOMPLETE todos for users with active subscriptions
+ * Includes: past due todos, todos due today, and upcoming todos with dates
+ * This ensures users are reminded of ALL tasks they haven't completed yet
  */
 export async function getTodosDueToday(): Promise<UserWithTodos[]> {
-  // Create a window that covers "today" in all US timezones
-  // - "Today" in EST starts at UTC 05:00 (midnight EST = UTC+5 hours)
-  // - "Today" in PST ends at UTC+8 hours the next day (midnight PST = UTC+8 hours)
-  // So for Dec 16: we search from Dec 16 00:00 UTC to Dec 17 08:00 UTC
   const now = new Date();
   
-  // Start: beginning of today in UTC (catches early AM in eastern timezones)
-  const startWindow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-  
-  // End: 8 AM UTC the next day (catches 11:59 PM PST which is 07:59 UTC next day)
-  const endWindow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 8, 0, 0, 0));
-
-  console.log(`[Notifications] Checking todos due between ${startWindow.toISOString()} and ${endWindow.toISOString()}`);
+  console.log(`[Notifications] Checking all incomplete todos as of ${now.toISOString()}`);
 
   // Find all users with active subscriptions
   const activeSubscriptions = await prisma.subscription.findMany({
@@ -68,24 +59,25 @@ export async function getTodosDueToday(): Promise<UserWithTodos[]> {
     const user = sub.user;
     const companyId = user.companyId;
 
-    // Find todos due today (by dueDate OR followUpDate)
+    // Find ALL incomplete todos (past due, today, or with any date set)
     const todos = await prisma.todo.findMany({
       where: {
         companyId,
         completed: false,
         OR: [
+          // Todos with a due date (past, present, or future)
           {
-            dueDate: {
-              gte: startWindow,
-              lte: endWindow,
-            },
+            dueDate: { not: null },
           },
+          // Todos with a follow-up date
           {
             followUp: true,
-            followUpDate: {
-              gte: startWindow,
-              lte: endWindow,
-            },
+            followUpDate: { not: null },
+          },
+          // Todos with no date but still incomplete (general tasks)
+          {
+            dueDate: null,
+            followUpDate: null,
           },
         ],
       },

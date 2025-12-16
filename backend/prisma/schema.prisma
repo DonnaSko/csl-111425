@@ -201,6 +201,7 @@ model Todo {
   title         String
   description   String?
   completed     Boolean   @default(false)
+  completedAt   DateTime? // When the todo was marked as completed
   dueDate       DateTime?
   type          String    @default("general") // general, email, snail_mail
   emailSent     Boolean   @default(false)
