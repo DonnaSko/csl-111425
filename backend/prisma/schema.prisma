@@ -104,6 +104,7 @@ model Dealer {
   products                 DealerProduct[]
   privacyPermissions       PrivacyPermission[]
   privacyPermissionHistory PrivacyPermissionHistory[]
+  changeHistory            DealerChangeHistory[]
 
   @@index([companyId])
   @@index([companyName])
@@ -367,6 +368,23 @@ model PrivacyPermissionHistory {
 
   @@index([dealerId])
   @@index([permission])
+  @@index([createdAt])
+  @@schema("csl")
+}
+
+model DealerChangeHistory {
+  id          String   @id @default(cuid())
+  dealerId    String
+  fieldName   String   // e.g., "companyName", "email", "status", "rating", "notes"
+  oldValue    String?  // Previous value (as string)
+  newValue    String?  // New value (as string)
+  changeType  String   // "created", "updated", "deleted"
+  createdAt   DateTime @default(now())
+
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+  @@index([fieldName])
   @@index([createdAt])
   @@schema("csl")
 }

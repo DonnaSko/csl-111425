@@ -486,6 +486,10 @@ router.get('/:id', async (req: AuthRequest, res) => {
           privacyPermissionHistory: {
             orderBy: { createdAt: 'desc' },
             take: 50
+          },
+          changeHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: 100
           }
         }
       });
@@ -709,6 +713,38 @@ router.put('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    // Track changes for history
+    const fieldsToTrack = [
+      'companyName', 'contactName', 'email', 'phone', 'city', 'state', 
+      'zip', 'country', 'address', 'buyingGroup', 'status', 'rating', 'notes'
+    ];
+    
+    const changes: Array<{
+      dealerId: string;
+      fieldName: string;
+      oldValue: string | null;
+      newValue: string | null;
+      changeType: string;
+    }> = [];
+
+    for (const field of fieldsToTrack) {
+      if (req.body[field] !== undefined) {
+        const oldValue = (dealer as any)[field];
+        const newValue = req.body[field];
+        
+        // Only log if value actually changed
+        if (String(oldValue ?? '') !== String(newValue ?? '')) {
+          changes.push({
+            dealerId: dealer.id,
+            fieldName: field,
+            oldValue: oldValue != null ? String(oldValue) : null,
+            newValue: newValue != null ? String(newValue) : null,
+            changeType: 'updated',
+          });
+        }
+      }
+    }
+
     const updated = await prisma.dealer.update({
       where: { id: req.params.id },
       data: {
@@ -716,6 +752,14 @@ router.put('/:id', async (req: AuthRequest, res) => {
         updatedAt: new Date()
       }
     });
+
+    // Save change history if there were changes
+    if (changes.length > 0) {
+      await prisma.dealerChangeHistory.createMany({
+        data: changes,
+      });
+      console.log(`[Dealer] Logged ${changes.length} changes for dealer ${dealer.id}`);
+    }
 
     res.json(updated);
   } catch (error) {
@@ -1286,6 +1330,19 @@ router.put('/:id/rating', async (req: AuthRequest, res) => {
 
     if (!dealer) {
       return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    // Log rating change if different
+    if (dealer.rating !== rating) {
+      await prisma.dealerChangeHistory.create({
+        data: {
+          dealerId: dealer.id,
+          fieldName: 'rating',
+          oldValue: dealer.rating != null ? String(dealer.rating) : null,
+          newValue: rating != null ? String(rating) : null,
+          changeType: 'updated',
+        },
+      });
     }
 
     const updated = await prisma.dealer.update({
