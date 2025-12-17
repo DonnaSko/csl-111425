@@ -2243,18 +2243,41 @@ const DealerDetail = () => {
                 </p>
               </div>
 
-              {/* List of Associated Tradeshows - derived from change history */}
+              {/* List of Associated Tradeshows - derived from change history (deduplicated) */}
               <h4 className="font-semibold text-gray-900 mb-3">Associated Tradeshows History</h4>
-              {dealer.changeHistory &&
-                dealer.changeHistory.filter(ch => ch.fieldName === 'tradeshow_associated').length > 0 ? (
-                <div className="space-y-3">
-                  {dealer.changeHistory
-                    .filter(ch => ch.fieldName === 'tradeshow_associated')
-                    .map((ch) => (
+              {dealer.changeHistory && (() => {
+                // Filter to tradeshow_associated entries and de-duplicate by newValue
+                const tradeShowChanges = dealer.changeHistory.filter(
+                  (ch) => ch.fieldName === 'tradeshow_associated'
+                );
+                const seen = new Set<string>();
+                const uniqueChanges = tradeShowChanges.filter((ch) => {
+                  const key = ch.newValue || '';
+                  if (seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                });
+
+                if (uniqueChanges.length === 0) {
+                  return (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500">No tradeshows associated yet.</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Use the dropdown above to associate this dealer with a tradeshow.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {uniqueChanges.map((ch) => (
                       <div key={ch.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-orange-500">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-gray-900">{ch.newValue || 'Tradeshow association'}</h4>
+                            <h4 className="font-semibold text-gray-900">
+                              {ch.newValue || 'Tradeshow association'}
+                            </h4>
                             <p className="text-sm text-gray-600 mt-1">
                               <span className="font-medium">Recorded:</span> {formatDate(ch.createdAt)}
                             </p>
@@ -2262,15 +2285,9 @@ const DealerDetail = () => {
                         </div>
                       </div>
                     ))}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500">No tradeshows associated yet.</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Use the dropdown above to associate this dealer with a tradeshow.
-                  </p>
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
