@@ -145,34 +145,53 @@ router.post('/send', async (req: AuthRequest, res) => {
     }
 
     // Get file paths for attachments
-    const files = await prisma.emailFile.findMany({
+    const files = fileIds && fileIds.length > 0 ? await prisma.emailFile.findMany({
       where: {
-        id: { in: fileIds || [] },
+        id: { in: fileIds },
         companyId: req.companyId!
       }
-    });
+    }) : [];
 
     const attachments = files.map(file => ({
       filename: file.originalName,
       path: file.path
     }));
 
+    // Convert body to HTML (preserve line breaks)
+    const htmlBody = body ? body.replace(/\n/g, '<br>') : '';
+
     // Import sendEmail dynamically to avoid circular dependencies
     const { sendEmail } = await import('../utils/email');
     
+    // Handle CC - convert comma-separated string to array if needed
+    let ccArray: string[] | undefined;
+    if (cc) {
+      if (typeof cc === 'string') {
+        ccArray = cc.split(',').map(email => email.trim()).filter(email => email.length > 0);
+      } else if (Array.isArray(cc)) {
+        ccArray = cc;
+      }
+    }
+    
     const result = await sendEmail({
       to,
-      cc,
+      cc: ccArray && ccArray.length > 0 ? ccArray : undefined,
       subject,
-      html: body || '',
-      attachments
+      html: htmlBody || '<p>No message body provided.</p>',
+      attachments: attachments.length > 0 ? attachments : undefined
     });
 
     if (result && 'disabled' in result && result.disabled) {
-      return res.status(503).json({ error: 'Email service not configured' });
+      return res.status(503).json({ error: 'Email service not configured. Please check SMTP settings.' });
+    }
+
+    if (!result) {
+      return res.status(500).json({ error: 'Failed to send email - no result from email service' });
     }
 
     const messageId = result && 'messageId' in result ? result.messageId : undefined;
+    console.log(`[Email] Sent email to ${to}${ccArray ? `, CC: ${ccArray.join(', ')}` : ''} - Message ID: ${messageId || 'N/A'}`);
+    
     res.json({ success: true, messageId });
   } catch (error: any) {
     console.error('Send email error:', error);

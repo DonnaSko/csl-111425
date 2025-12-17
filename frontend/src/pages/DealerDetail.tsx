@@ -285,7 +285,15 @@ const DealerDetail = () => {
 
     try {
       setSendingEmail(true);
-      await api.post('/email-files/send', {
+      console.log('[Email] Sending email:', {
+        to: dealer.email,
+        cc: emailCc,
+        subject: emailSubject,
+        bodyLength: emailBody?.length || 0,
+        fileIds: selectedFileIds
+      });
+
+      const emailResponse = await api.post('/email-files/send', {
         to: dealer.email,
         cc: emailCc || undefined,
         subject: emailSubject,
@@ -293,16 +301,26 @@ const DealerDetail = () => {
         fileIds: selectedFileIds
       });
 
+      console.log('[Email] Email send response:', emailResponse.data);
+
+      if (!emailResponse.data.success) {
+        throw new Error(emailResponse.data.error || 'Email send failed');
+      }
+
       // Create a todo for this email
-      await api.post('/todos', {
-        title: `Email sent: ${emailSubject}`,
-        description: emailBody || undefined,
-        dealerId: id,
-        type: 'email',
-        emailSent: true,
-        emailSentDate: new Date().toISOString(),
-        emailContent: `Sent to ${dealer.email}${emailCc ? `, CC: ${emailCc}` : ''}${selectedFileIds.length > 0 ? ` with ${selectedFileIds.length} attachment(s)` : ''}`
-      });
+      try {
+        await api.post('/todos', {
+          title: `Email sent: ${emailSubject}`,
+          description: emailBody || undefined,
+          dealerId: id,
+          type: 'email',
+          emailSent: true,
+          emailSentDate: new Date().toISOString(),
+          emailContent: `Sent to ${dealer.email}${emailCc ? `, CC: ${emailCc}` : ''}${selectedFileIds.length > 0 ? ` with ${selectedFileIds.length} attachment(s)` : ''}`
+        });
+      } catch (todoError) {
+        console.warn('[Email] Failed to create todo for email, but email was sent:', todoError);
+      }
 
       // Reset form
       setEmailSubject('');
@@ -311,10 +329,11 @@ const DealerDetail = () => {
       setSelectedFileIds([]);
       
       fetchDealer();
-      alert('Email sent successfully!');
+      alert(`Email sent successfully to ${dealer.email}${emailCc ? ` and ${emailCc}` : ''}!`);
     } catch (error: any) {
-      console.error('Failed to send email:', error);
-      alert(error.response?.data?.error || 'Failed to send email');
+      console.error('[Email] Failed to send email:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to send email. Please check your email configuration.';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setSendingEmail(false);
     }
