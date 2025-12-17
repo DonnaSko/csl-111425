@@ -139,10 +139,36 @@ router.put('/:id', async (req: AuthRequest, res) => {
     // If marking as completed, set completedAt timestamp
     if (req.body.completed === true && !todo.completed) {
       updateData.completedAt = new Date();
+      
+      // Log task completion to dealer change history if associated with a dealer
+      if (todo.dealerId) {
+        await prisma.dealerChangeHistory.create({
+          data: {
+            dealerId: todo.dealerId,
+            fieldName: 'task_completed',
+            oldValue: null,
+            newValue: `Task completed: ${todo.title}`,
+            changeType: 'updated',
+          }
+        });
+      }
     }
     // If marking as incomplete, clear completedAt
     if (req.body.completed === false && todo.completed) {
       updateData.completedAt = null;
+      
+      // Log task reopened to dealer change history if associated with a dealer
+      if (todo.dealerId) {
+        await prisma.dealerChangeHistory.create({
+          data: {
+            dealerId: todo.dealerId,
+            fieldName: 'task_reopened',
+            oldValue: null,
+            newValue: `Task reopened: ${todo.title}`,
+            changeType: 'updated',
+          }
+        });
+      }
     }
 
     const updated = await prisma.todo.update({

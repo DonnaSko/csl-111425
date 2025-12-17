@@ -128,19 +128,22 @@ model DealerNote {
 }
 
 model Photo {
-  id           String   @id @default(cuid())
-  dealerId     String
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int
-  path         String
-  type         String   @default("business_card") // business_card, badge, other
-  createdAt    DateTime @default(now())
+  id            String    @id @default(cuid())
+  dealerId      String
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  path          String
+  type          String    @default("business_card") // business_card, badge, other
+  tradeshowName String?   // Name of the tradeshow where badge was scanned
+  tradeshowId   String?   // Optional link to TradeShow
+  createdAt     DateTime  @default(now())
 
   dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@index([dealerId])
+  @@index([tradeshowId])
   @@schema("csl")
 }
 
@@ -183,10 +186,12 @@ model TradeShow {
 }
 
 model DealerTradeShow {
-  id          String   @id @default(cuid())
-  dealerId    String
-  tradeShowId String
-  createdAt   DateTime @default(now())
+  id              String    @id @default(cuid())
+  dealerId        String
+  tradeShowId     String
+  associationDate DateTime  @default(now()) // Date when dealer was associated with tradeshow
+  notes           String?   // Optional notes about this association
+  createdAt       DateTime  @default(now())
 
   dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   tradeShow TradeShow @relation(fields: [tradeShowId], references: [id], onDelete: Cascade)

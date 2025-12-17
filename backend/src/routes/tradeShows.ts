@@ -116,6 +116,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
 // Associate dealer with trade show
 router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
   try {
+    const { associationDate, notes } = req.body;
+
     // Verify trade show belongs to company
     const tradeShow = await prisma.tradeShow.findFirst({
       where: {
@@ -143,7 +145,20 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
     const association = await prisma.dealerTradeShow.create({
       data: {
         dealerId: req.params.dealerId,
-        tradeShowId: req.params.id
+        tradeShowId: req.params.id,
+        associationDate: associationDate ? new Date(associationDate) : new Date(),
+        notes: notes || null
+      }
+    });
+
+    // Log the association to dealer change history
+    await prisma.dealerChangeHistory.create({
+      data: {
+        dealerId: req.params.dealerId,
+        fieldName: 'tradeshow_associated',
+        oldValue: null,
+        newValue: `${tradeShow.name} (${associationDate ? new Date(associationDate).toLocaleDateString() : new Date().toLocaleDateString()})`,
+        changeType: 'added',
       }
     });
 

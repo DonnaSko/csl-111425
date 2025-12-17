@@ -132,6 +132,10 @@ router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest,
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    const photoType = req.body.type || 'business_card';
+    const tradeshowName = req.body.tradeshowName || null;
+    const tradeshowId = req.body.tradeshowId || null;
+
     const photo = await prisma.photo.create({
       data: {
         dealerId: req.params.dealerId,
@@ -140,9 +144,24 @@ router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest,
         mimeType: req.file.mimetype,
         size: req.file.size,
         path: req.file.path,
-        type: req.body.type || 'business_card'
+        type: photoType,
+        tradeshowName: tradeshowName,
+        tradeshowId: tradeshowId
       }
     });
+
+    // Log badge scans to change history
+    if (photoType === 'badge') {
+      await prisma.dealerChangeHistory.create({
+        data: {
+          dealerId: req.params.dealerId,
+          fieldName: 'badge_scanned',
+          oldValue: null,
+          newValue: tradeshowName ? `Badge scanned at ${tradeshowName}` : 'Badge scanned',
+          changeType: 'added',
+        }
+      });
+    }
 
     res.status(201).json(photo);
   } catch (error) {

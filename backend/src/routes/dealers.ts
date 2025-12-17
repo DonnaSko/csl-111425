@@ -1442,6 +1442,17 @@ router.post('/:id/products', async (req: AuthRequest, res) => {
       }
     });
 
+    // Log product addition to change history
+    await prisma.dealerChangeHistory.create({
+      data: {
+        dealerId: req.params.id,
+        fieldName: 'product_added',
+        oldValue: null,
+        newValue: product.name,
+        changeType: 'added',
+      }
+    });
+
     res.status(201).json(product);
   } catch (error: any) {
     console.error('Add product error:', error);
@@ -1466,10 +1477,26 @@ router.delete('/:id/products/:productId', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    // Get product name before deleting
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.productId }
+    });
+
     await prisma.dealerProduct.deleteMany({
       where: {
         dealerId: req.params.id,
         productId: req.params.productId
+      }
+    });
+
+    // Log product removal to change history
+    await prisma.dealerChangeHistory.create({
+      data: {
+        dealerId: req.params.id,
+        fieldName: 'product_removed',
+        oldValue: product?.name || 'Unknown product',
+        newValue: null,
+        changeType: 'deleted',
       }
     });
 

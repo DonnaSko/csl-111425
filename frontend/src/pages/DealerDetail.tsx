@@ -60,6 +60,19 @@ interface Todo {
   followUpDate: string | null;
 }
 
+interface DealerTradeShowAssociation {
+  id: string;
+  tradeShowId: string;
+  associationDate: string;
+  notes?: string;
+  tradeShow: {
+    id: string;
+    name: string;
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
 interface DealerDetail {
   id: string;
   companyName: string;
@@ -76,7 +89,7 @@ interface DealerDetail {
   rating: number | null;
   customFields?: Record<string, any>;
   dealerNotes: Array<{ id: string; content: string; createdAt: string }>;
-  photos: Array<{ id: string; originalName: string; type: string; createdAt: string }>;
+  photos: Array<{ id: string; originalName: string; type: string; createdAt: string; tradeshowName?: string }>;
   voiceRecordings: Array<{ id: string; originalName: string; createdAt: string; date: string | null; tradeshowName: string | null }>;
   todos: Todo[];
   buyingGroupHistory?: BuyingGroupHistory[];
@@ -84,6 +97,7 @@ interface DealerDetail {
   privacyPermissions?: PrivacyPermission[];
   privacyPermissionHistory?: PrivacyPermissionHistory[];
   changeHistory?: DealerChangeHistory[];
+  tradeShows?: DealerTradeShowAssociation[];
 }
 
 interface AccordionSection {
@@ -130,6 +144,12 @@ const DealerDetail = () => {
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
   const [audioLoadingErrors, setAudioLoadingErrors] = useState<{ [recordingId: string]: boolean }>({});
   
+  // Tradeshow association state
+  const [showTradeshowModal, setShowTradeshowModal] = useState(false);
+  const [selectedTradeshowId, setSelectedTradeshowId] = useState('');
+  const [tradeshowAssociationDate, setTradeshowAssociationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tradeshowNotes, setTradeshowNotes] = useState('');
+  
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
     { id: 'info', title: 'Dealer Information', expanded: false },
@@ -141,6 +161,7 @@ const DealerDetail = () => {
     { id: 'todos', title: 'Tasks and To Do\'s', expanded: false },
     { id: 'emails', title: 'Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
+    { id: 'tradeshows', title: '🎪 Associated Tradeshows', expanded: false },
     { id: 'completedTasks', title: 'Completed Tasks', expanded: false },
     { id: 'changeHistory', title: '📋 Permissions and Change History', expanded: false },
   ]);
@@ -902,6 +923,28 @@ const DealerDetail = () => {
       fetchDealer();
     } catch (error) {
       console.error('Failed to remove product:', error);
+    }
+  };
+
+  const handleAssociateTradeshow = async () => {
+    if (!selectedTradeshowId || !id) return;
+
+    try {
+      await api.post(`/tradeshows/${selectedTradeshowId}/dealers/${id}`, {
+        associationDate: tradeshowAssociationDate,
+        notes: tradeshowNotes || undefined
+      });
+      
+      // Reset form and close modal
+      setSelectedTradeshowId('');
+      setTradeshowAssociationDate(new Date().toISOString().split('T')[0]);
+      setTradeshowNotes('');
+      setShowTradeshowModal(false);
+      
+      fetchDealer();
+    } catch (error: any) {
+      console.error('Failed to associate tradeshow:', error);
+      alert(error.response?.data?.error || 'Failed to associate tradeshow');
     }
   };
 
@@ -2118,10 +2161,65 @@ const DealerDetail = () => {
           )}
         </div>
 
-        {/* Completed Tasks Section */}
+        {/* Associated Tradeshows Section */}
         <div className="mb-4">
           <AccordionSection section={sections[9]} />
           {sections[9].expanded && (
+            <div className="mt-2 bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-gray-600">
+                  Associate this dealer with tradeshows they visited. This helps track when you captured their info and for which events.
+                </p>
+                <button
+                  onClick={() => setShowTradeshowModal(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  + Add Tradeshow
+                </button>
+              </div>
+              
+              {dealer.tradeShows && dealer.tradeShows.length > 0 ? (
+                <div className="space-y-3">
+                  {dealer.tradeShows.map((dts) => (
+                    <div key={dts.id} className="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{dts.tradeShow.name}</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            <span className="font-medium">Associated:</span> {formatDate(dts.associationDate)}
+                          </p>
+                          {dts.tradeShow.startDate && (
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Show Dates:</span> {formatDate(dts.tradeShow.startDate)}
+                              {dts.tradeShow.endDate && ` - ${formatDate(dts.tradeShow.endDate)}`}
+                            </p>
+                          )}
+                          {dts.notes && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              <span className="font-medium">Notes:</span> {dts.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No tradeshows associated yet.</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Click "Add Tradeshow" to associate this dealer with a tradeshow.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Completed Tasks Section */}
+        <div className="mb-4">
+          <AccordionSection section={sections[10]} />
+          {sections[10].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <div className="space-y-2">
                 {dealer.todos.filter(todo => todo.completed).length > 0 ? (
@@ -2221,52 +2319,134 @@ const DealerDetail = () => {
 
         {/* Permissions and Change History Section - Accordion at bottom */}
         <div className="mb-4 mt-4">
-          <AccordionSection section={sections[10]} />
-          {sections[10].expanded && (
+          <AccordionSection section={sections[11]} />
+          {sections[11].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
               <p className="text-sm text-gray-600 mb-4">
                 This log tracks all changes made to this dealer record, including field updates and permission changes.
               </p>
               
-              {/* Field Changes */}
+              {/* All Changes - organized by type */}
               {dealer.changeHistory && dealer.changeHistory.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span>📝</span> Field Changes
+                    <span>📋</span> All Changes
                   </h4>
                   <div className="space-y-2">
-                    {dealer.changeHistory.map((change) => (
-                      <div 
-                        key={change.id} 
-                        className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-500"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900 capitalize">
-                              {change.fieldName.replace(/([A-Z])/g, ' $1').trim()}
-                            </p>
-                            <div className="text-sm text-gray-600 mt-1">
-                              {change.oldValue && (
-                                <span className="line-through text-red-600 mr-2">
-                                  {change.oldValue}
-                                </span>
+                    {dealer.changeHistory.map((change) => {
+                      // Determine the styling and icon based on field type
+                      let icon = '📝';
+                      let bgColor = 'bg-blue-50';
+                      let borderColor = 'border-blue-500';
+                      let displayName = change.fieldName.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+                      let displayValue = '';
+
+                      switch (change.fieldName) {
+                        case 'product_added':
+                          icon = '📦';
+                          bgColor = 'bg-green-50';
+                          borderColor = 'border-green-500';
+                          displayName = 'Product Added';
+                          displayValue = change.newValue || '';
+                          break;
+                        case 'product_removed':
+                          icon = '🗑️';
+                          bgColor = 'bg-red-50';
+                          borderColor = 'border-red-500';
+                          displayName = 'Product Removed';
+                          displayValue = change.oldValue || '';
+                          break;
+                        case 'badge_scanned':
+                          icon = '📷';
+                          bgColor = 'bg-purple-50';
+                          borderColor = 'border-purple-500';
+                          displayName = 'Badge Scanned';
+                          displayValue = change.newValue || 'Badge captured';
+                          break;
+                        case 'tradeshow_associated':
+                          icon = '🎪';
+                          bgColor = 'bg-orange-50';
+                          borderColor = 'border-orange-500';
+                          displayName = 'Associated with Tradeshow';
+                          displayValue = change.newValue || '';
+                          break;
+                        case 'task_completed':
+                          icon = '✅';
+                          bgColor = 'bg-teal-50';
+                          borderColor = 'border-teal-500';
+                          displayName = 'Task Completed';
+                          displayValue = change.newValue || '';
+                          break;
+                        case 'task_reopened':
+                          icon = '🔄';
+                          bgColor = 'bg-yellow-50';
+                          borderColor = 'border-yellow-500';
+                          displayName = 'Task Reopened';
+                          displayValue = change.newValue || '';
+                          break;
+                        case 'photos_permission':
+                        case 'badge_scan_permission':
+                        case 'audio_notes_permission':
+                        case 'other_permissions_text':
+                          icon = change.newValue?.includes('granted') ? '✓' : '✗';
+                          bgColor = change.newValue?.includes('granted') ? 'bg-green-50' : 'bg-red-50';
+                          borderColor = change.newValue?.includes('granted') ? 'border-green-500' : 'border-red-500';
+                          displayValue = change.newValue || '';
+                          break;
+                        case 'consent_permissions_finalized':
+                          icon = '🔒';
+                          bgColor = 'bg-indigo-50';
+                          borderColor = 'border-indigo-500';
+                          displayName = 'Consent Permissions Finalized';
+                          displayValue = change.newValue || '';
+                          break;
+                        default:
+                          // Standard field change
+                          displayValue = '';
+                      }
+
+                      return (
+                        <div 
+                          key={change.id} 
+                          className={`${bgColor} rounded-lg p-3 border-l-4 ${borderColor}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span>{icon}</span>
+                                <p className="font-medium text-gray-900 capitalize">
+                                  {displayName}
+                                </p>
+                              </div>
+                              {displayValue ? (
+                                <div className="text-sm text-gray-700 mt-1">
+                                  {displayValue}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-gray-600 mt-1">
+                                  {change.oldValue && (
+                                    <span className="line-through text-red-600 mr-2">
+                                      {change.oldValue}
+                                    </span>
+                                  )}
+                                  {change.newValue && (
+                                    <span className="text-green-600">
+                                      → {change.newValue}
+                                    </span>
+                                  )}
+                                  {!change.oldValue && !change.newValue && (
+                                    <span className="text-gray-500 italic">Value cleared</span>
+                                  )}
+                                </div>
                               )}
-                              {change.newValue && (
-                                <span className="text-green-600">
-                                  → {change.newValue}
-                                </span>
-                              )}
-                              {!change.oldValue && !change.newValue && (
-                                <span className="text-gray-500 italic">Value cleared</span>
-                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatDate(change.createdAt)}
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(change.createdAt)}
-                            </p>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2439,6 +2619,82 @@ const DealerDetail = () => {
                   {dealer.buyingGroup ? 'Change' : 'Assign'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tradeshow Association Modal */}
+      {showTradeshowModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Associate with Tradeshow</h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Tradeshow
+              </label>
+              <select
+                value={selectedTradeshowId}
+                onChange={(e) => setSelectedTradeshowId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
+              >
+                <option value="">Select a tradeshow...</option>
+                {tradeShows.map((ts) => (
+                  <option key={ts.id} value={ts.id}>
+                    {ts.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Association Date
+              </label>
+              <input
+                type="date"
+                value={tradeshowAssociationDate}
+                onChange={(e) => setTradeshowAssociationDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                When did you meet this dealer at the tradeshow?
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes (Optional)
+              </label>
+              <textarea
+                value={tradeshowNotes}
+                onChange={(e) => setTradeshowNotes(e.target.value)}
+                placeholder="Any notes about meeting at this tradeshow..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowTradeshowModal(false);
+                  setSelectedTradeshowId('');
+                  setTradeshowAssociationDate(new Date().toISOString().split('T')[0]);
+                  setTradeshowNotes('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssociateTradeshow}
+                disabled={!selectedTradeshowId}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Associate
+              </button>
             </div>
           </div>
         </div>
