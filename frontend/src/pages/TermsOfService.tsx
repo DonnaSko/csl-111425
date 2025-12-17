@@ -57,21 +57,20 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Payments & Refunds</h2>
             
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
-              <p className="text-gray-900 font-bold text-lg mb-2">⚠️ AUTO-RENEWAL NOTICE</p>
+              <p className="text-gray-900 font-bold text-lg mb-2">⚠️ AUTOMATIC RENEWAL NOTICE</p>
               <p className="text-gray-800">
                 <strong>Your Monthly or Annual subscription will automatically renew</strong> at the end of each billing period. 
                 We will charge your credit card on file unless you cancel.
               </p>
               <ul className="list-disc list-inside text-gray-800 mt-2 space-y-1">
-                <li><strong>We will send you an email reminder 5 days before your renewal date.</strong></li>
-                <li><strong>You may cancel your subscription up to 5 days before the renewal date</strong> to avoid being charged for the next period.</li>
-                <li>After cancellation, you will retain access for 5 days, then your access will end.</li>
+                <li><strong>You can cancel the renewal up to and including the date of renewal.</strong></li>
+                <li><strong>Once renewed, NO REFUNDS available.</strong></li>
               </ul>
             </div>
             
             <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
               <li>Payments are processed by <strong>Stripe</strong>.</li>
-              <li><strong>Subscriptions renew automatically each billing period until canceled.</strong></li>
+              <li><strong>Automatic renewal - you can cancel the renewal up to and including the date of renewal. Once renewed, NO REFUNDS available.</strong></li>
             </ul>
           </section>
 
@@ -108,12 +107,12 @@ const TermsOfService = () => {
             
             <h3 className="text-lg font-medium text-gray-800 mt-6 mb-2">Refund Policy (B2B)</h3>
             <p className="text-gray-700 leading-relaxed">
-              <strong>All fees are non-refundable</strong>, including for partially used subscription periods. You may cancel at any time; <strong>cancellation stops future renewals</strong> and you will retain access for 5 days after your cancellation date.
+              <strong>Automatic renewal</strong> - you can cancel the renewal up to and including the date of renewal. <strong>Once renewed, NO REFUNDS available.</strong>
             </p>
             
             <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Cancellation Policy</h3>
             <p className="text-gray-700 leading-relaxed">
-              <strong>To avoid being charged for the next billing period, you must cancel at least 5 days before your renewal date.</strong> You will receive an email reminder 5 days before your subscription renews. After cancellation, your access to the Service will continue for 5 days, then your account will be restricted to read-only mode until you resubscribe.
+              You can cancel your subscription anytime from your Account Settings, up to and including your renewal date. Once the subscription has renewed, no refunds will be issued.
             </p>
             
             <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Billing Errors</h3>

@@ -106,7 +106,7 @@ const GettingStarted = () => {
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">Refund Policy</h3>
                 <p className="text-gray-600 mb-3">
-                  All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term. You can cancel up to 1 day before the expiration period. So, more clearly put, you can cancel up to and including 1 day before renewal. Any questions email us at{' '}
+                  <strong>Automatic renewal</strong> - you can cancel the renewal up to and including the date of renewal. <strong>Once renewed, NO REFUNDS available.</strong> Any questions email us at{' '}
                   <a href="mailto:support@captureshowleads.com" className="text-blue-600 hover:underline">support@captureshowleads.com</a>
                 </p>
               </div>

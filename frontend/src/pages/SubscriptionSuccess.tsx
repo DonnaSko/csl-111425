@@ -48,9 +48,9 @@ const SubscriptionSuccess = () => {
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left text-sm">
           <p className="font-semibold text-gray-800 mb-2">📋 Quick Reminder:</p>
           <ul className="text-gray-600 space-y-1">
-            <li>• Your subscription will <strong>auto-renew</strong> at the end of each billing period</li>
-            <li>• Cancel anytime from <strong>Account Settings</strong> — you keep access through your paid term</li>
-            <li>• All fees are <strong>non-refundable</strong></li>
+            <li>• <strong>Automatic renewal</strong> - your subscription renews at the end of each billing period</li>
+            <li>• You can cancel up to and including the date of renewal from <strong>Account Settings</strong></li>
+            <li>• <strong>Once renewed, NO REFUNDS available</strong></li>
           </ul>
         </div>
         

@@ -193,7 +193,7 @@ const Subscription = () => {
                 <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span className="text-gray-700">Cancel anytime (5+ days before renewal)</span>
+                <span className="text-gray-700">Cancel up to and including the renewal date</span>
               </li>
             </ul>
             <button
@@ -249,7 +249,7 @@ const Subscription = () => {
                 <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span className="text-gray-700">Cancel anytime (5+ days before renewal)</span>
+                <span className="text-gray-700">Cancel up to and including the renewal date</span>
               </li>
             </ul>
             <button
@@ -269,20 +269,16 @@ const Subscription = () => {
           </h3>
           <div className="space-y-3 text-sm text-gray-700">
             <div className="flex items-start gap-2">
+              <span className="text-blue-500 font-bold">•</span>
+              <p><strong>Automatic Renewal:</strong> Subscriptions automatically renew at the end of each billing period. You can cancel the renewal up to and including the date of renewal.</p>
+            </div>
+            <div className="flex items-start gap-2">
               <span className="text-red-500 font-bold">•</span>
-              <p><strong>No Refunds:</strong> All fees are non-refundable, including for partially used subscription periods.</p>
+              <p><strong>No Refunds:</strong> Once renewed, NO REFUNDS available. All fees are non-refundable.</p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-green-500 font-bold">•</span>
-              <p><strong>Easy Cancellation:</strong> Cancel at least 5 days before your renewal date from your Account Settings. After cancellation, you'll have 5 days of continued access.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
-              <p><strong>Renewal Reminder:</strong> We'll email you 5 days before your subscription renews so you can cancel if needed.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500 font-bold">•</span>
-              <p><strong>Auto-Renewal:</strong> Subscriptions automatically renew at the end of each billing period until canceled.</p>
+              <p><strong>Easy Cancellation:</strong> Cancel anytime from your Account Settings before your renewal date.</p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-yellow-600 font-bold">•</span>
