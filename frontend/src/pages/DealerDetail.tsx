@@ -192,6 +192,8 @@ const DealerDetail = () => {
     audioRecording: false,
     otherPermission: '',
   });
+  const [showConsentConfirmModal, setShowConsentConfirmModal] = useState(false);
+  const [highlightMissingPermissions, setHighlightMissingPermissions] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -416,6 +418,68 @@ const DealerDetail = () => {
     setSections(prev => prev.map(s => 
       s.id === sectionId ? { ...s, expanded: !s.expanded } : s
     ));
+  };
+
+  // Handle consent accordion toggle with confirmation
+  const handleConsentAccordionToggle = () => {
+    if (consentExpanded) {
+      // User is trying to close - show confirmation
+      setShowConsentConfirmModal(true);
+    } else {
+      // User is opening - just expand
+      setConsentExpanded(true);
+      setHighlightMissingPermissions(false);
+    }
+  };
+
+  // Get unchecked consent permissions
+  const getUncheckedConsentPermissions = () => {
+    const unchecked: string[] = [];
+    if (!consentPermissions.photos) unchecked.push('Photos Permission');
+    if (!consentPermissions.badgeScan) unchecked.push('Badge Scan Permission');
+    if (!consentPermissions.audioRecording) unchecked.push('Audio Recording Permission');
+    return unchecked;
+  };
+
+  // Handle confirmation modal response
+  const handleConsentConfirmYes = async () => {
+    // Record that permissions were finalized
+    const permissions = [
+      { key: 'photos', granted: consentPermissions.photos },
+      { key: 'badgeScan', granted: consentPermissions.badgeScan },
+      { key: 'audioRecording', granted: consentPermissions.audioRecording },
+    ];
+    
+    // Log a "permissions_finalized" event to history
+    try {
+      await api.put(`/dealers/${id}/privacy-permissions`, {
+        permission: 'consent_finalized',
+        granted: true,
+        action: 'finalized',
+        changedData: {
+          text: `Consent permissions finalized: Photos=${consentPermissions.photos}, Badge=${consentPermissions.badgeScan}, Audio=${consentPermissions.audioRecording}`,
+          permissions: permissions,
+        }
+      });
+      fetchDealer(); // Refresh to get updated history
+    } catch (error) {
+      console.error('Failed to log consent finalization:', error);
+    }
+    
+    setShowConsentConfirmModal(false);
+    setConsentExpanded(false);
+    setHighlightMissingPermissions(false);
+  };
+
+  const handleConsentConfirmNo = () => {
+    // Show which permissions are missing
+    setShowConsentConfirmModal(false);
+    setHighlightMissingPermissions(true);
+  };
+
+  const handleFinishedPermissions = async () => {
+    // User clicked "I'm finished getting permissions" button
+    await handleConsentConfirmYes();
   };
 
   const handleAddNote = async () => {
@@ -1078,13 +1142,18 @@ const DealerDetail = () => {
       <div className="max-w-6xl mx-auto px-6 mb-4">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
           <button
-            onClick={() => setConsentExpanded(!consentExpanded)}
+            onClick={handleConsentAccordionToggle}
             className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-yellow-100 transition-colors"
           >
             <div className="flex items-center gap-2">
               <span className="text-lg">⚠️</span>
               <span className="font-semibold text-gray-900">Booth Visitor Consent Permissions</span>
               <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Required</span>
+              {(consentPermissions.photos || consentPermissions.badgeScan || consentPermissions.audioRecording) && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                  ✓ {[consentPermissions.photos, consentPermissions.badgeScan, consentPermissions.audioRecording].filter(Boolean).length}/3 set
+                </span>
+              )}
             </div>
             <span className="text-gray-500 text-lg">{consentExpanded ? '▼' : '▶'}</span>
           </button>
@@ -1096,12 +1165,31 @@ const DealerDetail = () => {
                 Check each box below to confirm you have received their consent.
               </p>
               
+              {/* Warning for missing permissions */}
+              {highlightMissingPermissions && getUncheckedConsentPermissions().length > 0 && (
+                <div className="mb-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
+                  <p className="text-orange-800 font-semibold mb-2">⚠️ Finish getting permissions:</p>
+                  <ul className="text-sm text-orange-700 list-disc list-inside">
+                    {getUncheckedConsentPermissions().map(perm => (
+                      <li key={perm}>{perm} - not yet obtained</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
               <div className="space-y-3">
-                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-all ${
+                  highlightMissingPermissions && !consentPermissions.photos 
+                    ? 'bg-orange-50 border-orange-400 border-2' 
+                    : 'bg-white border-gray-200'
+                }`}>
                   <input
                     type="checkbox"
                     checked={consentPermissions.photos}
-                    onChange={(e) => handleConsentChange('photos', e.target.checked)}
+                    onChange={(e) => {
+                      handleConsentChange('photos', e.target.checked);
+                      setHighlightMissingPermissions(false);
+                    }}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
@@ -1110,11 +1198,18 @@ const DealerDetail = () => {
                   </div>
                 </label>
                 
-                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-all ${
+                  highlightMissingPermissions && !consentPermissions.badgeScan 
+                    ? 'bg-orange-50 border-orange-400 border-2' 
+                    : 'bg-white border-gray-200'
+                }`}>
                   <input
                     type="checkbox"
                     checked={consentPermissions.badgeScan}
-                    onChange={(e) => handleConsentChange('badgeScan', e.target.checked)}
+                    onChange={(e) => {
+                      handleConsentChange('badgeScan', e.target.checked);
+                      setHighlightMissingPermissions(false);
+                    }}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
@@ -1123,11 +1218,18 @@ const DealerDetail = () => {
                   </div>
                 </label>
                 
-                <label className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-all ${
+                  highlightMissingPermissions && !consentPermissions.audioRecording 
+                    ? 'bg-orange-50 border-orange-400 border-2' 
+                    : 'bg-white border-gray-200'
+                }`}>
                   <input
                     type="checkbox"
                     checked={consentPermissions.audioRecording}
-                    onChange={(e) => handleConsentChange('audioRecording', e.target.checked)}
+                    onChange={(e) => {
+                      handleConsentChange('audioRecording', e.target.checked);
+                      setHighlightMissingPermissions(false);
+                    }}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
@@ -1151,6 +1253,16 @@ const DealerDetail = () => {
                 </div>
               </div>
               
+              {/* I'm finished button */}
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={handleFinishedPermissions}
+                  className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                  <span>✓</span> I'm Finished Getting Permissions
+                </button>
+              </div>
+              
               <p className="text-xs text-gray-500 mt-3 text-center">
                 See our <a href="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</a> and{' '}
                 <a href="/terms-of-service" className="text-blue-600 hover:underline">Terms of Service</a> for more information.
@@ -1159,6 +1271,47 @@ const DealerDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Consent Confirmation Modal */}
+      {showConsentConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              ✓ Are you done setting consent permissions?
+            </h2>
+            
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">Current permissions:</p>
+              <ul className="text-sm space-y-1">
+                <li className={consentPermissions.photos ? 'text-green-600' : 'text-red-600'}>
+                  {consentPermissions.photos ? '✓' : '✗'} Photos Permission
+                </li>
+                <li className={consentPermissions.badgeScan ? 'text-green-600' : 'text-red-600'}>
+                  {consentPermissions.badgeScan ? '✓' : '✗'} Badge Scan Permission
+                </li>
+                <li className={consentPermissions.audioRecording ? 'text-green-600' : 'text-red-600'}>
+                  {consentPermissions.audioRecording ? '✓' : '✗'} Audio Recording Permission
+                </li>
+              </ul>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={handleConsentConfirmYes}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700"
+              >
+                Yes, I'm Done
+              </button>
+              <button
+                onClick={handleConsentConfirmNo}
+                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+              >
+                No, Not Yet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-6 pb-12">
         {/* Dealer Information Section */}
