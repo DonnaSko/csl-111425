@@ -79,7 +79,7 @@ const GettingStarted = () => {
               Use the Capture Lead feature to quickly add new dealers during trade shows.
             </p>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>Scan badges using your device camera</li>
+              <li><Link to="/capture-lead" className="text-blue-600 hover:underline">Scan badges using your device camera</Link></li>
               <li>Or manually enter dealer information</li>
               <li>Add notes, photos, and voice recordings</li>
               <li>Rate lead quality for follow-up prioritization</li>
