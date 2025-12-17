@@ -89,10 +89,10 @@ const GettingStarted = () => {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Step 4: Manage and Follow Up</h2>
             <p className="text-gray-600 mb-4">
-              Use the dashboard and dealer management tools to organize and follow up with leads.
+              Use the dashboard and <Link to="/dealers" className="text-blue-600 hover:underline font-semibold">Dealers page</Link> to organize and follow up with leads.
             </p>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>View all dealers in one place</li>
+              <li><Link to="/dealers" className="text-blue-600 hover:underline">View all dealers in one place</Link></li>
               <li>Search and filter by status, buying group, or rating</li>
               <li>Add notes and track interactions</li>
               <li>Export data to CSV for external use</li>
