@@ -82,6 +82,11 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
 
     const { description } = req.body;
 
+    // Store absolute path to ensure it works in production
+    const absolutePath = path.isAbsolute(req.file.path) ? req.file.path : path.resolve(req.file.path);
+    
+    console.log(`[Email Files] Uploaded file: ${req.file.originalname}, saved to: ${absolutePath}`);
+
     const file = await prisma.emailFile.create({
       data: {
         companyId: req.companyId!,
@@ -89,7 +94,7 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,
-        path: req.file.path,
+        path: absolutePath, // Store absolute path
         description: description || null
       }
     });
@@ -152,10 +157,27 @@ router.post('/send', async (req: AuthRequest, res) => {
       }
     }) : [];
 
-    const attachments = files.map(file => ({
-      filename: file.originalName,
-      path: file.path
-    }));
+    console.log(`[Email] Found ${files.length} files to attach from ${fileIds?.length || 0} requested IDs`);
+
+    // Prepare attachments with absolute paths and verify they exist
+    const attachments = [];
+    for (const file of files) {
+      const absolutePath = path.isAbsolute(file.path) ? file.path : path.resolve(file.path);
+      const fileExists = fs.existsSync(absolutePath);
+      
+      console.log(`[Email] File: ${file.originalName}, Path: ${absolutePath}, Exists: ${fileExists}`);
+      
+      if (fileExists) {
+        attachments.push({
+          filename: file.originalName,
+          path: absolutePath
+        });
+      } else {
+        console.warn(`[Email] File not found: ${absolutePath} (original path: ${file.path})`);
+      }
+    }
+
+    console.log(`[Email] Prepared ${attachments.length} attachments for email`);
 
     // Convert body to HTML (preserve line breaks)
     const htmlBody = body ? body.replace(/\n/g, '<br>') : '';
