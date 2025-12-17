@@ -104,33 +104,27 @@ const GettingStarted = () => {
             
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Refund Policy (B2B)</h3>
-                <p className="text-gray-600">
-                  All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term.
+                <h3 className="font-semibold text-gray-800 mb-2">Refund Policy</h3>
+                <p className="text-gray-600 mb-3">
+                  All fees are non-refundable, including for partially used subscription periods. You may cancel at any time; cancellation stops future renewals and you will retain access through the end of the current paid term. You can cancel up to 1 day before the expiration period. So, more clearly put, you can cancel up to and including 1 day before renewal. Any questions email us at{' '}
+                  <a href="mailto:support@captureshowleads.com" className="text-blue-600 hover:underline">support@captureshowleads.com</a>
                 </p>
               </div>
               
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Billing Errors</h3>
-                <p className="text-gray-600">
-                  If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), contact us within 7 days of the charge. Verified billing errors will be corrected or refunded.
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-semibold">
+                  ⚠️ There are NO refunds for current paid subscriptions. This applies to monthly and annual subscriptions. To make this more clear: If you purchase an annual subscription and want to cancel, just for example, 3 months after the purchase, you will NOT get a refund. <strong>NO REFUNDS - NO PARTIAL REFUNDS.</strong> If you have questions reach out to us at{' '}
+                  <a href="mailto:support@captureshowleads.com" className="text-red-600 hover:underline">support@captureshowleads.com</a>
                 </p>
               </div>
               
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Service Unavailability</h3>
-                <p className="text-gray-600">
-                  If the service is unavailable due to our fault for a material period of time, we may issue a service credit or prorated refund at our discretion.
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800">
+                  💡 If you want to cancel any subscription, go to{' '}
+                  <Link to="/account-settings" className="text-blue-600 hover:underline font-semibold">Account Settings to Cancel Your Subscription</Link>
                 </p>
               </div>
             </div>
-            
-            <p className="text-sm text-gray-500 mt-4">
-              For questions about billing or cancellations, contact us at{' '}
-              <a href="mailto:support@captureshowleads.com" className="text-blue-600 hover:underline">
-                support@captureshowleads.com
-              </a>
-            </p>
           </div>
         </div>
       </div>
