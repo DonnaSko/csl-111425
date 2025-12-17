@@ -949,7 +949,8 @@ const DealerDetail = () => {
     if (!selectedTradeshowId || !id) return;
 
     try {
-      await api.post(`/tradeshows/${selectedTradeshowId}/dealers/${id}`, {
+      // NOTE: Backend route is mounted at /trade-shows, not /tradeshows
+      await api.post(`/trade-shows/${selectedTradeshowId}/dealers/${id}`, {
         associationDate: new Date().toISOString()
       });
       
