@@ -178,6 +178,117 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
   }
 });
 
+// Trade show attendance report - trade shows attended with associated dealers
+router.get('/trade-shows/attendance', async (req: AuthRequest, res) => {
+  try {
+    const tradeShows = await prisma.tradeShow.findMany({
+      where: {
+        companyId: req.companyId!,
+        dealers: {
+          some: {}
+        }
+      },
+      orderBy: {
+        startDate: 'desc'
+      },
+      include: {
+        dealers: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                companyName: true,
+                contactName: true,
+                email: true,
+                phone: true,
+                status: true
+              }
+            }
+          },
+          orderBy: {
+            associationDate: 'desc'
+          }
+        }
+      }
+    });
+
+    const result = tradeShows.map(ts => ({
+      id: ts.id,
+      name: ts.name,
+      location: ts.location,
+      startDate: ts.startDate,
+      endDate: ts.endDate,
+      dealers: ts.dealers.map(dts => ({
+        id: dts.dealer.id,
+        companyName: dts.dealer.companyName,
+        contactName: dts.dealer.contactName,
+        email: dts.dealer.email,
+        phone: dts.dealer.phone,
+        status: dts.dealer.status,
+        associationDate: dts.associationDate
+      }))
+    }));
+
+    res.json({ tradeShows: result });
+  } catch (error) {
+    console.error('Trade show attendance report error:', error);
+    res.status(500).json({ error: 'Failed to fetch trade show attendance report' });
+  }
+});
+
+// Trade show To-Dos & Follow-Ups report
+router.get('/trade-shows/todos', async (req: AuthRequest, res) => {
+  try {
+    const tradeShows = await prisma.tradeShow.findMany({
+      where: { companyId: req.companyId! },
+      orderBy: { startDate: 'desc' },
+      include: {
+        dealers: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                companyName: true,
+                contactName: true,
+                todos: {
+                  orderBy: [
+                    { completed: 'asc' },
+                    { followUpDate: 'desc' },
+                    { dueDate: 'desc' },
+                    { createdAt: 'desc' }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const shaped = tradeShows
+      .map(ts => ({
+        id: ts.id,
+        name: ts.name,
+        startDate: ts.startDate,
+        endDate: ts.endDate,
+        dealers: ts.dealers
+          .map(dts => ({
+            id: dts.dealer.id,
+            companyName: dts.dealer.companyName,
+            contactName: dts.dealer.contactName,
+            todos: dts.dealer.todos
+          }))
+          .filter(d => d.todos.length > 0)
+      }))
+      .filter(ts => ts.dealers.length > 0);
+
+    res.json({ tradeShows: shaped });
+  } catch (error) {
+    console.error('Trade show todos report error:', error);
+    res.status(500).json({ error: 'Failed to fetch trade show todos report' });
+  }
+});
+
 // Get dealers by status for dashboard
 router.get('/dashboard/dealers-by-status/:status', async (req: AuthRequest, res) => {
   try {
