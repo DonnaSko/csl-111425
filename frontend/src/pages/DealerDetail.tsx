@@ -958,10 +958,18 @@ const DealerDetail = () => {
       alert('Dealer associated with tradeshow successfully!');
     } catch (error: any) {
       console.error('Failed to associate tradeshow:', error);
-      if (error.response?.data?.error === 'Dealer already associated with this trade show') {
+      const apiError = error.response?.data;
+      if (apiError?.error === 'Dealer already associated with this trade show') {
         alert('This dealer is already associated with this tradeshow.');
+      } else if (typeof apiError?.error === 'string') {
+        // Show backend error plus any detailed message to help us debug production issues
+        const details =
+          typeof apiError.details === 'string'
+            ? `\n\nDetails: ${apiError.details}`
+            : '';
+        alert(`${apiError.error}${details}`);
       } else {
-        alert(error.response?.data?.error || 'Failed to associate tradeshow');
+        alert('Failed to associate tradeshow');
       }
     }
   };

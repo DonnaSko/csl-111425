@@ -167,8 +167,24 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'Dealer already associated with this trade show' });
     }
-    console.error('Associate dealer error:', error);
-    res.status(500).json({ error: 'Failed to associate dealer' });
+
+    console.error('Associate dealer error:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+    });
+
+    // Surface more detailed info to the frontend so we can diagnose issues in production
+    const detailedMessage =
+      (error?.meta && (error.meta.cause || error.meta.message)) ||
+      error?.message ||
+      'Failed to associate dealer';
+
+    res.status(500).json({
+      error: 'Failed to associate dealer',
+      details: detailedMessage,
+      code: error?.code || 'UNKNOWN',
+    });
   }
 });
 
