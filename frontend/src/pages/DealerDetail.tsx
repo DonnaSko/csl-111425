@@ -483,6 +483,22 @@ const DealerDetail = () => {
 
   // Handle confirmation modal response
   const handleConsentConfirmYes = async () => {
+    if (!id) return;
+
+    // Avoid creating duplicate "consent_finalized" entries:
+    // only allow one finalized consent record per dealer.
+    const alreadyFinalized =
+      dealer?.privacyPermissionHistory?.some(
+        (h) => h.permission === 'consent_finalized'
+      ) || false;
+
+    if (alreadyFinalized) {
+      setShowConsentConfirmModal(false);
+      setConsentExpanded(false);
+      setHighlightMissingPermissions(false);
+      return;
+    }
+
     // Record that permissions were finalized
     const permissions = [
       { key: 'photos', granted: consentPermissions.photos },

@@ -142,7 +142,33 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
-    // Always record association in change history for auditing
+    // Check if this dealer is already associated with this trade show
+    const existingAssociation = await prisma.dealerTradeShow.findFirst({
+      where: {
+        dealerId: req.params.dealerId,
+        tradeShowId: req.params.id,
+      },
+    });
+
+    if (existingAssociation) {
+      // Already associated – do NOT create another history entry
+      return res.status(200).json({
+        success: true,
+        alreadyAssociated: true,
+      });
+    }
+
+    // Create the DealerTradeShow association (unique per dealer + tradeshow)
+    const association = await prisma.dealerTradeShow.create({
+      data: {
+        dealerId: req.params.dealerId,
+        tradeShowId: req.params.id,
+        associationDate: associationDate ? new Date(associationDate) : new Date(),
+        notes: notes || null
+      }
+    });
+
+    // Record a single history entry for this new association
     const historyEntry = await prisma.dealerChangeHistory.create({
       data: {
         dealerId: req.params.dealerId,
@@ -153,28 +179,9 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
       }
     });
 
-    // Try to create the DealerTradeShow row, but don't fail the whole request if this part has an issue
-    let association: any = null;
-    try {
-      association = await prisma.dealerTradeShow.create({
-        data: {
-          dealerId: req.params.dealerId,
-          tradeShowId: req.params.id,
-          associationDate: associationDate ? new Date(associationDate) : new Date(),
-          notes: notes || null
-        }
-      });
-    } catch (assocError: any) {
-      console.error('DealerTradeShow association failed, but history was recorded:', {
-        message: assocError?.message,
-        code: assocError?.code,
-        meta: assocError?.meta,
-      });
-    }
-
     res.status(201).json({
       success: true,
-      associationCreated: !!association,
+      associationCreated: true,
       association,
       historyEntry,
     });
