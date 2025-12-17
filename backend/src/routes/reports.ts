@@ -82,8 +82,10 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Convert to CSV
+    // Convert to CSV - include ALL dealer fields (columns in Dealer model)
     const headers = [
+      'Dealer ID',
+      'Company ID',
       'Company Name',
       'Contact Name',
       'Email',
@@ -96,10 +98,15 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
       'Buying Group',
       'Status',
       'Rating',
-      'Created At'
+      'Notes',
+      'Custom Fields (JSON)',
+      'Created At',
+      'Updated At'
     ];
 
     const rows = dealers.map(dealer => [
+      dealer.id,
+      dealer.companyId,
       dealer.companyName,
       dealer.contactName || '',
       dealer.email || '',
@@ -111,8 +118,11 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
       dealer.address || '',
       dealer.buyingGroup || '',
       dealer.status,
-      dealer.rating || '',
-      dealer.createdAt.toISOString()
+      dealer.rating != null ? dealer.rating : '',
+      dealer.notes || '',
+      dealer.customFields ? JSON.stringify(dealer.customFields) : '',
+      dealer.createdAt.toISOString(),
+      dealer.updatedAt.toISOString()
     ]);
 
     const csv = [
