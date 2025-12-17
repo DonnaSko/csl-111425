@@ -2559,13 +2559,51 @@ const DealerDetail = () => {
               </p>
               
               {/* All Changes - organized by type */}
-              {dealer.changeHistory && dealer.changeHistory.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span>📋</span> All Changes
-                  </h4>
-                  <div className="space-y-2">
-                    {dealer.changeHistory.map((change) => {
+              {dealer.changeHistory && dealer.changeHistory.length > 0 && (() => {
+                // Deduplicate change history - keep most recent entry for each unique combination
+                const seen = new Map<string, typeof dealer.changeHistory[0]>();
+                const deduplicated = dealer.changeHistory
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Sort by newest first
+                  .filter((change) => {
+                    // Create a unique key based on field type
+                    let key: string;
+                    if (change.fieldName === 'tradeshow_associated') {
+                      // For tradeshows, deduplicate by fieldName + newValue (tradeshow name + date)
+                      // Extract tradeshow name from newValue (format: "Tradeshow Name (Date)")
+                      key = `${change.fieldName}:${change.newValue || ''}`;
+                    } else if (change.fieldName === 'consent_permissions_finalized') {
+                      // For consent finalization, deduplicate by fieldName only (one per dealer)
+                      key = change.fieldName;
+                    } else if (change.fieldName === 'product_added' || change.fieldName === 'product_removed') {
+                      // For products, deduplicate by fieldName + product name
+                      key = `${change.fieldName}:${change.newValue || change.oldValue || ''}`;
+                    } else if (change.fieldName === 'badge_scanned') {
+                      // For badge scans, deduplicate by fieldName + newValue (tradeshow name if present)
+                      key = `${change.fieldName}:${change.newValue || ''}`;
+                    } else if (change.fieldName === 'task_completed' || change.fieldName === 'task_reopened') {
+                      // For tasks, deduplicate by fieldName + newValue (task title)
+                      key = `${change.fieldName}:${change.newValue || ''}`;
+                    } else {
+                      // For other fields, deduplicate by fieldName + oldValue + newValue
+                      // This removes exact duplicates while preserving legitimate sequential changes
+                      key = `${change.fieldName}:${change.oldValue || ''}:${change.newValue || ''}`;
+                    }
+                    
+                    if (seen.has(key)) {
+                      return false; // Skip duplicate
+                    }
+                    seen.set(key, change);
+                    return true;
+                  })
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Re-sort by newest first
+
+                return (
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <span>📋</span> All Changes
+                    </h4>
+                    <div className="space-y-2">
+                      {deduplicated.map((change) => {
                       // Determine the styling and icon based on field type
                       let icon = '📝';
                       let bgColor = 'bg-blue-50';
@@ -2678,19 +2716,46 @@ const DealerDetail = () => {
                           </div>
                         </div>
                       );
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               
               {/* Permission Changes */}
-              {dealer.privacyPermissionHistory && dealer.privacyPermissionHistory.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span>🔒</span> Permission Changes
-                  </h4>
-                  <div className="space-y-2">
-                    {dealer.privacyPermissionHistory.map((history) => (
+              {dealer.privacyPermissionHistory && dealer.privacyPermissionHistory.length > 0 && (() => {
+                // Deduplicate permission history - keep most recent entry for each unique permission + action combination
+                const seen = new Map<string, typeof dealer.privacyPermissionHistory[0]>();
+                const deduplicated = dealer.privacyPermissionHistory
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Sort by newest first
+                  .filter((history) => {
+                    // For consent_finalized, only keep one entry (most recent)
+                    if (history.permission === 'consent_finalized') {
+                      const key = history.permission;
+                      if (seen.has(key)) {
+                        return false;
+                      }
+                      seen.set(key, history);
+                      return true;
+                    }
+                    
+                    // For other permissions, deduplicate by permission + action
+                    const key = `${history.permission}:${history.action}`;
+                    if (seen.has(key)) {
+                      return false; // Skip duplicate
+                    }
+                    seen.set(key, history);
+                    return true;
+                  })
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Re-sort by newest first
+
+                return (
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <span>🔒</span> Permission Changes
+                    </h4>
+                    <div className="space-y-2">
+                      {deduplicated.map((history) => (
                       <div 
                         key={history.id} 
                         className={`rounded-lg p-3 border-l-4 ${
@@ -2730,10 +2795,11 @@ const DealerDetail = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               
               {/* Empty state */}
               {(!dealer.changeHistory || dealer.changeHistory.length === 0) && 
