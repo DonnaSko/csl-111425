@@ -39,6 +39,178 @@ interface Todo {
   } | null;
 }
 
+interface EmailFile {
+  id: string;
+  originalName: string;
+  description: string | null;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
+const EmailFilesSection = () => {
+  const [files, setFiles] = useState<EmailFile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [fileDescription, setFileDescription] = useState('');
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const fetchFiles = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/email-files');
+      setFiles(response.data);
+    } catch (error) {
+      console.error('Failed to fetch email files:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      if (fileDescription) {
+        formData.append('description', fileDescription);
+      }
+
+      await api.post('/email-files', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setFileDescription('');
+      setShowUploadForm(false);
+      fetchFiles();
+      alert('File uploaded successfully!');
+    } catch (error: any) {
+      console.error('Failed to upload file:', error);
+      alert(error.response?.data?.error || 'Failed to upload file');
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      await api.delete(`/email-files/${fileId}`);
+      fetchFiles();
+      alert('File deleted successfully!');
+    } catch (error: any) {
+      console.error('Failed to delete file:', error);
+      alert(error.response?.data?.error || 'Failed to delete file');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  return (
+    <div className="mb-8">
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Email Files & Catalogs</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Upload PDFs, catalogs, and product sheets to send to dealers
+              </p>
+            </div>
+            <button
+              onClick={() => setShowUploadForm(!showUploadForm)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {showUploadForm ? 'Cancel' : '+ Upload File'}
+            </button>
+          </div>
+        </div>
+
+        {showUploadForm && (
+          <div className="p-6 border-b border-gray-200 bg-gray-50">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  File Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={fileDescription}
+                  onChange={(e) => setFileDescription(e.target.value)}
+                  placeholder="e.g., 2025 Catalog, Product Sheet A"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File (PDF, Word, Excel, Images)
+                </label>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                {uploading && <p className="text-sm text-gray-500 mt-2">Uploading...</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="p-6">
+          {loading ? (
+            <p className="text-gray-500">Loading files...</p>
+          ) : files.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">
+              No files uploaded yet. Click "Upload File" to add catalogs, PDFs, or product sheets.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {files.map((file) => (
+                <div key={file.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 truncate">{file.originalName}</h4>
+                      {file.description && (
+                        <p className="text-sm text-gray-600 mt-1">{file.description}</p>
+                      )}
+                      <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                        <span>{formatFileSize(file.size)}</span>
+                        <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteFile(file.id)}
+                      className="ml-2 text-red-600 hover:text-red-800 text-sm"
+                      title="Delete file"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -644,6 +816,9 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Email Files Management Section */}
+        <EmailFilesSection />
 
         {/* Dealers by Status */}
         {stats?.dealersByStatus && stats.dealersByStatus.length > 0 && (

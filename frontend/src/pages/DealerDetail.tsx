@@ -146,6 +146,14 @@ const DealerDetail = () => {
   
   // Tradeshow association state - simple dropdown approach
   const [selectedTradeshowId, setSelectedTradeshowId] = useState('');
+
+  // Email files state
+  const [emailFiles, setEmailFiles] = useState<Array<{ id: string; originalName: string; description: string | null }>>([]);
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailCc, setEmailCc] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
@@ -219,6 +227,7 @@ const DealerDetail = () => {
       fetchBuyingGroups();
       if (hasActiveSubscription) {
         fetchTradeShows();
+        fetchEmailFiles();
       }
     }
   }, [id, hasActiveSubscription]);
@@ -251,6 +260,63 @@ const DealerDetail = () => {
       }
     } catch (error) {
       console.error('Failed to fetch trade shows:', error);
+    }
+  };
+
+  const fetchEmailFiles = async () => {
+    try {
+      const response = await api.get('/email-files');
+      setEmailFiles(response.data);
+    } catch (error) {
+      console.error('Failed to fetch email files:', error);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!dealer?.email) {
+      alert('This dealer does not have an email address.');
+      return;
+    }
+
+    if (!emailSubject.trim()) {
+      alert('Please enter an email subject.');
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      await api.post('/email-files/send', {
+        to: dealer.email,
+        cc: emailCc || undefined,
+        subject: emailSubject,
+        body: emailBody,
+        fileIds: selectedFileIds
+      });
+
+      // Create a todo for this email
+      await api.post('/todos', {
+        title: `Email sent: ${emailSubject}`,
+        description: emailBody || undefined,
+        dealerId: id,
+        type: 'email',
+        emailSent: true,
+        emailSentDate: new Date().toISOString(),
+        emailContent: `Sent to ${dealer.email}${emailCc ? `, CC: ${emailCc}` : ''}${selectedFileIds.length > 0 ? ` with ${selectedFileIds.length} attachment(s)` : ''}`
+      });
+
+      // Reset form
+      setEmailSubject('');
+      setEmailBody('');
+      setEmailCc('');
+      setSelectedFileIds([]);
+      
+      fetchDealer();
+      alert('Email sent successfully!');
+    } catch (error: any) {
+      console.error('Failed to send email:', error);
+      alert(error.response?.data?.error || 'Failed to send email');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -2054,6 +2120,96 @@ const DealerDetail = () => {
           <AccordionSection section={sections[7]} />
           {sections[7].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
+              {/* Send Email with Attachments */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-semibold mb-3 text-blue-900">📧 Send Email to Dealer</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      To: {dealer?.email || 'No email address'}
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CC (Optional - separate multiple emails with commas)
+                    </label>
+                    <input
+                      type="text"
+                      value={emailCc}
+                      onChange={(e) => setEmailCc(e.target.value)}
+                      placeholder="colleague@example.com, another@example.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Subject *
+                    </label>
+                    <input
+                      type="text"
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="Email subject"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message
+                    </label>
+                    <textarea
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      placeholder="Email message body..."
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Attach Files (Select from uploaded files)
+                    </label>
+                    {emailFiles.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic">
+                        No files available. Upload files from the Dashboard first.
+                      </p>
+                    ) : (
+                      <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-gray-50">
+                        {emailFiles.map((file) => (
+                          <label key={file.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedFileIds.includes(file.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedFileIds([...selectedFileIds, file.id]);
+                                } else {
+                                  setSelectedFileIds(selectedFileIds.filter(id => id !== file.id));
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-gray-700 flex-1">
+                              {file.originalName}
+                              {file.description && (
+                                <span className="text-gray-500 ml-2">({file.description})</span>
+                              )}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={sendingEmail || !dealer?.email || !emailSubject.trim()}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingEmail ? 'Sending...' : 'Send Email'}
+                  </button>
+                </div>
+              </div>
+
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2">Add New Email Task</h4>
                 <div className="space-y-2">

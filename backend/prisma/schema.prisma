@@ -45,6 +45,7 @@ model Company {
   groups       Group[]
   buyingGroups BuyingGroup[]
   products     Product[]
+  emailFiles   EmailFile[]
 
   @@schema("csl")
 }
@@ -390,6 +391,25 @@ model DealerChangeHistory {
 
   @@index([dealerId])
   @@index([fieldName])
+  @@index([createdAt])
+  @@schema("csl")
+}
+
+model EmailFile {
+  id          String   @id @default(cuid())
+  companyId   String
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  path        String
+  description String?  // Optional description (e.g., "2025 Catalog", "Product Sheet A")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
   @@index([createdAt])
   @@schema("csl")
 }

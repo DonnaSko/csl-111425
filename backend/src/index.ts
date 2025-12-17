@@ -15,6 +15,7 @@ import webhookRoutes from './routes/webhooks';
 import groupRoutes from './routes/groups';
 import buyingGroupRoutes from './routes/buyingGroups';
 import notificationRoutes from './routes/notifications';
+import emailFilesRoutes from './routes/emailFiles';
 
 // Import scheduler
 import { startScheduler } from './utils/scheduler';
@@ -68,6 +69,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/buying-groups', buyingGroupRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/email-files', emailFilesRoutes);
 
 // Routes (without /api prefix - DigitalOcean may strip it)
 app.use('/auth', authRoutes);
@@ -81,6 +83,7 @@ app.use('/uploads', uploadRoutes);
 app.use('/groups', groupRoutes);
 app.use('/buying-groups', buyingGroupRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/email-files', emailFilesRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
