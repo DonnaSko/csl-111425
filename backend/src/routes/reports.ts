@@ -79,10 +79,17 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
   try {
     const dealers = await prisma.dealer.findMany({
       where: { companyId: req.companyId! },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        dealerNotes: {
+          orderBy: { createdAt: 'desc' },
+          take: 1 // latest note
+        },
+        todos: true
+      }
     });
 
-    // Convert to CSV - include ALL dealer fields (columns in Dealer model)
+    // Convert to CSV - include ALL dealer fields plus summary of notes & follow-ups
     const headers = [
       'Dealer ID',
       'Company ID',
@@ -98,32 +105,64 @@ router.get('/export/dealers', async (req: AuthRequest, res) => {
       'Buying Group',
       'Status',
       'Rating',
-      'Notes',
+      'Notes (Dealer.notes)',
+      'Latest Note (from Notes tab)',
+      'Total Notes Count',
+      'Total Tasks (To-Dos)',
+      'Open Tasks',
+      'Open Follow-Ups',
+      'Next Follow-Up Date',
       'Custom Fields (JSON)',
       'Created At',
       'Updated At'
     ];
 
-    const rows = dealers.map(dealer => [
-      dealer.id,
-      dealer.companyId,
-      dealer.companyName,
-      dealer.contactName || '',
-      dealer.email || '',
-      dealer.phone || '',
-      dealer.city || '',
-      dealer.state || '',
-      dealer.zip || '',
-      dealer.country || '',
-      dealer.address || '',
-      dealer.buyingGroup || '',
-      dealer.status,
-      dealer.rating != null ? dealer.rating : '',
-      dealer.notes || '',
-      dealer.customFields ? JSON.stringify(dealer.customFields) : '',
-      dealer.createdAt.toISOString(),
-      dealer.updatedAt.toISOString()
-    ]);
+    const rows = dealers.map(dealer => {
+      const latestNote = dealer.dealerNotes[0]?.content || '';
+      const totalNotes = dealer.dealerNotes.length;
+
+      const totalTodos = dealer.todos.length;
+      const openTodos = dealer.todos.filter(t => !t.completed).length;
+      const openFollowUps = dealer.todos.filter(
+        t => !t.completed && t.followUp
+      ).length;
+
+      // Compute next follow-up date (earliest future/incomplete followUpDate)
+      const nextFollowUp = dealer.todos
+        .filter(t => !t.completed && t.followUp && t.followUpDate)
+        .sort(
+          (a, b) =>
+            (a.followUpDate as Date).getTime() -
+            (b.followUpDate as Date).getTime()
+        )[0]?.followUpDate;
+
+      return [
+        dealer.id,
+        dealer.companyId,
+        dealer.companyName,
+        dealer.contactName || '',
+        dealer.email || '',
+        dealer.phone || '',
+        dealer.city || '',
+        dealer.state || '',
+        dealer.zip || '',
+        dealer.country || '',
+        dealer.address || '',
+        dealer.buyingGroup || '',
+        dealer.status,
+        dealer.rating != null ? dealer.rating : '',
+        dealer.notes || '',
+        latestNote,
+        totalNotes,
+        totalTodos,
+        openTodos,
+        openFollowUps,
+        nextFollowUp ? (nextFollowUp as Date).toISOString() : '',
+        dealer.customFields ? JSON.stringify(dealer.customFields) : '',
+        dealer.createdAt.toISOString(),
+        dealer.updatedAt.toISOString()
+      ];
+    });
 
     const csv = [
       headers.join(','),
