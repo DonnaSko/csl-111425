@@ -142,7 +142,7 @@ const DealerDetail = () => {
     { id: 'emails', title: 'Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
     { id: 'completedTasks', title: 'Completed Tasks', expanded: false },
-    { id: 'changeHistory', title: '📋 Change History', expanded: false },
+    { id: 'changeHistory', title: '📋 Permissions and Change History', expanded: false },
   ]);
 
   // Auto-save debounce refs
@@ -457,7 +457,7 @@ const DealerDetail = () => {
         granted: true,
         action: 'finalized',
         changedData: {
-          text: `Consent permissions finalized: Photos=${consentPermissions.photos}, Badge=${consentPermissions.badgeScan}, Audio=${consentPermissions.audioRecording}`,
+          text: `Consent permissions finalized: ${consentPermissions.photos ? 'Photos permission granted' : 'Photos permission not obtained'}, ${consentPermissions.badgeScan ? 'Badge scan permission granted' : 'Badge scan permission not obtained'}, ${consentPermissions.audioRecording ? 'Audio recording permission granted' : 'Audio recording permission not obtained'}`,
           permissions: permissions,
         }
       });
@@ -2111,7 +2111,7 @@ const DealerDetail = () => {
               </div>
               {dealer.privacyPermissionHistory && dealer.privacyPermissionHistory.length > 0 && (
                 <p className="text-sm text-gray-500 mt-4">
-                  📋 See the <strong>Change History</strong> accordion at the bottom of this page for a full log of all changes.
+                  📋 See the <strong>Permissions and Change History</strong> accordion at the bottom of this page for a full log of all changes.
                 </p>
               )}
             </div>
@@ -2219,7 +2219,7 @@ const DealerDetail = () => {
           </div>
         )}
 
-        {/* Change History Section - Accordion at bottom */}
+        {/* Permissions and Change History Section - Accordion at bottom */}
         <div className="mb-4 mt-4">
           <AccordionSection section={sections[10]} />
           {sections[10].expanded && (
