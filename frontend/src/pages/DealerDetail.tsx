@@ -2227,33 +2227,25 @@ const DealerDetail = () => {
                 </p>
               </div>
 
-              {/* List of Associated Tradeshows */}
+              {/* List of Associated Tradeshows - derived from change history */}
               <h4 className="font-semibold text-gray-900 mb-3">Associated Tradeshows History</h4>
-              {dealer.tradeShows && dealer.tradeShows.length > 0 ? (
+              {dealer.changeHistory &&
+                dealer.changeHistory.filter(ch => ch.fieldName === 'tradeshow_associated').length > 0 ? (
                 <div className="space-y-3">
-                  {dealer.tradeShows.map((dts) => (
-                    <div key={dts.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-orange-500">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{dts.tradeShow.name}</h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            <span className="font-medium">Associated:</span> {formatDate(dts.associationDate)}
-                          </p>
-                          {dts.tradeShow.startDate && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Show Dates:</span> {formatDate(dts.tradeShow.startDate)}
-                              {dts.tradeShow.endDate && ` - ${formatDate(dts.tradeShow.endDate)}`}
+                  {dealer.changeHistory
+                    .filter(ch => ch.fieldName === 'tradeshow_associated')
+                    .map((ch) => (
+                      <div key={ch.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-orange-500">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{ch.newValue || 'Tradeshow association'}</h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              <span className="font-medium">Recorded:</span> {formatDate(ch.createdAt)}
                             </p>
-                          )}
-                          {dts.notes && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              <span className="font-medium">Notes:</span> {dts.notes}
-                            </p>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-4">

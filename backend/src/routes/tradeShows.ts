@@ -142,17 +142,8 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
-    const association = await prisma.dealerTradeShow.create({
-      data: {
-        dealerId: req.params.dealerId,
-        tradeShowId: req.params.id,
-        associationDate: associationDate ? new Date(associationDate) : new Date(),
-        notes: notes || null
-      }
-    });
-
-    // Log the association to dealer change history
-    await prisma.dealerChangeHistory.create({
+    // Always record association in change history for auditing
+    const historyEntry = await prisma.dealerChangeHistory.create({
       data: {
         dealerId: req.params.dealerId,
         fieldName: 'tradeshow_associated',
@@ -162,7 +153,31 @@ router.post('/:id/dealers/:dealerId', async (req: AuthRequest, res) => {
       }
     });
 
-    res.status(201).json(association);
+    // Try to create the DealerTradeShow row, but don't fail the whole request if this part has an issue
+    let association: any = null;
+    try {
+      association = await prisma.dealerTradeShow.create({
+        data: {
+          dealerId: req.params.dealerId,
+          tradeShowId: req.params.id,
+          associationDate: associationDate ? new Date(associationDate) : new Date(),
+          notes: notes || null
+        }
+      });
+    } catch (assocError: any) {
+      console.error('DealerTradeShow association failed, but history was recorded:', {
+        message: assocError?.message,
+        code: assocError?.code,
+        meta: assocError?.meta,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      associationCreated: !!association,
+      association,
+      historyEntry,
+    });
   } catch (error: any) {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'Dealer already associated with this trade show' });
