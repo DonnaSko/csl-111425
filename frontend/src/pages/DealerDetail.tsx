@@ -140,15 +140,12 @@ const DealerDetail = () => {
   
   const [recordingDate, setRecordingDate] = useState<string>(getTodayDate);
   const [recordingTradeshowName, setRecordingTradeshowName] = useState<string>('');
-  const [tradeShows, setTradeShows] = useState<Array<{ id: string; name: string }>>([]);
+  const [tradeShows, setTradeShows] = useState<Array<{ id: string; name: string; startDate?: string; endDate?: string }>>([]);
   const [audioUrls, setAudioUrls] = useState<{ [recordingId: string]: string }>({});
   const [audioLoadingErrors, setAudioLoadingErrors] = useState<{ [recordingId: string]: boolean }>({});
   
-  // Tradeshow association state
-  const [showTradeshowModal, setShowTradeshowModal] = useState(false);
+  // Tradeshow association state - simple dropdown approach
   const [selectedTradeshowId, setSelectedTradeshowId] = useState('');
-  const [tradeshowAssociationDate, setTradeshowAssociationDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tradeshowNotes, setTradeshowNotes] = useState('');
   
   // Accordion state - all collapsed by default
   const [sections, setSections] = useState<AccordionSection[]>([
@@ -229,7 +226,29 @@ const DealerDetail = () => {
   const fetchTradeShows = async () => {
     try {
       const response = await api.get('/trade-shows');
-      setTradeShows(response.data.map((ts: any) => ({ id: ts.id, name: ts.name })));
+      const shows = response.data.map((ts: any) => ({ 
+        id: ts.id, 
+        name: ts.name,
+        startDate: ts.startDate,
+        endDate: ts.endDate
+      }));
+      setTradeShows(shows);
+      
+      // Set default to current tradeshow (one that's happening now or most recent)
+      const today = new Date();
+      const currentShow = shows.find((ts: any) => {
+        if (!ts.startDate) return false;
+        const start = new Date(ts.startDate);
+        const end = ts.endDate ? new Date(ts.endDate) : start;
+        return today >= start && today <= end;
+      });
+      
+      if (currentShow) {
+        setSelectedTradeshowId(currentShow.id);
+      } else if (shows.length > 0) {
+        // If no current show, select the most recent one
+        setSelectedTradeshowId(shows[0].id);
+      }
     } catch (error) {
       console.error('Failed to fetch trade shows:', error);
     }
@@ -931,20 +950,18 @@ const DealerDetail = () => {
 
     try {
       await api.post(`/tradeshows/${selectedTradeshowId}/dealers/${id}`, {
-        associationDate: tradeshowAssociationDate,
-        notes: tradeshowNotes || undefined
+        associationDate: new Date().toISOString()
       });
       
-      // Reset form and close modal
-      setSelectedTradeshowId('');
-      setTradeshowAssociationDate(new Date().toISOString().split('T')[0]);
-      setTradeshowNotes('');
-      setShowTradeshowModal(false);
-      
       fetchDealer();
+      alert('Dealer associated with tradeshow successfully!');
     } catch (error: any) {
       console.error('Failed to associate tradeshow:', error);
-      alert(error.response?.data?.error || 'Failed to associate tradeshow');
+      if (error.response?.data?.error === 'Dealer already associated with this trade show') {
+        alert('This dealer is already associated with this tradeshow.');
+      } else {
+        alert(error.response?.data?.error || 'Failed to associate tradeshow');
+      }
     }
   };
 
@@ -2166,22 +2183,47 @@ const DealerDetail = () => {
           <AccordionSection section={sections[9]} />
           {sections[9].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-sm text-gray-600">
-                  Associate this dealer with tradeshows they visited. This helps track when you captured their info and for which events.
+              {/* Quick Associate with Tradeshow */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🎪 Associate with Tradeshow
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedTradeshowId}
+                    onChange={(e) => setSelectedTradeshowId(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-yellow-100"
+                  >
+                    <option value="">Select a tradeshow...</option>
+                    {tradeShows.map((ts) => {
+                      const isCurrentShow = ts.startDate && ts.endDate && 
+                        new Date() >= new Date(ts.startDate) && new Date() <= new Date(ts.endDate);
+                      return (
+                        <option key={ts.id} value={ts.id}>
+                          {ts.name} {isCurrentShow ? '(Current)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    onClick={handleAssociateTradeshow}
+                    disabled={!selectedTradeshowId}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Associate
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Select the tradeshow where you met this dealer. The current tradeshow (by date) is pre-selected.
                 </p>
-                <button
-                  onClick={() => setShowTradeshowModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  + Add Tradeshow
-                </button>
               </div>
-              
+
+              {/* List of Associated Tradeshows */}
+              <h4 className="font-semibold text-gray-900 mb-3">Associated Tradeshows History</h4>
               {dealer.tradeShows && dealer.tradeShows.length > 0 ? (
                 <div className="space-y-3">
                   {dealer.tradeShows.map((dts) => (
-                    <div key={dts.id} className="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
+                    <div key={dts.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-orange-500">
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-semibold text-gray-900">{dts.tradeShow.name}</h4>
@@ -2205,10 +2247,10 @@ const DealerDetail = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
+                <div className="text-center py-4">
                   <p className="text-gray-500">No tradeshows associated yet.</p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    Click "Add Tradeshow" to associate this dealer with a tradeshow.
+                  <p className="text-sm text-gray-400 mt-1">
+                    Use the dropdown above to associate this dealer with a tradeshow.
                   </p>
                 </div>
               )}
@@ -2624,81 +2666,6 @@ const DealerDetail = () => {
         </div>
       )}
 
-      {/* Tradeshow Association Modal */}
-      {showTradeshowModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">Associate with Tradeshow</h2>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Tradeshow
-              </label>
-              <select
-                value={selectedTradeshowId}
-                onChange={(e) => setSelectedTradeshowId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
-              >
-                <option value="">Select a tradeshow...</option>
-                {tradeShows.map((ts) => (
-                  <option key={ts.id} value={ts.id}>
-                    {ts.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Association Date
-              </label>
-              <input
-                type="date"
-                value={tradeshowAssociationDate}
-                onChange={(e) => setTradeshowAssociationDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                When did you meet this dealer at the tradeshow?
-              </p>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional)
-              </label>
-              <textarea
-                value={tradeshowNotes}
-                onChange={(e) => setTradeshowNotes(e.target.value)}
-                placeholder="Any notes about meeting at this tradeshow..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowTradeshowModal(false);
-                  setSelectedTradeshowId('');
-                  setTradeshowAssociationDate(new Date().toISOString().split('T')[0]);
-                  setTradeshowNotes('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssociateTradeshow}
-                disabled={!selectedTradeshowId}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Associate
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 };
