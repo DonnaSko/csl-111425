@@ -55,21 +55,30 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     return { accepted: false, disabled: true };
   }
 
-  // Prepare attachments - verify files exist and use absolute paths
-  const emailAttachments = attachments?.map(att => {
-    const absolutePath = path.isAbsolute(att.path) ? att.path : path.resolve(att.path);
-    if (fs.existsSync(absolutePath)) {
-      const stats = fs.statSync(absolutePath);
-      console.log(`[Email] Attaching file: ${att.filename} (${Math.round(stats.size / 1024)} KB) from ${absolutePath}`);
-      return {
-        filename: att.filename,
-        path: absolutePath
-      };
-    } else {
-      console.warn(`[Email] Attachment file not found: ${absolutePath}`);
-      return null;
+  // Prepare attachments - read file content as buffers for reliability in production
+  const emailAttachments = [];
+  if (attachments && attachments.length > 0) {
+    for (const att of attachments) {
+      const absolutePath = path.isAbsolute(att.path) ? att.path : path.resolve(att.path);
+      try {
+        if (fs.existsSync(absolutePath)) {
+          const stats = fs.statSync(absolutePath);
+          const fileContent = fs.readFileSync(absolutePath);
+          console.log(`[Email] Attaching file: ${att.filename} (${Math.round(stats.size / 1024)} KB) from ${absolutePath}`);
+          
+          // Use content instead of path for better reliability in production
+          emailAttachments.push({
+            filename: att.filename,
+            content: fileContent
+          });
+        } else {
+          console.warn(`[Email] Attachment file not found: ${absolutePath} (original path: ${att.path})`);
+        }
+      } catch (error: any) {
+        console.error(`[Email] Error reading attachment file ${att.filename} from ${absolutePath}:`, error.message);
+      }
     }
-  }).filter((att): att is { filename: string; path: string } => att !== null) || [];
+  }
 
   console.log(`[Email] Sending email to ${to} with ${emailAttachments.length} attachment(s)`);
 

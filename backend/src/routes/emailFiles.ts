@@ -178,6 +178,12 @@ router.post('/send', async (req: AuthRequest, res) => {
     }
 
     console.log(`[Email] Prepared ${attachments.length} attachments for email`);
+    
+    if (attachments.length === 0 && fileIds && fileIds.length > 0) {
+      console.warn(`[Email] WARNING: No attachments prepared but ${fileIds.length} file IDs were requested!`);
+      console.warn(`[Email] Requested file IDs:`, fileIds);
+      console.warn(`[Email] Found files from database:`, files.map(f => ({ id: f.id, originalName: f.originalName, path: f.path })));
+    }
 
     // Convert body to HTML (preserve line breaks)
     const htmlBody = body ? body.replace(/\n/g, '<br>') : '';
@@ -194,6 +200,8 @@ router.post('/send', async (req: AuthRequest, res) => {
         ccArray = cc;
       }
     }
+    
+    console.log(`[Email] Calling sendEmail with ${attachments.length} attachments`);
     
     const result = await sendEmail({
       to,
