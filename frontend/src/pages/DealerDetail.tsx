@@ -132,6 +132,7 @@ const DealerDetail = () => {
     { id: 'emails', title: 'Emails', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
     { id: 'completedTasks', title: 'Completed Tasks', expanded: false },
+    { id: 'permissionsHistory', title: '📋 Permissions History', expanded: false },
   ]);
 
   // Auto-save debounce refs
@@ -1946,20 +1947,9 @@ const DealerDetail = () => {
                 ))}
               </div>
               {dealer.privacyPermissionHistory && dealer.privacyPermissionHistory.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-2">History</h4>
-                  <div className="space-y-2">
-                    {dealer.privacyPermissionHistory.map((history) => (
-                      <div key={history.id} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
-                        <span className="capitalize">{history.permission.replace(/_/g, ' ')}</span>
-                        {' '}
-                        <span className="font-semibold">{history.action}</span>
-                        {' '}
-                        <span className="text-gray-500">{formatDate(history.createdAt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <p className="text-sm text-gray-500 mt-4">
+                  📋 See the <strong>Permissions History</strong> accordion at the bottom of this page for a full log of all permission changes.
+                </p>
               )}
             </div>
           )}
@@ -2065,6 +2055,71 @@ const DealerDetail = () => {
             </div>
           </div>
         )}
+
+        {/* Permissions History Section - Accordion at bottom */}
+        <div className="mb-4 mt-4">
+          <AccordionSection section={sections[10]} />
+          {sections[10].expanded && (
+            <div className="mt-2 bg-white rounded-lg shadow p-6">
+              {dealer.privacyPermissionHistory && dealer.privacyPermissionHistory.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 mb-4">
+                    This log tracks all consent permission changes for this dealer across trade shows and interactions.
+                  </p>
+                  {dealer.privacyPermissionHistory.map((history) => (
+                    <div 
+                      key={history.id} 
+                      className={`rounded-lg p-4 border-l-4 ${
+                        history.granted 
+                          ? 'bg-green-50 border-green-500' 
+                          : 'bg-red-50 border-red-500'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-lg ${history.granted ? 'text-green-600' : 'text-red-600'}`}>
+                              {history.granted ? '✓' : '✗'}
+                            </span>
+                            <p className="font-semibold text-gray-900 capitalize">
+                              {history.permission.replace(/_/g, ' ')}
+                            </p>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              history.action === 'granted' 
+                                ? 'bg-green-100 text-green-800' 
+                                : history.action === 'revoked'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {history.action}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            <span className="font-medium">Date:</span>{' '}
+                            {formatDate(history.createdAt)}
+                          </p>
+                          {history.changedData && history.changedData.text && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              <span className="font-medium">Note:</span>{' '}
+                              {history.changedData.text}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No permission history recorded yet.</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Permission changes will be logged here when you check or uncheck consent boxes above.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Buying Group Modal */}
