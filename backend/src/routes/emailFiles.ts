@@ -356,8 +356,11 @@ router.post('/send', async (req: AuthRequest, res) => {
       const fileExists = fs.existsSync(absolutePath);
       
       console.log(`[Email] Path resolution attempts:`);
-      triedPaths.forEach((p, i) => {
-        const exists = fs.existsSync(p.split(': ')[1] || p);
+      triedPaths.forEach((p) => {
+        // Extract path from log format "N. Description: /path/to/file"
+        const pathMatch = p.match(/:\s*(.+)$/);
+        const pathToCheck = pathMatch ? pathMatch[1] : p;
+        const exists = fs.existsSync(pathToCheck);
         console.log(`[Email]   ${p} ${exists ? '✓ EXISTS' : '✗ NOT FOUND'}`);
       });
       console.log(`[Email] Final resolved path: ${absolutePath}`);
@@ -449,7 +452,6 @@ router.post('/send', async (req: AuthRequest, res) => {
         }
       }
       console.log(`[Email] ==========================================`);
-      }
     }
 
     console.log(`[Email] ===== ATTACHMENT SUMMARY =====`);
