@@ -305,20 +305,30 @@ router.post('/send', async (req: AuthRequest, res) => {
     // Prepare attachments with absolute paths and verify they exist
     const attachments = [];
     for (const file of files) {
+      console.log(`[Email] ===== PROCESSING FILE: ${file.originalName} =====`);
+      console.log(`[Email] File ID: ${file.id}`);
+      console.log(`[Email] Database path: ${file.path}`);
+      console.log(`[Email] Filename (stored): ${file.filename}`);
+      console.log(`[Email] Original name: ${file.originalName}`);
+      
       let absolutePath: string;
+      const triedPaths: string[] = [];
       
       // Handle path resolution - try multiple strategies
       if (path.isAbsolute(file.path)) {
         // Already absolute path
         absolutePath = file.path;
+        triedPaths.push(`1. Absolute path from DB: ${absolutePath}`);
       } else {
         // Relative path - resolve relative to upload directory
         // First try resolving from current working directory
         absolutePath = path.resolve(file.path);
+        triedPaths.push(`1. Resolved from CWD: ${absolutePath}`);
         
         // If that doesn't exist, try resolving relative to emailFilesDir
         if (!fs.existsSync(absolutePath)) {
           const relativeToUploadDir = path.resolve(emailFilesDir, path.basename(file.path));
+          triedPaths.push(`2. Relative to emailFilesDir (basename): ${relativeToUploadDir}`);
           if (fs.existsSync(relativeToUploadDir)) {
             absolutePath = relativeToUploadDir;
           }
@@ -327,18 +337,34 @@ router.post('/send', async (req: AuthRequest, res) => {
         // If still not found, try using just the filename in emailFilesDir
         if (!fs.existsSync(absolutePath)) {
           const filenameOnly = path.resolve(emailFilesDir, file.filename);
+          triedPaths.push(`3. Filename in emailFilesDir: ${filenameOnly}`);
           if (fs.existsSync(filenameOnly)) {
             absolutePath = filenameOnly;
+          }
+        }
+        
+        // Try original name in emailFilesDir
+        if (!fs.existsSync(absolutePath)) {
+          const originalNamePath = path.resolve(emailFilesDir, file.originalName);
+          triedPaths.push(`4. Original name in emailFilesDir: ${originalNamePath}`);
+          if (fs.existsSync(originalNamePath)) {
+            absolutePath = originalNamePath;
           }
         }
       }
       
       const fileExists = fs.existsSync(absolutePath);
       
-      console.log(`[Email] File: ${file.originalName}`);
-      console.log(`[Email]   Database path: ${file.path}`);
-      console.log(`[Email]   Resolved path: ${absolutePath}`);
-      console.log(`[Email]   Exists: ${fileExists}`);
+      console.log(`[Email] Path resolution attempts:`);
+      triedPaths.forEach((p, i) => {
+        const exists = fs.existsSync(p.split(': ')[1] || p);
+        console.log(`[Email]   ${p} ${exists ? '✓ EXISTS' : '✗ NOT FOUND'}`);
+      });
+      console.log(`[Email] Final resolved path: ${absolutePath}`);
+      console.log(`[Email] File exists: ${fileExists}`);
+      console.log(`[Email] Current working directory: ${process.cwd()}`);
+      console.log(`[Email] Email files directory: ${emailFilesDir}`);
+      console.log(`[Email] Upload directory: ${uploadDir}`);
       
       if (fileExists) {
         // Verify it's actually a file and readable
@@ -373,22 +399,35 @@ router.post('/send', async (req: AuthRequest, res) => {
           path.join(emailFilesDir, file.filename),
           path.join(emailFilesDir, file.originalName),
           path.join(uploadDir, file.filename),
-          path.join(uploadDir, file.originalName)
+          path.join(uploadDir, file.originalName),
+          path.resolve(emailFilesDir, file.filename),
+          path.resolve(emailFilesDir, file.originalName),
+          path.resolve(uploadDir, file.filename),
+          path.resolve(uploadDir, file.originalName)
         ];
         
+        console.log(`[Email] Trying alternative paths:`);
         let found = false;
         for (const possiblePath of possiblePaths) {
-          if (fs.existsSync(possiblePath)) {
-            console.log(`[Email]   Found file at alternative path: ${possiblePath}`);
+          const exists = fs.existsSync(possiblePath);
+          console.log(`[Email]   ${possiblePath} ${exists ? '✓ EXISTS' : '✗ NOT FOUND'}`);
+          
+          if (exists && !found) {
+            console.log(`[Email]   ✓ Found file at alternative path: ${possiblePath}`);
             try {
               const stats = fs.statSync(possiblePath);
-              attachments.push({
-                filename: file.originalName,
-                path: possiblePath
-              });
-              console.log(`[Email] ✓ Added attachment from alternative path: ${file.originalName}`);
-              found = true;
-              break;
+              console.log(`[Email]   File stats: size=${stats.size}, isFile=${stats.isFile()}`);
+              
+              if (stats.isFile()) {
+                attachments.push({
+                  filename: file.originalName,
+                  path: possiblePath
+                });
+                console.log(`[Email] ✓ Added attachment from alternative path: ${file.originalName}`);
+                found = true;
+              } else {
+                console.error(`[Email]   Path exists but is not a file`);
+              }
             } catch (error: any) {
               console.error(`[Email]   Error accessing alternative path:`, error.message);
             }
@@ -396,8 +435,20 @@ router.post('/send', async (req: AuthRequest, res) => {
         }
         
         if (!found) {
-          console.error(`[Email] This file exists in database but not on disk - attachment will be skipped`);
+          console.error(`[Email] ✗ CRITICAL: File ${file.originalName} exists in database but NOT on disk!`);
+          console.error(`[Email]   All ${possiblePaths.length} alternative paths were tried and none exist`);
+          console.error(`[Email]   This file cannot be attached - it may have been deleted or moved`);
+          
+          // List what files DO exist in emailFilesDir for debugging
+          try {
+            const existingFiles = fs.readdirSync(emailFilesDir);
+            console.error(`[Email]   Files that DO exist in ${emailFilesDir}:`, existingFiles.slice(0, 10));
+          } catch (err: any) {
+            console.error(`[Email]   Cannot read emailFilesDir:`, err.message);
+          }
         }
+      }
+      console.log(`[Email] ==========================================`);
       }
     }
 
