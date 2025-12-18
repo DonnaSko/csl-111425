@@ -127,13 +127,30 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
       // #endregion
       
       try {
-        let fileContent: Buffer;
+        let fileContent: Buffer | undefined;
         let contentType: string | undefined = att.contentType;
         
         // NEW: If attachment already has content (from FormData), use it directly
-        if (att.content && Buffer.isBuffer(att.content)) {
-          fileContent = att.content;
-          console.log(`[Email] Using file content from FormData: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+        if (att.content) {
+          // Check if it's a Buffer
+          if (Buffer.isBuffer(att.content)) {
+            fileContent = att.content;
+            console.log(`[Email] Using file content from FormData (Buffer): ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+          } 
+          // If it's not a Buffer, try to convert it
+          else if (typeof att.content === 'string') {
+            fileContent = Buffer.from(att.content, 'base64');
+            console.log(`[Email] Converted base64 content to Buffer: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+          }
+          else {
+            // Try to create Buffer from whatever it is
+            try {
+              fileContent = Buffer.from(att.content as any);
+              console.log(`[Email] Converted content to Buffer: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+            } catch (e) {
+              console.error(`[Email] ✗ Cannot convert content to Buffer for ${att.filename}:`, e);
+            }
+          }
           
           // Content type should already be set, but verify
           if (!contentType) {
@@ -145,7 +162,7 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
               '.png': 'image/png',
               '.gif': 'image/gif'
             };
-            contentType = mimeTypes[ext];
+            contentType = mimeTypes[ext] || 'application/octet-stream';
           }
         }
         // LEGACY: If attachment has path, read from disk
@@ -179,6 +196,22 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
           }
         } else {
           console.error(`[Email] ✗ Invalid attachment - missing both content and path`);
+          console.error(`[Email] Attachment object:`, { filename: att.filename, hasContent: !!att.content, hasPath: !!att.path, contentType: att.contentType });
+          continue;
+        }
+        
+        // CRITICAL: Ensure fileContent was set
+        if (!fileContent) {
+          console.error(`[Email] ✗ CRITICAL ERROR: fileContent is undefined for ${att.filename}!`);
+          console.error(`[Email] Attachment object received:`, {
+            filename: att.filename,
+            hasContent: !!att.content,
+            contentType: att.contentType,
+            hasPath: !!att.path,
+            contentIsBuffer: att.content ? Buffer.isBuffer(att.content) : false,
+            contentTypeOf: typeof att.content
+          });
+          console.error(`[Email] This should never happen - fileContent must be set above`);
           continue;
         }
         
@@ -195,13 +228,29 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
           filename: attachmentObj.filename,
           hasContent: !!attachmentObj.content,
           contentLength: attachmentObj.content ? attachmentObj.content.length : 0,
-          contentType: attachmentObj.contentType
+          contentType: attachmentObj.contentType,
+          contentIsBuffer: Buffer.isBuffer(attachmentObj.content)
         });
         
         // Validate attachment object before adding
         if (!attachmentObj.filename || !attachmentObj.content) {
           console.error(`[Email] ✗ Invalid attachment object - missing filename or content`);
+          console.error(`[Email] attachmentObj:`, attachmentObj);
           continue;
+        }
+        
+        // CRITICAL: Verify content is actually a Buffer
+        if (!Buffer.isBuffer(attachmentObj.content)) {
+          console.error(`[Email] ✗ CRITICAL: attachment content is not a Buffer!`);
+          console.error(`[Email] Content type:`, typeof attachmentObj.content);
+          console.error(`[Email] Attempting to convert to Buffer...`);
+          try {
+            attachmentObj.content = Buffer.from(attachmentObj.content as any);
+            console.log(`[Email] ✓ Successfully converted to Buffer`);
+          } catch (e) {
+            console.error(`[Email] ✗ Failed to convert to Buffer:`, e);
+            continue;
+          }
         }
         
         emailAttachments.push(attachmentObj);

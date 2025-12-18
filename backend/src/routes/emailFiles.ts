@@ -268,7 +268,26 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
     const { to, cc, subject, body } = req.body;
     
     // Get uploaded files from FormData
-    const uploadedFiles = req.files as Express.Multer.File[] || [];
+    // CRITICAL: Check req.files and req.file (multer can use either)
+    let uploadedFiles: Express.Multer.File[] = [];
+    if (req.files) {
+      if (Array.isArray(req.files)) {
+        uploadedFiles = req.files;
+      } else if (typeof req.files === 'object') {
+        // Multer sometimes returns an object with field names as keys
+        uploadedFiles = Object.values(req.files).flat();
+      }
+    } else if (req.file) {
+      // Single file upload
+      uploadedFiles = [req.file];
+    }
+    
+    console.log(`[Email] ===== MULTER FILES CHECK =====`);
+    console.log(`[Email] req.files type:`, typeof req.files, Array.isArray(req.files) ? 'array' : 'not array');
+    console.log(`[Email] req.files value:`, req.files);
+    console.log(`[Email] req.file:`, req.file);
+    console.log(`[Email] uploadedFiles.length:`, uploadedFiles.length);
+    console.log(`[Email] =============================`);
     
     console.log(`[Email] ===== EMAIL SEND REQUEST START (FormData) =====`);
     console.log(`[Email] Content-Type header: ${req.headers['content-type'] || 'not set'}`);
