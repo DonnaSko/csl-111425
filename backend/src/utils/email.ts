@@ -139,9 +139,11 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
           contentType = mimeTypes[ext];
           
           // Use content instead of path for better reliability in production
+          // CRITICAL: Always include contentDisposition as per nodemailer best practices
           const attachmentObj: any = {
             filename: att.filename,
-            content: fileContent
+            content: fileContent,
+            contentDisposition: 'attachment' // Explicitly set as attachment
           };
           
           // Add content type if we determined it
@@ -150,8 +152,16 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
             console.log(`[Email] Detected content type: ${contentType} for ${att.filename}`);
           }
           
+          // Validate attachment object before adding
+          if (!attachmentObj.filename || !attachmentObj.content) {
+            console.error(`[Email] ✗ Invalid attachment object - missing filename or content`);
+            console.error(`[Email] Attachment object:`, { filename: attachmentObj.filename, hasContent: !!attachmentObj.content });
+            continue;
+          }
+          
           emailAttachments.push(attachmentObj);
-          console.log(`[Email] Added attachment to emailAttachments array. Total: ${emailAttachments.length}`);
+          console.log(`[Email] ✓ Added attachment: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+          console.log(`[Email]   Total attachments in array: ${emailAttachments.length}`);
         } else {
           console.warn(`[Email] Attachment file not found: ${absolutePath} (original path: ${att.path})`);
         }
@@ -178,6 +188,8 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
   debugLog('email.ts:108', 'Before creating mailOptions', {emailAttachmentsCount:emailAttachments.length,emailAttachments:emailAttachments.map(a=>({filename:a.filename,hasContent:!!a.content,contentLength:a.content?a.content.length:0}))}, 'G');
   // #endregion
 
+  // CRITICAL FIX: Always pass attachments array (even if empty) - never undefined
+  // Nodemailer expects an array, not undefined
   const mailOptions: nodemailer.SendMailOptions = {
     from: process.env.SMTP_FROM!,
     to: Array.isArray(to) ? to.join(', ') : to,
@@ -185,13 +197,16 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     subject,
     text,
     html,
-    attachments: emailAttachments.length > 0 ? emailAttachments : undefined
+    // Always pass array - nodemailer handles empty arrays correctly
+    attachments: emailAttachments.length > 0 ? emailAttachments : []
   };
   
   // #region agent log
   debugLog('email.ts:119', 'mailOptions created', {attachmentsInMailOptions:mailOptions.attachments?.length||0,willSendAttachments:!!mailOptions.attachments,attachmentsDetails:mailOptions.attachments?.map((a:any)=>({filename:a.filename,hasContent:!!a.content}))}, 'G');
   // #endregion
-
+  
+  // CRITICAL: Validate mailOptions.attachments before sending
+  console.log(`[Email] ===== FINAL MAIL OPTIONS VALIDATION =====`);
   console.log(`[Email] Mail options prepared:`, {
     from: mailOptions.from,
     to: mailOptions.to,
@@ -199,13 +214,28 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     subject: mailOptions.subject,
     hasText: !!mailOptions.text,
     hasHtml: !!mailOptions.html,
-    attachmentsCount: mailOptions.attachments?.length || 0,
-    attachments: mailOptions.attachments ? mailOptions.attachments.map((a: any) => ({
+    attachmentsIsArray: Array.isArray(mailOptions.attachments),
+    attachmentsIsUndefined: mailOptions.attachments === undefined,
+    attachmentsIsNull: mailOptions.attachments === null,
+    attachmentsCount: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 'NOT AN ARRAY',
+    attachments: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.map((a: any) => ({
       filename: a.filename,
       hasContent: !!a.content,
-      contentLength: a.content ? a.content.length : 0
-    })) : undefined
+      contentLength: a.content ? a.content.length : 0,
+      contentType: a.contentType || 'not set',
+      contentDisposition: a.contentDisposition || 'not set'
+    })) : `INVALID: ${typeof mailOptions.attachments}`
   });
+  console.log(`[Email] ==========================================`);
+  
+  // Final validation - ensure attachments is an array
+  if (!Array.isArray(mailOptions.attachments)) {
+    console.error(`[Email] ✗ CRITICAL ERROR: mailOptions.attachments is not an array!`);
+    console.error(`[Email] Type: ${typeof mailOptions.attachments}, Value:`, mailOptions.attachments);
+    // Force it to be an array
+    mailOptions.attachments = emailAttachments.length > 0 ? emailAttachments : [];
+    console.log(`[Email] Fixed: Set attachments to array with ${mailOptions.attachments.length} items`);
+  }
 
   const info = await transporter.sendMail(mailOptions);
   

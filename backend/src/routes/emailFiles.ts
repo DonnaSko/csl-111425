@@ -378,22 +378,27 @@ router.post('/send', async (req: AuthRequest, res) => {
     debugLog('emailFiles.ts:241', 'About to call sendEmail', {attachmentsCount:attachments.length,attachments:attachments.map(a=>({filename:a.filename,path:a.path})),willPassAttachments:attachments.length>0}, 'F');
     // #endregion
     
-    // Ensure attachments are passed correctly - always pass array (even if empty) when fileIds were requested
+    // CRITICAL FIX: Always pass attachments array (never undefined) - nodemailer expects array
     // This ensures sendEmail receives the attachments parameter correctly
     const emailParams: any = {
       to,
       cc: ccArray && ccArray.length > 0 ? ccArray : undefined,
       subject,
-      html: htmlBody || '<p>No message body provided.</p>'
+      html: htmlBody || '<p>No message body provided.</p>',
+      // Always pass attachments as array - even if empty
+      attachments: attachments.length > 0 ? attachments : []
     };
     
-    // Only include attachments if we have any - nodemailer handles undefined correctly
+    console.log(`[Email] Preparing to call sendEmail with ${attachments.length} attachment(s)`);
     if (attachments.length > 0) {
-      emailParams.attachments = attachments;
-      console.log(`[Email] Including ${attachments.length} attachment(s) in email`);
+      console.log(`[Email] ✓ Including ${attachments.length} attachment(s) in email`);
+      console.log(`[Email] Attachment list:`, attachments.map(a => ({ filename: a.filename, path: a.path })));
     } else if (normalizedFileIds.length > 0) {
       // File IDs were requested but no attachments prepared - log warning but don't fail
-      console.warn(`[Email] WARNING: ${normalizedFileIds.length} file ID(s) requested but 0 attachments prepared`);
+      console.error(`[Email] ✗ ERROR: ${normalizedFileIds.length} file ID(s) requested but 0 attachments prepared!`);
+      console.error(`[Email] This means files exist in database but not on disk, or paths are incorrect`);
+    } else {
+      console.log(`[Email] No attachments requested - sending email without attachments`);
     }
     
     const result = await sendEmail(emailParams);
