@@ -375,22 +375,53 @@ const DealerDetail = () => {
       
       console.log('[Email] Sending FormData with', filesFetched, 'file(s)');
 
-      // Send FormData (API will automatically set Content-Type to multipart/form-data)
-      const emailResponse = await api.post('/email-files/send', formData);
+      // Send FormData using fetch directly - DO NOT set Content-Type header
+      // Browser will automatically set it with the correct boundary
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:304',message:'API response received',data:{success:emailResponse.data.success,responseData:emailResponse.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:376',message:'About to send FormData - NO Content-Type header',data:{filesFetched:filesFetched,formDataKeys:Array.from(formData.keys()),hasContentTypeHeader:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_J'})}).catch(()=>{});
+      // #endregion
+      
+      const emailResponse = await fetch(`${API_URL}/email-files/send`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // ✅ NO Content-Type header - browser sets it automatically with boundary
+        },
+        body: formData
+      });
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:390',message:'FormData request sent',data:{status:emailResponse.status,statusText:emailResponse.statusText,ok:emailResponse.ok,contentType:emailResponse.headers.get('content-type')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_K'})}).catch(()=>{});
       // #endregion
 
-      console.log('[Email] Email send response:', emailResponse.data);
+      if (!emailResponse.ok) {
+        let errorData;
+        try {
+          errorData = await emailResponse.json();
+        } catch {
+          errorData = { error: 'Unknown error' };
+        }
+        throw new Error(errorData.error || `HTTP ${emailResponse.status}`);
+      }
 
-      if (!emailResponse.data.success) {
-        throw new Error(emailResponse.data.error || 'Email send failed');
+      const emailData = await emailResponse.json();
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:396',message:'API response received',data:{success:emailData.success,responseData:emailData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
+      console.log('[Email] Email send response:', emailData);
+
+      if (!emailData.success) {
+        throw new Error(emailData.error || 'Email send failed');
       }
 
       // Check attachment status from response
       const attachmentsRequested = filesFetched; // Use files actually fetched, not just IDs
-      const attachmentsSent = emailResponse.data.attachmentsSent || 0;
+      const attachmentsSent = emailData.attachmentsSent || 0;
       
       if (attachmentsRequested > 0 && attachmentsSent === 0) {
         console.error(`[Email] ERROR: ${attachmentsRequested} attachment(s) were requested but 0 were sent!`);

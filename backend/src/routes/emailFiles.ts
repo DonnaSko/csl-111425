@@ -271,6 +271,16 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
     const uploadedFiles = req.files as Express.Multer.File[] || [];
     
     console.log(`[Email] ===== EMAIL SEND REQUEST START (FormData) =====`);
+    console.log(`[Email] Content-Type header: ${req.headers['content-type'] || 'not set'}`);
+    
+    // #region agent log
+    debugLog('emailFiles.ts:273', 'FormData request received', {
+      contentType: req.headers['content-type'] || 'not set',
+      hasBoundary: req.headers['content-type']?.includes('boundary') || false,
+      filesCount: uploadedFiles.length,
+      bodyFields: { to, cc: cc || null, subject, bodyLength: body?.length || 0 }
+    }, 'FORMDATA_L');
+    // #endregion
     console.log(`[Email] Received email send request:`, {
       to,
       cc,
@@ -326,11 +336,23 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
         }
         
         // Create attachment object with buffer content
-        attachments.push({
+        // Format expected by sendEmail: { filename, content: Buffer, contentType }
+        const attachmentObj = {
           filename: uploadedFile.originalname,
           content: fileContent,
           contentType: contentType
-        });
+        };
+        
+        // #region agent log
+        debugLog('emailFiles.ts:339', 'Attachment object created', {
+          filename: attachmentObj.filename,
+          contentLength: attachmentObj.content.length,
+          contentType: attachmentObj.contentType,
+          contentIsBuffer: Buffer.isBuffer(attachmentObj.content)
+        }, 'FORMDATA_M');
+        // #endregion
+        
+        attachments.push(attachmentObj);
         
         console.log(`[Email] ✓ Added attachment: ${uploadedFile.originalname} (${Math.round(fileContent.length / 1024)} KB, ${contentType})`);
         

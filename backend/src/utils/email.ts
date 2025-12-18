@@ -111,8 +111,20 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
         filename: att.filename,
         hasContent: !!att.content,
         hasPath: !!att.path,
+        contentIsBuffer: att.content ? Buffer.isBuffer(att.content) : false,
         contentType: att.contentType || 'not set'
       });
+      
+      // #region agent log
+      debugLog('email.ts:109', 'Processing attachment', {
+        filename: att.filename,
+        hasContent: !!att.content,
+        contentLength: att.content ? att.content.length : 0,
+        contentIsBuffer: att.content ? Buffer.isBuffer(att.content) : false,
+        hasPath: !!att.path,
+        contentType: att.contentType || 'not provided'
+      }, 'ATTACH_A');
+      // #endregion
       
       try {
         let fileContent: Buffer;
@@ -171,17 +183,20 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
         }
         
         // Create attachment object with content as Buffer
+        // Nodemailer format: { filename, content: Buffer, contentType? }
         const attachmentObj: any = {
           filename: att.filename,
           content: fileContent,
-          contentDisposition: 'attachment' // Explicitly set as attachment
+          // Nodemailer uses 'contentType' (not 'type') when using Buffer content
+          contentType: contentType || 'application/octet-stream'
         };
         
-        // Add content type if we determined it
-        if (contentType) {
-          attachmentObj.contentType = contentType;
-          console.log(`[Email] Content type: ${contentType} for ${att.filename}`);
-        }
+        console.log(`[Email] Created attachment object:`, {
+          filename: attachmentObj.filename,
+          hasContent: !!attachmentObj.content,
+          contentLength: attachmentObj.content ? attachmentObj.content.length : 0,
+          contentType: attachmentObj.contentType
+        });
         
         // Validate attachment object before adding
         if (!attachmentObj.filename || !attachmentObj.content) {
@@ -285,10 +300,29 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
   }
   console.log(`[Email] =================================`);
   
+  // #region agent log
+  debugLog('email.ts:288', 'About to call nodemailer sendMail', {
+    attachmentsInMailOptions: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0,
+    attachmentsDetails: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.map((a: any) => ({
+      filename: a.filename,
+      hasContent: !!a.content,
+      contentLength: a.content ? a.content.length : 0,
+      contentType: a.contentType || 'not set',
+      contentIsBuffer: a.content ? Buffer.isBuffer(a.content) : false
+    })) : []
+  }, 'ATTACH_B');
+  // #endregion
+  
   const info = await transporter.sendMail(mailOptions);
   
   // #region agent log
-  debugLog('email.ts:130', 'nodemailer sendMail completed', {messageId:info.messageId,accepted:info.accepted,rejected:info.rejected,emailAttachmentsCount:emailAttachments.length}, 'G');
+  debugLog('email.ts:300', 'nodemailer sendMail completed', {
+    messageId: info.messageId,
+    accepted: info.accepted,
+    rejected: info.rejected,
+    emailAttachmentsCount: emailAttachments.length,
+    attachmentsInMailOptions: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0
+  }, 'ATTACH_C');
   // #endregion
   
   console.log(`[Email] ===== EMAIL SEND COMPLETE =====`);
