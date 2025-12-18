@@ -285,26 +285,122 @@ const DealerDetail = () => {
 
     try {
       setSendingEmail(true);
-      console.log('[Email] Sending email:', {
-        to: dealer.email,
-        cc: emailCc,
-        subject: emailSubject,
-        bodyLength: emailBody?.length || 0,
-        fileIds: selectedFileIds
-      });
+      
+      // Comprehensive logging before sending
+      console.log('[Email] ===== SENDING EMAIL =====');
+      console.log('[Email] Dealer email:', dealer.email);
+      console.log('[Email] Selected file IDs:', selectedFileIds);
+      console.log('[Email] Selected file IDs type:', typeof selectedFileIds);
+      console.log('[Email] Selected file IDs is array:', Array.isArray(selectedFileIds));
+      console.log('[Email] Selected file IDs length:', selectedFileIds?.length || 0);
+      console.log('[Email] Email subject:', emailSubject);
+      console.log('[Email] Email body length:', emailBody?.length || 0);
+      console.log('[Email] Email CC:', emailCc);
+      
+      // NEW APPROACH: Fetch actual files and send via FormData
+      // Verify selectedFileIds is an array and filter out any invalid values
+      const fileIdsToSend = Array.isArray(selectedFileIds) 
+        ? selectedFileIds.filter(id => id && typeof id === 'string' && id.trim().length > 0)
+        : [];
+      
+      console.log('[Email] Selected file IDs:', fileIdsToSend);
+      
+      // Create FormData for multipart/form-data request
+      const formData = new FormData();
+      formData.append('to', dealer.email);
+      if (emailCc) {
+        formData.append('cc', emailCc);
+      }
+      formData.append('subject', emailSubject);
+      if (emailBody) {
+        formData.append('body', emailBody);
+      }
+      
+      // Fetch and append files to FormData
+      let filesFetched = 0;
+      if (fileIdsToSend.length > 0) {
+        console.log('[Email] Fetching', fileIdsToSend.length, 'file(s) to attach...');
+        
+        for (const fileId of fileIdsToSend) {
+          try {
+            // Find file metadata
+            const fileMeta = emailFiles.find(f => f.id === fileId);
+            if (!fileMeta) {
+              console.warn(`[Email] File metadata not found for ID: ${fileId}`);
+              continue;
+            }
+            
+            // Fetch file content
+            const token = localStorage.getItem('token');
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+            const fileResponse = await fetch(`${API_URL}/email-files/${fileId}/download`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (!fileResponse.ok) {
+              console.error(`[Email] Failed to fetch file ${fileMeta.originalName}:`, fileResponse.statusText);
+              continue;
+            }
+            
+            // Convert response to blob, then to File
+            const blob = await fileResponse.blob();
+            const file = new File([blob], fileMeta.originalName, { type: blob.type || 'application/octet-stream' });
+            
+            // Append to FormData
+            formData.append('files', file);
+            filesFetched++;
+            console.log(`[Email] ✓ Fetched and added file: ${fileMeta.originalName} (${Math.round(blob.size / 1024)} KB)`);
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:320',message:'File fetched and added to FormData',data:{fileId:fileId,filename:fileMeta.originalName,fileSize:blob.size,filesFetched:filesFetched},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_G'})}).catch(()=>{});
+            // #endregion
+          } catch (error: any) {
+            console.error(`[Email] Error fetching file ${fileId}:`, error);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:330',message:'Error fetching file',data:{fileId:fileId,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_H'})}).catch(()=>{});
+            // #endregion
+          }
+        }
+        
+        console.log(`[Email] Fetched ${filesFetched} of ${fileIdsToSend.length} file(s) for attachment`);
+      } else {
+        console.log('[Email] No files selected - sending email without attachments');
+      }
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:340',message:'About to send FormData request',data:{filesFetched:filesFetched,fileIdsRequested:fileIdsToSend.length,formDataKeys:Array.from(formData.keys())},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_I'})}).catch(()=>{});
+      // #endregion
+      
+      console.log('[Email] Sending FormData with', filesFetched, 'file(s)');
 
-      const emailResponse = await api.post('/email-files/send', {
-        to: dealer.email,
-        cc: emailCc || undefined,
-        subject: emailSubject,
-        body: emailBody,
-        fileIds: selectedFileIds
-      });
+      // Send FormData (API will automatically set Content-Type to multipart/form-data)
+      const emailResponse = await api.post('/email-files/send', formData);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:304',message:'API response received',data:{success:emailResponse.data.success,responseData:emailResponse.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
 
       console.log('[Email] Email send response:', emailResponse.data);
 
       if (!emailResponse.data.success) {
         throw new Error(emailResponse.data.error || 'Email send failed');
+      }
+
+      // Check attachment status from response
+      const attachmentsRequested = filesFetched; // Use files actually fetched, not just IDs
+      const attachmentsSent = emailResponse.data.attachmentsSent || 0;
+      
+      if (attachmentsRequested > 0 && attachmentsSent === 0) {
+        console.error(`[Email] ERROR: ${attachmentsRequested} attachment(s) were requested but 0 were sent!`);
+        console.error(`[Email] This likely means files exist in database but not on disk, or paths are incorrect`);
+        alert(`⚠️ Email sent, but ${attachmentsRequested} attachment(s) could not be attached. Files may be missing from server.`);
+      } else if (attachmentsRequested > 0 && attachmentsSent < attachmentsRequested) {
+        console.warn(`[Email] WARNING: ${attachmentsRequested} attachment(s) requested but only ${attachmentsSent} were sent`);
+        alert(`⚠️ Email sent with ${attachmentsSent} of ${attachmentsRequested} attachment(s). Some files may be missing.`);
+      } else if (attachmentsSent > 0) {
+        console.log(`[Email] ✓ Successfully sent email with ${attachmentsSent} attachment(s)`);
       }
 
       // Create a todo for this email
@@ -316,7 +412,7 @@ const DealerDetail = () => {
           type: 'email',
           emailSent: true,
           emailSentDate: new Date().toISOString(),
-          emailContent: `Sent to ${dealer.email}${emailCc ? `, CC: ${emailCc}` : ''}${selectedFileIds.length > 0 ? ` with ${selectedFileIds.length} attachment(s)` : ''}`
+          emailContent: `Sent to ${dealer.email}${emailCc ? `, CC: ${emailCc}` : ''}${attachmentsSent > 0 ? ` with ${attachmentsSent} attachment(s)` : attachmentsRequested > 0 ? ` (${attachmentsRequested} attachment(s) requested but not sent)` : ''}`
         });
       } catch (todoError) {
         console.warn('[Email] Failed to create todo for email, but email was sent:', todoError);
@@ -329,7 +425,13 @@ const DealerDetail = () => {
       setSelectedFileIds([]);
       
       fetchDealer();
-      alert(`Email sent successfully to ${dealer.email}${emailCc ? ` and ${emailCc}` : ''}!`);
+      
+      // Show appropriate success message
+      if (attachmentsRequested > 0 && attachmentsSent === 0) {
+        alert(`Email sent to ${dealer.email}${emailCc ? ` and ${emailCc}` : ''}, but attachments could not be attached. Please check server logs.`);
+      } else {
+        alert(`Email sent successfully to ${dealer.email}${emailCc ? ` and ${emailCc}` : ''}${attachmentsSent > 0 ? ` with ${attachmentsSent} attachment(s)` : ''}!`);
+      }
     } catch (error: any) {
       console.error('[Email] Failed to send email:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to send email. Please check your email configuration.';
@@ -2200,10 +2302,21 @@ const DealerDetail = () => {
                               type="checkbox"
                               checked={selectedFileIds.includes(file.id)}
                               onChange={(e) => {
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:2220',message:'Checkbox changed',data:{fileId:file.id,checked:e.target.checked,currentSelectedIds:selectedFileIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
                                 if (e.target.checked) {
-                                  setSelectedFileIds([...selectedFileIds, file.id]);
+                                  const newIds = [...selectedFileIds, file.id];
+                                  // #region agent log
+                                  fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:2224',message:'Adding file ID',data:{fileId:file.id,newSelectedIds:newIds,newIdsLength:newIds.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                  // #endregion
+                                  setSelectedFileIds(newIds);
                                 } else {
-                                  setSelectedFileIds(selectedFileIds.filter(id => id !== file.id));
+                                  const newIds = selectedFileIds.filter(id => id !== file.id);
+                                  // #region agent log
+                                  fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:2230',message:'Removing file ID',data:{fileId:file.id,newSelectedIds:newIds,newIdsLength:newIds.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                  // #endregion
+                                  setSelectedFileIds(newIds);
                                 }
                               }}
                               className="w-4 h-4"

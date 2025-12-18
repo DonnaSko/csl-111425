@@ -172,6 +172,54 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
   }
 });
 
+// Get email file content by ID (for downloading files to send as attachments)
+router.get('/:id/download', async (req: AuthRequest, res) => {
+  try {
+    const file = await prisma.emailFile.findFirst({
+      where: {
+        id: req.params.id,
+        companyId: req.companyId!
+      }
+    });
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Try multiple path resolution strategies
+    let filePath = file.path;
+    if (!fs.existsSync(filePath)) {
+      // Try alternative paths
+      const possiblePaths = [
+        path.resolve(emailFilesDir, file.filename),
+        path.resolve(emailFilesDir, file.originalName),
+        path.resolve(uploadDir, file.filename),
+        path.resolve(uploadDir, file.originalName)
+      ];
+      
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          filePath = possiblePath;
+          break;
+        }
+      }
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found on disk' });
+    }
+
+    // Read and return file
+    const fileContent = fs.readFileSync(filePath);
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
+    res.send(fileContent);
+  } catch (error: any) {
+    console.error('Download email file error:', error);
+    res.status(500).json({ error: 'Failed to download file' });
+  }
+});
+
 // Delete email file
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
@@ -203,283 +251,140 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// Send email with attachments
-router.post('/send', async (req: AuthRequest, res) => {
+// Send email with attachments - accepts multipart/form-data with files
+// NEW APPROACH: Files are sent directly in FormData, not fileIds
+router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
   try {
-    const { to, cc, subject, body, fileIds } = req.body;
-    
-    // CRITICAL DIAGNOSTIC: Log environment info
-    console.log(`[Email] ===== EMAIL SEND REQUEST START =====`);
-    console.log(`[Email] Environment:`, {
-      UPLOAD_DIR: process.env.UPLOAD_DIR || 'NOT SET',
-      NODE_ENV: process.env.NODE_ENV || 'NOT SET',
-      cwd: process.cwd(),
-      emailFilesDir: emailFilesDir,
-      uploadDir: uploadDir,
-      emailFilesDirExists: fs.existsSync(emailFilesDir),
-      uploadDirExists: fs.existsSync(uploadDir)
-    });
-
     // #region agent log
-    debugLog('emailFiles.ts:146', 'Backend received request', {fileIds:fileIds,fileIdsType:typeof fileIds,fileIdsIsArray:Array.isArray(fileIds),fileIdsLength:Array.isArray(fileIds)?fileIds.length:'not array',companyId:req.companyId,fullBody:req.body}, 'C');
+    debugLog('emailFiles.ts:254', 'Email send request received', {
+      hasFiles: !!(req.files && Array.isArray(req.files) && req.files.length > 0),
+      filesCount: req.files ? (req.files as Express.Multer.File[]).length : 0,
+      bodyKeys: Object.keys(req.body),
+      companyId: req.companyId
+    }, 'FORMDATA_A');
     // #endregion
 
-    // Comprehensive logging of incoming request
+    // Get form fields (to, cc, subject, body)
+    const { to, cc, subject, body } = req.body;
+    
+    // Get uploaded files from FormData
+    const uploadedFiles = req.files as Express.Multer.File[] || [];
+    
+    console.log(`[Email] ===== EMAIL SEND REQUEST START (FormData) =====`);
     console.log(`[Email] Received email send request:`, {
       to,
       cc,
       subject,
       bodyLength: body?.length || 0,
-      fileIds: fileIds,
-      fileIdsType: typeof fileIds,
-      fileIdsIsArray: Array.isArray(fileIds),
-      fileIdsLength: Array.isArray(fileIds) ? fileIds.length : 'not an array',
-      companyId: req.companyId,
-      requestBody: JSON.stringify(req.body)
+      filesReceived: uploadedFiles.length,
+      fileNames: uploadedFiles.map(f => f.originalname)
     });
 
     if (!to || !subject) {
       return res.status(400).json({ error: 'To and subject are required' });
     }
 
-    // Normalize fileIds - ensure it's an array
-    // Handle all cases: undefined, null, empty array, array with values, or single string
-    let normalizedFileIds: string[] = [];
-    if (fileIds !== undefined && fileIds !== null) {
-      if (Array.isArray(fileIds)) {
-        normalizedFileIds = fileIds.filter(id => id && typeof id === 'string' && id.trim().length > 0);
-      } else if (typeof fileIds === 'string') {
-        // Handle case where fileIds might be sent as a single string
-        normalizedFileIds = [fileIds].filter(id => id && id.trim().length > 0);
-      }
-    }
-    // If fileIds is undefined/null/empty, normalizedFileIds remains []
-
-    console.log(`[Email] Normalized fileIds:`, normalizedFileIds);
-
     // #region agent log
-    debugLog('emailFiles.ts:177', 'Before database query', {normalizedFileIds:normalizedFileIds,normalizedFileIdsLength:normalizedFileIds.length,companyId:req.companyId}, 'D');
+    debugLog('emailFiles.ts:275', 'Processing FormData files', {
+      filesCount: uploadedFiles.length,
+      fileNames: uploadedFiles.map(f => f.originalname),
+      fileSizes: uploadedFiles.map(f => f.size)
+    }, 'FORMDATA_B');
     // #endregion
 
-    // Get file paths for attachments
-    const files = normalizedFileIds.length > 0 ? await prisma.emailFile.findMany({
-      where: {
-        id: { in: normalizedFileIds },
-        companyId: req.companyId!
-      }
-    }) : [];
-
-    // #region agent log
-    debugLog('emailFiles.ts:186', 'After database query', {filesFound:files.length,requestedIds:normalizedFileIds.length,fileDetails:files.map(f=>({id:f.id,originalName:f.originalName,path:f.path}))}, 'D');
-    // #endregion
-
-    console.log(`[Email] ===== DATABASE QUERY RESULTS =====`);
-    console.log(`[Email] Found ${files.length} files to attach from ${normalizedFileIds.length} requested IDs`);
-    console.log(`[Email] Requested file IDs:`, normalizedFileIds);
-    
-    if (normalizedFileIds.length > 0 && files.length === 0) {
-      console.error(`[Email] ✗ CRITICAL: No files found in database for requested IDs!`);
-      console.error(`[Email] This means fileIds were sent but files don't exist in database`);
-      return res.status(400).json({ 
-        success: false,
-        error: `No files found for the provided file IDs`,
-        attachmentsSent: 0,
-        attachmentsRequested: normalizedFileIds.length,
-        fileIdsRequested: normalizedFileIds
-      });
-    }
-    
-    // DIAGNOSTIC: Log each file's database info
-    files.forEach(file => {
-      console.log(`[Email] File from DB:`, {
-        id: file.id,
-        originalName: file.originalName,
-        filename: file.filename,
-        path: file.path,
-        size: file.size,
-        mimeType: file.mimeType
-      });
-    });
-    console.log(`[Email] ==================================`);
-
-    // Prepare attachments with absolute paths and verify they exist
+    // NEW APPROACH: Process files directly from FormData
+    // Convert uploaded files to email attachments (buffers)
     const attachments = [];
-    for (const file of files) {
-      console.log(`[Email] ===== PROCESSING FILE: ${file.originalName} =====`);
-      console.log(`[Email] File ID: ${file.id}`);
-      console.log(`[Email] Database path: ${file.path}`);
-      console.log(`[Email] Filename (stored): ${file.filename}`);
-      console.log(`[Email] Original name: ${file.originalName}`);
+    console.log(`[Email] ===== PROCESSING FORMDATA FILES =====`);
+    console.log(`[Email] Files received in FormData: ${uploadedFiles.length}`);
+    
+    for (const uploadedFile of uploadedFiles) {
+      console.log(`[Email] Processing file: ${uploadedFile.originalname}`);
+      console.log(`[Email]   Size: ${Math.round(uploadedFile.size / 1024)} KB`);
+      console.log(`[Email]   MIME type: ${uploadedFile.mimetype}`);
+      console.log(`[Email]   Path: ${uploadedFile.path}`);
       
-      let absolutePath: string;
-      const triedPaths: string[] = [];
-      
-      // Handle path resolution - try multiple strategies
-      if (path.isAbsolute(file.path)) {
-        // Already absolute path
-        absolutePath = file.path;
-        triedPaths.push(`1. Absolute path from DB: ${absolutePath}`);
-      } else {
-        // Relative path - resolve relative to upload directory
-        // First try resolving from current working directory
-        absolutePath = path.resolve(file.path);
-        triedPaths.push(`1. Resolved from CWD: ${absolutePath}`);
+      try {
+        // Read file content as buffer
+        const fileContent = fs.readFileSync(uploadedFile.path);
+        console.log(`[Email]   ✓ File read successfully (${fileContent.length} bytes)`);
         
-        // If that doesn't exist, try resolving relative to emailFilesDir
-        if (!fs.existsSync(absolutePath)) {
-          const relativeToUploadDir = path.resolve(emailFilesDir, path.basename(file.path));
-          triedPaths.push(`2. Relative to emailFilesDir (basename): ${relativeToUploadDir}`);
-          if (fs.existsSync(relativeToUploadDir)) {
-            absolutePath = relativeToUploadDir;
-          }
+        // Determine content type from MIME type or extension
+        const ext = path.extname(uploadedFile.originalname).toLowerCase();
+        let contentType = uploadedFile.mimetype;
+        
+        // Fallback MIME types if not provided
+        if (!contentType || contentType === 'application/octet-stream') {
+          const mimeTypes: { [key: string]: string } = {
+            '.pdf': 'application/pdf',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif'
+          };
+          contentType = mimeTypes[ext] || 'application/octet-stream';
         }
         
-        // If still not found, try using just the filename in emailFilesDir
-        if (!fs.existsSync(absolutePath)) {
-          const filenameOnly = path.resolve(emailFilesDir, file.filename);
-          triedPaths.push(`3. Filename in emailFilesDir: ${filenameOnly}`);
-          if (fs.existsSync(filenameOnly)) {
-            absolutePath = filenameOnly;
-          }
-        }
+        // Create attachment object with buffer content
+        attachments.push({
+          filename: uploadedFile.originalname,
+          content: fileContent,
+          contentType: contentType
+        });
         
-        // Try original name in emailFilesDir
-        if (!fs.existsSync(absolutePath)) {
-          const originalNamePath = path.resolve(emailFilesDir, file.originalName);
-          triedPaths.push(`4. Original name in emailFilesDir: ${originalNamePath}`);
-          if (fs.existsSync(originalNamePath)) {
-            absolutePath = originalNamePath;
-          }
-        }
+        console.log(`[Email] ✓ Added attachment: ${uploadedFile.originalname} (${Math.round(fileContent.length / 1024)} KB, ${contentType})`);
+        
+        // #region agent log
+        debugLog('emailFiles.ts:310', 'File processed from FormData', {
+          filename: uploadedFile.originalname,
+          size: fileContent.length,
+          contentType: contentType,
+          attachmentsCount: attachments.length
+        }, 'FORMDATA_C');
+        // #endregion
+      } catch (error: any) {
+        console.error(`[Email] ✗ Error reading file ${uploadedFile.originalname}:`, error.message);
+        // #region agent log
+        debugLog('emailFiles.ts:320', 'Error processing file', {
+          filename: uploadedFile.originalname,
+          error: error.message
+        }, 'FORMDATA_D');
+        // #endregion
       }
-      
-      const fileExists = fs.existsSync(absolutePath);
-      
-      console.log(`[Email] Path resolution attempts:`);
-      triedPaths.forEach((p) => {
-        // Extract path from log format "N. Description: /path/to/file"
-        const pathMatch = p.match(/:\s*(.+)$/);
-        const pathToCheck = pathMatch ? pathMatch[1] : p;
-        const exists = fs.existsSync(pathToCheck);
-        console.log(`[Email]   ${p} ${exists ? '✓ EXISTS' : '✗ NOT FOUND'}`);
-      });
-      console.log(`[Email] Final resolved path: ${absolutePath}`);
-      console.log(`[Email] File exists: ${fileExists}`);
-      console.log(`[Email] Current working directory: ${process.cwd()}`);
-      console.log(`[Email] Email files directory: ${emailFilesDir}`);
-      console.log(`[Email] Upload directory: ${uploadDir}`);
-      
-      if (fileExists) {
-        // Verify it's actually a file and readable
-        try {
-          const stats = fs.statSync(absolutePath);
-          if (!stats.isFile()) {
-            console.error(`[Email] ✗ Path exists but is not a file: ${absolutePath}`);
-            continue;
-          }
-          
-          // Verify file size matches database (sanity check)
-          if (file.size && stats.size !== file.size) {
-            console.warn(`[Email] ⚠️  File size mismatch: DB=${file.size}, Disk=${stats.size}`);
-          }
-          
-          attachments.push({
-            filename: file.originalName,
-            path: absolutePath
-          });
-          console.log(`[Email] ✓ Added attachment: ${file.originalName} (${Math.round(stats.size / 1024)} KB)`);
-        } catch (error: any) {
-          console.error(`[Email] ✗ Error accessing file ${file.originalName}:`, error.message);
-        }
-      } else {
-        console.error(`[Email] ✗ File not found on disk: ${absolutePath}`);
-        console.error(`[Email]   Original DB path: ${file.path}`);
-        console.error(`[Email]   Email files directory: ${emailFilesDir}`);
-        console.error(`[Email]   Upload directory: ${uploadDir}`);
-        
-        // Try to find the file by filename in emailFilesDir
-        const possiblePaths = [
-          path.join(emailFilesDir, file.filename),
-          path.join(emailFilesDir, file.originalName),
-          path.join(uploadDir, file.filename),
-          path.join(uploadDir, file.originalName),
-          path.resolve(emailFilesDir, file.filename),
-          path.resolve(emailFilesDir, file.originalName),
-          path.resolve(uploadDir, file.filename),
-          path.resolve(uploadDir, file.originalName)
-        ];
-        
-        console.log(`[Email] Trying alternative paths:`);
-        let found = false;
-        for (const possiblePath of possiblePaths) {
-          const exists = fs.existsSync(possiblePath);
-          console.log(`[Email]   ${possiblePath} ${exists ? '✓ EXISTS' : '✗ NOT FOUND'}`);
-          
-          if (exists && !found) {
-            console.log(`[Email]   ✓ Found file at alternative path: ${possiblePath}`);
-            try {
-              const stats = fs.statSync(possiblePath);
-              console.log(`[Email]   File stats: size=${stats.size}, isFile=${stats.isFile()}`);
-              
-              if (stats.isFile()) {
-                attachments.push({
-                  filename: file.originalName,
-                  path: possiblePath
-                });
-                console.log(`[Email] ✓ Added attachment from alternative path: ${file.originalName}`);
-                found = true;
-              } else {
-                console.error(`[Email]   Path exists but is not a file`);
-              }
-            } catch (error: any) {
-              console.error(`[Email]   Error accessing alternative path:`, error.message);
-            }
-          }
-        }
-        
-        if (!found) {
-          console.error(`[Email] ✗ CRITICAL: File ${file.originalName} exists in database but NOT on disk!`);
-          console.error(`[Email]   All ${possiblePaths.length} alternative paths were tried and none exist`);
-          console.error(`[Email]   This file cannot be attached - it may have been deleted or moved`);
-          
-          // List what files DO exist in emailFilesDir for debugging
-          try {
-            const existingFiles = fs.readdirSync(emailFilesDir);
-            console.error(`[Email]   Files that DO exist in ${emailFilesDir}:`, existingFiles.slice(0, 10));
-          } catch (err: any) {
-            console.error(`[Email]   Cannot read emailFilesDir:`, err.message);
-          }
-        }
-      }
-      console.log(`[Email] ==========================================`);
     }
+    
+    console.log(`[Email] ===== FORMDATA PROCESSING COMPLETE =====`);
+    console.log(`[Email] Total attachments prepared: ${attachments.length}`);
 
     console.log(`[Email] ===== ATTACHMENT SUMMARY =====`);
-    console.log(`[Email] Requested file IDs: ${normalizedFileIds.length}`);
-    console.log(`[Email] Files found in database: ${files.length}`);
+    console.log(`[Email] Files received in FormData: ${uploadedFiles.length}`);
     console.log(`[Email] Attachments prepared: ${attachments.length}`);
     if (attachments.length > 0) {
-      console.log(`[Email] Attachment details:`, attachments.map(att => ({ filename: att.filename, path: att.path })));
+      console.log(`[Email] Attachment details:`, attachments.map(att => ({ 
+        filename: att.filename, 
+        hasContent: !!att.content,
+        contentLength: att.content ? att.content.length : 0,
+        contentType: att.contentType || 'not set'
+      })));
     }
-    if (normalizedFileIds.length > 0 && attachments.length === 0) {
-      console.error(`[Email] ⚠️  CRITICAL: ${normalizedFileIds.length} file ID(s) requested but 0 attachments prepared!`);
-      console.error(`[Email] This means files were requested but either not found in database or not found on disk`);
+    if (uploadedFiles.length > 0 && attachments.length === 0) {
+      console.error(`[Email] ⚠️  CRITICAL: ${uploadedFiles.length} file(s) received but 0 attachments prepared!`);
+      console.error(`[Email] This means files were sent but couldn't be processed`);
     }
     console.log(`[Email] =============================`);
     
     // #region agent log
-    debugLog('emailFiles.ts:210', 'Attachments prepared', {attachmentsCount:attachments.length,attachments:attachments.map(a=>({filename:a.filename,path:a.path})),filesProcessed:files.length}, 'E');
+    debugLog('emailFiles.ts:330', 'Attachments prepared from FormData', {
+      attachmentsCount: attachments.length,
+      attachments: attachments.map(a => ({
+        filename: a.filename,
+        hasContent: !!a.content,
+        contentLength: a.content ? a.content.length : 0,
+        contentType: a.contentType
+      })),
+      filesReceived: uploadedFiles.length
+    }, 'FORMDATA_E');
     // #endregion
-    
-    if (attachments.length === 0 && normalizedFileIds.length > 0) {
-      console.warn(`[Email] WARNING: No attachments prepared but ${normalizedFileIds.length} file IDs were requested!`);
-      console.warn(`[Email] Requested file IDs:`, normalizedFileIds);
-      console.warn(`[Email] Found files from database:`, files.map(f => ({ id: f.id, originalName: f.originalName, path: f.path })));
-      console.warn(`[Email] Files that exist:`, files.map(f => {
-        const absPath = path.isAbsolute(f.path) ? f.path : path.resolve(f.path);
-        return { id: f.id, originalName: f.originalName, path: f.path, absolutePath: absPath, exists: fs.existsSync(absPath) };
-      }));
-    }
 
     // Convert body to HTML (preserve line breaks)
     const htmlBody = body ? body.replace(/\n/g, '<br>') : '';
@@ -504,32 +409,50 @@ router.post('/send', async (req: AuthRequest, res) => {
       subject,
       htmlLength: htmlBody?.length || 0,
       attachmentsCount: attachments.length,
-      attachments: attachments.length > 0 ? attachments.map(a => ({ filename: a.filename, path: a.path })) : undefined
+      attachments: attachments.length > 0 ? attachments.map(a => ({ 
+        filename: a.filename, 
+        hasContent: !!a.content,
+        contentLength: a.content ? a.content.length : 0,
+        contentType: a.contentType || 'not set'
+      })) : undefined
     });
     
     // #region agent log
-    debugLog('emailFiles.ts:241', 'About to call sendEmail', {attachmentsCount:attachments.length,attachments:attachments.map(a=>({filename:a.filename,path:a.path})),willPassAttachments:attachments.length>0}, 'F');
+    debugLog('emailFiles.ts:360', 'About to call sendEmail', {
+      attachmentsCount: attachments.length,
+      attachments: attachments.map(a => ({
+        filename: a.filename,
+        hasContent: !!a.content,
+        contentLength: a.content ? a.content.length : 0,
+        contentType: a.contentType
+      })),
+      willPassAttachments: attachments.length > 0
+    }, 'FORMDATA_F');
     // #endregion
     
     // CRITICAL FIX: Always pass attachments array (never undefined) - nodemailer expects array
-    // This ensures sendEmail receives the attachments parameter correctly
+    // Attachments now have content as Buffer (from FormData), not paths
     const emailParams: any = {
       to,
       cc: ccArray && ccArray.length > 0 ? ccArray : undefined,
       subject,
       html: htmlBody || '<p>No message body provided.</p>',
       // Always pass attachments as array - even if empty
+      // Attachments have format: { filename, content: Buffer, contentType }
       attachments: attachments.length > 0 ? attachments : []
     };
     
     console.log(`[Email] Preparing to call sendEmail with ${attachments.length} attachment(s)`);
     if (attachments.length > 0) {
       console.log(`[Email] ✓ Including ${attachments.length} attachment(s) in email`);
-      console.log(`[Email] Attachment list:`, attachments.map(a => ({ filename: a.filename, path: a.path })));
-    } else if (normalizedFileIds.length > 0) {
-      // File IDs were requested but no attachments prepared - log warning but don't fail
-      console.error(`[Email] ✗ ERROR: ${normalizedFileIds.length} file ID(s) requested but 0 attachments prepared!`);
-      console.error(`[Email] This means files exist in database but not on disk, or paths are incorrect`);
+      console.log(`[Email] Attachment list:`, attachments.map(a => ({ 
+        filename: a.filename, 
+        size: a.content ? `${Math.round(a.content.length / 1024)} KB` : 'unknown',
+        contentType: a.contentType || 'not set'
+      })));
+    } else if (uploadedFiles.length > 0) {
+      console.error(`[Email] ✗ ERROR: ${uploadedFiles.length} file(s) received but 0 attachments prepared!`);
+      console.error(`[Email] This means files were sent but couldn't be processed`);
     } else {
       console.log(`[Email] No attachments requested - sending email without attachments`);
     }
@@ -550,14 +473,26 @@ router.post('/send', async (req: AuthRequest, res) => {
 
     const messageId = result && 'messageId' in result ? result.messageId : undefined;
     console.log(`[Email] Sent email to ${to}${ccArray ? `, CC: ${ccArray.join(', ')}` : ''} - Message ID: ${messageId || 'N/A'}`);
-    console.log(`[Email] Email sent with ${attachments.length} attachment(s) out of ${normalizedFileIds.length} requested file ID(s)`);
+    console.log(`[Email] Email sent with ${attachments.length} attachment(s) out of ${uploadedFiles.length} file(s) received`);
+    
+    // Clean up temporary uploaded files
+    for (const uploadedFile of uploadedFiles) {
+      try {
+        if (fs.existsSync(uploadedFile.path)) {
+          fs.unlinkSync(uploadedFile.path);
+          console.log(`[Email] Cleaned up temporary file: ${uploadedFile.path}`);
+        }
+      } catch (error: any) {
+        console.warn(`[Email] Could not delete temporary file ${uploadedFile.path}:`, error.message);
+      }
+    }
     
     // Return detailed response including attachment info for debugging
     res.json({ 
       success: true, 
       messageId,
       attachmentsSent: attachments.length,
-      attachmentsRequested: normalizedFileIds.length,
+      attachmentsRequested: uploadedFiles.length,
       attachmentDetails: attachments.length > 0 ? attachments.map(a => ({ filename: a.filename })) : []
     });
   } catch (error: any) {

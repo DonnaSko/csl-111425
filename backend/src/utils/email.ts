@@ -29,7 +29,9 @@ type SendEmailParams = {
   html?: string;
   attachments?: Array<{
     filename: string;
-    path: string;
+    path?: string;  // Legacy: path to file on disk
+    content?: Buffer;  // NEW: file content as Buffer (from FormData)
+    contentType?: string;  // MIME type
   }>;
 };
 
@@ -100,73 +102,98 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     console.log(`[Email] No attachments received (attachments is ${attachments === undefined ? 'undefined' : attachments === null ? 'null' : 'empty or invalid'})`);
   }
 
-  // Prepare attachments - read file content as buffers for reliability in production
+  // Prepare attachments - handle both FormData (content as Buffer) and legacy (path) formats
   const emailAttachments = [];
   if (attachments && attachments.length > 0) {
     console.log(`[Email] Processing ${attachments.length} attachment(s)...`);
     for (const att of attachments) {
-      const absolutePath = path.isAbsolute(att.path) ? att.path : path.resolve(att.path);
       console.log(`[Email] Processing attachment:`, {
         filename: att.filename,
-        originalPath: att.path,
-        absolutePath: absolutePath,
-        pathExists: fs.existsSync(absolutePath)
+        hasContent: !!att.content,
+        hasPath: !!att.path,
+        contentType: att.contentType || 'not set'
       });
       
       try {
-        if (fs.existsSync(absolutePath)) {
-          const stats = fs.statSync(absolutePath);
-          const fileContent = fs.readFileSync(absolutePath);
-          console.log(`[Email] Successfully read file: ${att.filename} (${Math.round(stats.size / 1024)} KB) from ${absolutePath}`);
+        let fileContent: Buffer;
+        let contentType: string | undefined = att.contentType;
+        
+        // NEW: If attachment already has content (from FormData), use it directly
+        if (att.content && Buffer.isBuffer(att.content)) {
+          fileContent = att.content;
+          console.log(`[Email] Using file content from FormData: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
           
-          // Determine content type from filename extension
-          const ext = path.extname(att.filename).toLowerCase();
-          let contentType: string | undefined;
-          
-          const mimeTypes: { [key: string]: string } = {
-            '.pdf': 'application/pdf',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png',
-            '.gif': 'image/gif',
-            '.doc': 'application/msword',
-            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            '.xls': 'application/vnd.ms-excel',
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            '.txt': 'text/plain'
-          };
-          
-          contentType = mimeTypes[ext];
-          
-          // Use content instead of path for better reliability in production
-          // CRITICAL: Always include contentDisposition as per nodemailer best practices
-          const attachmentObj: any = {
-            filename: att.filename,
-            content: fileContent,
-            contentDisposition: 'attachment' // Explicitly set as attachment
-          };
-          
-          // Add content type if we determined it
-          if (contentType) {
-            attachmentObj.contentType = contentType;
-            console.log(`[Email] Detected content type: ${contentType} for ${att.filename}`);
+          // Content type should already be set, but verify
+          if (!contentType) {
+            const ext = path.extname(att.filename).toLowerCase();
+            const mimeTypes: { [key: string]: string } = {
+              '.pdf': 'application/pdf',
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.png': 'image/png',
+              '.gif': 'image/gif'
+            };
+            contentType = mimeTypes[ext];
           }
+        }
+        // LEGACY: If attachment has path, read from disk
+        else if (att.path) {
+          const absolutePath = path.isAbsolute(att.path) ? att.path : path.resolve(att.path);
+          console.log(`[Email] Reading file from path: ${absolutePath}`);
           
-          // Validate attachment object before adding
-          if (!attachmentObj.filename || !attachmentObj.content) {
-            console.error(`[Email] ✗ Invalid attachment object - missing filename or content`);
-            console.error(`[Email] Attachment object:`, { filename: attachmentObj.filename, hasContent: !!attachmentObj.content });
+          if (fs.existsSync(absolutePath)) {
+            const stats = fs.statSync(absolutePath);
+            fileContent = fs.readFileSync(absolutePath);
+            console.log(`[Email] Successfully read file: ${att.filename} (${Math.round(stats.size / 1024)} KB) from ${absolutePath}`);
+            
+            // Determine content type from filename extension
+            const ext = path.extname(att.filename).toLowerCase();
+            const mimeTypes: { [key: string]: string } = {
+              '.pdf': 'application/pdf',
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.png': 'image/png',
+              '.gif': 'image/gif',
+              '.doc': 'application/msword',
+              '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              '.xls': 'application/vnd.ms-excel',
+              '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              '.txt': 'text/plain'
+            };
+            contentType = mimeTypes[ext] || contentType;
+          } else {
+            console.warn(`[Email] Attachment file not found: ${absolutePath}`);
             continue;
           }
-          
-          emailAttachments.push(attachmentObj);
-          console.log(`[Email] ✓ Added attachment: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
-          console.log(`[Email]   Total attachments in array: ${emailAttachments.length}`);
         } else {
-          console.warn(`[Email] Attachment file not found: ${absolutePath} (original path: ${att.path})`);
+          console.error(`[Email] ✗ Invalid attachment - missing both content and path`);
+          continue;
         }
+        
+        // Create attachment object with content as Buffer
+        const attachmentObj: any = {
+          filename: att.filename,
+          content: fileContent,
+          contentDisposition: 'attachment' // Explicitly set as attachment
+        };
+        
+        // Add content type if we determined it
+        if (contentType) {
+          attachmentObj.contentType = contentType;
+          console.log(`[Email] Content type: ${contentType} for ${att.filename}`);
+        }
+        
+        // Validate attachment object before adding
+        if (!attachmentObj.filename || !attachmentObj.content) {
+          console.error(`[Email] ✗ Invalid attachment object - missing filename or content`);
+          continue;
+        }
+        
+        emailAttachments.push(attachmentObj);
+        console.log(`[Email] ✓ Added attachment: ${att.filename} (${Math.round(fileContent.length / 1024)} KB)`);
+        console.log(`[Email]   Total attachments in array: ${emailAttachments.length}`);
       } catch (error: any) {
-        console.error(`[Email] Error reading attachment file ${att.filename} from ${absolutePath}:`, error.message);
+        console.error(`[Email] Error processing attachment ${att.filename}:`, error.message);
         console.error(`[Email] Error stack:`, error.stack);
       }
     }
