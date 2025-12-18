@@ -44,6 +44,7 @@ Thumbs.db
 # Logs
 logs/
 *.log
+.cursor/debug.log
 
 # Prisma
 # Note: migrations should be committed to git
