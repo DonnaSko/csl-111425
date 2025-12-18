@@ -85,7 +85,51 @@ router.get('/', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(files);
+    // DIAGNOSTIC: Add file existence check to response
+    const filesWithExistence = files.map(file => {
+      let exists = false;
+      let actualPath = file.path;
+      let error = null;
+      
+      try {
+        // Try the stored path
+        if (fs.existsSync(file.path)) {
+          exists = true;
+          actualPath = file.path;
+        } else {
+          // Try alternative paths
+          const possiblePaths = [
+            path.join(emailFilesDir, file.filename),
+            path.join(emailFilesDir, file.originalName),
+            path.join(uploadDir, file.filename),
+            path.join(uploadDir, file.originalName),
+            path.resolve(file.path),
+            path.resolve(emailFilesDir, path.basename(file.path))
+          ];
+          
+          for (const possiblePath of possiblePaths) {
+            if (fs.existsSync(possiblePath)) {
+              exists = true;
+              actualPath = possiblePath;
+              break;
+            }
+          }
+        }
+      } catch (err: any) {
+        error = err.message;
+      }
+      
+      return {
+        ...file,
+        existsOnDisk: exists,
+        actualPath: actualPath,
+        pathError: error,
+        emailFilesDir: emailFilesDir,
+        uploadDir: uploadDir
+      };
+    });
+
+    res.json(filesWithExistence);
   } catch (error) {
     console.error('Get email files error:', error);
     res.status(500).json({ error: 'Failed to fetch email files' });
@@ -163,6 +207,18 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 router.post('/send', async (req: AuthRequest, res) => {
   try {
     const { to, cc, subject, body, fileIds } = req.body;
+    
+    // CRITICAL DIAGNOSTIC: Log environment info
+    console.log(`[Email] ===== EMAIL SEND REQUEST START =====`);
+    console.log(`[Email] Environment:`, {
+      UPLOAD_DIR: process.env.UPLOAD_DIR || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV || 'NOT SET',
+      cwd: process.cwd(),
+      emailFilesDir: emailFilesDir,
+      uploadDir: uploadDir,
+      emailFilesDirExists: fs.existsSync(emailFilesDir),
+      uploadDirExists: fs.existsSync(uploadDir)
+    });
 
     // #region agent log
     debugLog('emailFiles.ts:146', 'Backend received request', {fileIds:fileIds,fileIdsType:typeof fileIds,fileIdsIsArray:Array.isArray(fileIds),fileIdsLength:Array.isArray(fileIds)?fileIds.length:'not array',companyId:req.companyId,fullBody:req.body}, 'C');
@@ -217,10 +273,34 @@ router.post('/send', async (req: AuthRequest, res) => {
     debugLog('emailFiles.ts:186', 'After database query', {filesFound:files.length,requestedIds:normalizedFileIds.length,fileDetails:files.map(f=>({id:f.id,originalName:f.originalName,path:f.path}))}, 'D');
     // #endregion
 
+    console.log(`[Email] ===== DATABASE QUERY RESULTS =====`);
     console.log(`[Email] Found ${files.length} files to attach from ${normalizedFileIds.length} requested IDs`);
+    console.log(`[Email] Requested file IDs:`, normalizedFileIds);
+    
     if (normalizedFileIds.length > 0 && files.length === 0) {
-      console.warn(`[Email] WARNING: No files found in database for requested IDs:`, normalizedFileIds);
+      console.error(`[Email] ✗ CRITICAL: No files found in database for requested IDs!`);
+      console.error(`[Email] This means fileIds were sent but files don't exist in database`);
+      return res.status(400).json({ 
+        success: false,
+        error: `No files found for the provided file IDs`,
+        attachmentsSent: 0,
+        attachmentsRequested: normalizedFileIds.length,
+        fileIdsRequested: normalizedFileIds
+      });
     }
+    
+    // DIAGNOSTIC: Log each file's database info
+    files.forEach(file => {
+      console.log(`[Email] File from DB:`, {
+        id: file.id,
+        originalName: file.originalName,
+        filename: file.filename,
+        path: file.path,
+        size: file.size,
+        mimeType: file.mimeType
+      });
+    });
+    console.log(`[Email] ==================================`);
 
     // Prepare attachments with absolute paths and verify they exist
     const attachments = [];

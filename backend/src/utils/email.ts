@@ -237,16 +237,43 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     console.log(`[Email] Fixed: Set attachments to array with ${mailOptions.attachments.length} items`);
   }
 
+  // FINAL CHECK: Verify attachments are in mailOptions before sending
+  console.log(`[Email] ===== PRE-SEND FINAL CHECK =====`);
+  console.log(`[Email] About to call transporter.sendMail()`);
+  console.log(`[Email] mailOptions.attachments type:`, typeof mailOptions.attachments);
+  console.log(`[Email] mailOptions.attachments is array:`, Array.isArray(mailOptions.attachments));
+  console.log(`[Email] mailOptions.attachments length:`, Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 'N/A');
+  if (Array.isArray(mailOptions.attachments) && mailOptions.attachments.length > 0) {
+    console.log(`[Email] ✓ Attachments in mailOptions:`, mailOptions.attachments.map((a: any) => ({
+      filename: a.filename,
+      hasContent: !!a.content,
+      contentLength: a.content ? a.content.length : 0,
+      contentType: a.contentType || 'not set',
+      contentDisposition: a.contentDisposition || 'not set'
+    })));
+  } else {
+    console.error(`[Email] ✗ NO ATTACHMENTS IN mailOptions!`);
+    console.error(`[Email] emailAttachments array had ${emailAttachments.length} items`);
+    console.error(`[Email] mailOptions.attachments:`, mailOptions.attachments);
+  }
+  console.log(`[Email] =================================`);
+  
   const info = await transporter.sendMail(mailOptions);
   
   // #region agent log
   debugLog('email.ts:130', 'nodemailer sendMail completed', {messageId:info.messageId,accepted:info.accepted,rejected:info.rejected,emailAttachmentsCount:emailAttachments.length}, 'G');
   // #endregion
   
-  console.log(`[Email] Email sent successfully. Message ID: ${info.messageId}, Attachments: ${emailAttachments.length}`);
+  console.log(`[Email] ===== EMAIL SEND COMPLETE =====`);
+  console.log(`[Email] Email sent successfully. Message ID: ${info.messageId}`);
+  console.log(`[Email] Attachments processed: ${emailAttachments.length}`);
+  console.log(`[Email] Attachments in mailOptions: ${Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 'NOT AN ARRAY'}`);
   if (emailAttachments.length > 0) {
-    console.log(`[Email] Attached files:`, emailAttachments.map(a => a.filename));
+    console.log(`[Email] ✓ Attached files:`, emailAttachments.map(a => a.filename));
+  } else {
+    console.error(`[Email] ✗ WARNING: No attachments were processed!`);
   }
+  console.log(`[Email] ================================`);
 
   return info;
 }
