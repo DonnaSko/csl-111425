@@ -216,12 +216,13 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
         }
         
         // Create attachment object with content as Buffer
-        // Nodemailer format: { filename, content: Buffer, contentType? }
+        // Nodemailer format: { filename, content: Buffer, contentType?, contentDisposition? }
+        // CRITICAL FIX: Ensure proper format for nodemailer Buffer attachments
         const attachmentObj: any = {
           filename: att.filename,
           content: fileContent,
-          // Nodemailer uses 'contentType' (not 'type') when using Buffer content
-          contentType: contentType || 'application/octet-stream'
+          contentType: contentType || 'application/octet-stream',
+          contentDisposition: 'attachment' // Explicitly set attachment disposition
         };
         
         console.log(`[Email] Created attachment object:`, {
@@ -251,6 +252,23 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
             console.error(`[Email] ✗ Failed to convert to Buffer:`, e);
             continue;
           }
+        }
+        
+        // CRITICAL FIX: Ensure Buffer is a proper Node.js Buffer instance
+        // Create a fresh Buffer copy to ensure nodemailer compatibility
+        if (Buffer.isBuffer(attachmentObj.content)) {
+          attachmentObj.content = Buffer.from(attachmentObj.content);
+        }
+        
+        // Final validation: Ensure attachment has all required fields for nodemailer
+        if (!attachmentObj.filename || !attachmentObj.content || attachmentObj.content.length === 0) {
+          console.error(`[Email] ✗ Invalid attachment object - missing required fields`);
+          console.error(`[Email] attachmentObj:`, {
+            hasFilename: !!attachmentObj.filename,
+            hasContent: !!attachmentObj.content,
+            contentLength: attachmentObj.content ? attachmentObj.content.length : 0
+          });
+          continue;
         }
         
         emailAttachments.push(attachmentObj);
@@ -293,7 +311,19 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
   };
   
   // #region agent log
-  debugLog('email.ts:119', 'mailOptions created', {attachmentsInMailOptions:mailOptions.attachments?.length||0,willSendAttachments:!!mailOptions.attachments,attachmentsDetails:mailOptions.attachments?.map((a:any)=>({filename:a.filename,hasContent:!!a.content}))}, 'G');
+  debugLog('email.ts:284', 'mailOptions created', {
+    attachmentsInMailOptions: mailOptions.attachments?.length || 0,
+    willSendAttachments: !!mailOptions.attachments,
+    attachmentsIsArray: Array.isArray(mailOptions.attachments),
+    attachmentsDetails: mailOptions.attachments?.map((a: any) => ({
+      filename: a.filename,
+      hasContent: !!a.content,
+      contentLength: a.content ? a.content.length : 0,
+      contentIsBuffer: a.content ? Buffer.isBuffer(a.content) : false,
+      contentType: a.contentType || 'not set',
+      attachmentKeys: Object.keys(a)
+    }))
+  }, 'HYP_D');
   // #endregion
   
   // CRITICAL: Validate mailOptions.attachments before sending
@@ -362,16 +392,32 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
   }, 'ATTACH_B');
   // #endregion
   
+  // #region agent log
+  debugLog('email.ts:365', 'About to call transporter.sendMail', {
+    attachmentsCount: emailAttachments.length,
+    mailOptionsAttachmentsCount: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0,
+    mailOptionsAttachmentsType: typeof mailOptions.attachments,
+    mailOptionsKeys: Object.keys(mailOptions),
+    firstAttachment: emailAttachments.length > 0 ? {
+      filename: emailAttachments[0].filename,
+      hasContent: !!emailAttachments[0].content,
+      contentLength: emailAttachments[0].content ? emailAttachments[0].content.length : 0,
+      contentIsBuffer: emailAttachments[0].content ? Buffer.isBuffer(emailAttachments[0].content) : false
+    } : null
+  }, 'HYP_E');
+  // #endregion
+  
   const info = await transporter.sendMail(mailOptions);
   
   // #region agent log
-  debugLog('email.ts:300', 'nodemailer sendMail completed', {
+  debugLog('email.ts:377', 'nodemailer sendMail completed', {
     messageId: info.messageId,
     accepted: info.accepted,
     rejected: info.rejected,
     emailAttachmentsCount: emailAttachments.length,
-    attachmentsInMailOptions: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0
-  }, 'ATTACH_C');
+    attachmentsInMailOptions: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0,
+    responseKeys: Object.keys(info)
+  }, 'HYP_F');
   // #endregion
   
   console.log(`[Email] ===== EMAIL SEND COMPLETE =====`);

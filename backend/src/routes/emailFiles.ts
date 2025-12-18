@@ -333,10 +333,49 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
       console.log(`[Email]   MIME type: ${uploadedFile.mimetype}`);
       console.log(`[Email]   Path: ${uploadedFile.path}`);
       
+      // #region agent log
+      debugLog('emailFiles.ts:330', 'Before reading file from disk', {
+        filename: uploadedFile.originalname,
+        path: uploadedFile.path,
+        pathExists: fs.existsSync(uploadedFile.path),
+        size: uploadedFile.size
+      }, 'HYP_A');
+      // #endregion
+      
       try {
+        // CRITICAL: Verify file exists before reading
+        if (!fs.existsSync(uploadedFile.path)) {
+          console.error(`[Email] ✗ File does not exist at path: ${uploadedFile.path}`);
+          // #region agent log
+          debugLog('emailFiles.ts:338', 'File not found on disk', {
+            filename: uploadedFile.originalname,
+            path: uploadedFile.path,
+            pathExists: false
+          }, 'HYP_B');
+          // #endregion
+          continue;
+        }
+        
         // Read file content as buffer
         const fileContent = fs.readFileSync(uploadedFile.path);
+        
+        // CRITICAL FIX: Ensure we have a valid Buffer
+        if (!Buffer.isBuffer(fileContent) || fileContent.length === 0) {
+          console.error(`[Email] ✗ Invalid file content - not a Buffer or empty`);
+          console.error(`[Email] Content type: ${typeof fileContent}, Length: ${fileContent.length}`);
+          continue;
+        }
+        
         console.log(`[Email]   ✓ File read successfully (${fileContent.length} bytes)`);
+        
+        // #region agent log
+        debugLog('emailFiles.ts:348', 'File read from disk', {
+          filename: uploadedFile.originalname,
+          contentLength: fileContent.length,
+          contentIsBuffer: Buffer.isBuffer(fileContent),
+          bufferType: typeof fileContent
+        }, 'HYP_B');
+        // #endregion
         
         // Determine content type from MIME type or extension
         const ext = path.extname(uploadedFile.originalname).toLowerCase();
@@ -355,20 +394,23 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
         }
         
         // Create attachment object with buffer content
-        // Format expected by sendEmail: { filename, content: Buffer, contentType }
+        // Format expected by sendEmail: { filename, content: Buffer, contentType, contentDisposition }
+        // CRITICAL FIX: Ensure proper nodemailer attachment format
         const attachmentObj = {
           filename: uploadedFile.originalname,
-          content: fileContent,
-          contentType: contentType
+          content: fileContent, // Buffer from file read
+          contentType: contentType,
+          contentDisposition: 'attachment' // Explicitly set for nodemailer
         };
         
         // #region agent log
-        debugLog('emailFiles.ts:339', 'Attachment object created', {
+        debugLog('emailFiles.ts:359', 'Attachment object created', {
           filename: attachmentObj.filename,
           contentLength: attachmentObj.content.length,
           contentType: attachmentObj.contentType,
-          contentIsBuffer: Buffer.isBuffer(attachmentObj.content)
-        }, 'FORMDATA_M');
+          contentIsBuffer: Buffer.isBuffer(attachmentObj.content),
+          attachmentObjKeys: Object.keys(attachmentObj)
+        }, 'HYP_C');
         // #endregion
         
         attachments.push(attachmentObj);
