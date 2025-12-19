@@ -19,16 +19,16 @@ const Subscription = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // If user already has an active subscription, inform and redirect them to the dashboard
-  useEffect(() => {
-    if (!subscriptionLoading && hasActiveSubscription) {
-      setRedirecting(true);
-      const timer = setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [subscriptionLoading, hasActiveSubscription, navigate]);
+  // Don't auto-redirect - show management options instead
+  // useEffect(() => {
+  //   if (!subscriptionLoading && hasActiveSubscription) {
+  //     setRedirecting(true);
+  //     const timer = setTimeout(() => {
+  //       navigate('/dashboard', { replace: true });
+  //     }, 1200);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [subscriptionLoading, hasActiveSubscription, navigate]);
 
   const subscriptionEndsOn = subscription?.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
@@ -123,27 +123,108 @@ const Subscription = () => {
     );
   }
 
+  const handleCancelSubscription = async () => {
+    if (!subscription?.currentPeriodEnd) {
+      alert('Unable to cancel: subscription information not available.');
+      return;
+    }
+
+    const canCancel = Math.ceil(
+      (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    ) >= 5;
+
+    if (!canCancel) {
+      const daysLeft = Math.ceil(
+        (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      alert(`Cancellation must be at least 5 days before renewal. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining.`);
+      return;
+    }
+
+    if (!confirm('Are you sure you want to cancel your subscription? Your subscription will remain active until the end of the current period.')) {
+      return;
+    }
+
+    try {
+      await api.post('/subscriptions/cancel');
+      alert('Subscription will be canceled at the end of the current period.');
+      await refreshSubscription();
+    } catch (error: any) {
+      console.error('Cancel subscription error:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to cancel subscription. Please try again or contact support.';
+      alert(errorMessage);
+    }
+  };
+
   if (hasActiveSubscription) {
+    const canCancel = subscription?.currentPeriodEnd 
+      ? Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) >= 5
+      : false;
+
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-green-900 mb-2">You're already subscribed</h2>
-            <p className="text-green-800 mb-4">
-              Thank you! Your subscription is active
-              {subscriptionEndsOn ? ` through ${subscriptionEndsOn}` : ''}.
-              {subscriptionDaysLeft !== null ? ` (${subscriptionDaysLeft} day${subscriptionDaysLeft === 1 ? '' : 's'} remaining).` : ''}{' '}
-              We'll take you to your dashboard.
-            </p>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700"
-            >
-              Go to Dashboard
-            </button>
-            {redirecting && (
-              <p className="text-sm text-green-700 mt-3">Redirecting...</p>
-            )}
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Manage Your Subscription</h1>
+            
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-bold text-green-900 mb-2">✓ Active Subscription</h2>
+              <p className="text-green-800 mb-2">
+                Your subscription is active
+                {subscriptionEndsOn ? ` through ${subscriptionEndsOn}` : ''}.
+                {subscriptionDaysLeft !== null ? ` (${subscriptionDaysLeft} day${subscriptionDaysLeft === 1 ? '' : 's'} remaining)` : ''}
+              </p>
+              {subscription?.cancelAtPeriodEnd && (
+                <p className="text-yellow-700 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-3">
+                  ⚠️ Your subscription will be canceled at the end of the current period.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Subscription Actions</h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => navigate('/account-settings')}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                  >
+                    Go to Account Settings
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700"
+                  >
+                    Go to Dashboard
+                  </button>
+                </div>
+              </div>
+
+              {canCancel && !subscription?.cancelAtPeriodEnd && (
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-semibold text-red-600 mb-3">Cancel Subscription</h3>
+                  <p className="text-gray-600 mb-4">
+                    You can cancel your subscription anytime before the renewal date. 
+                    After cancellation, you will have access until the end of the current period.
+                  </p>
+                  <button
+                    onClick={handleCancelSubscription}
+                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
+                  >
+                    Cancel Subscription
+                  </button>
+                </div>
+              )}
+
+              {!canCancel && subscription?.currentPeriodEnd && (
+                <div className="border-t pt-6 mt-6">
+                  <p className="text-gray-600 bg-gray-50 p-4 rounded-lg">
+                    Cancellation must be at least 5 days before renewal. 
+                    Please visit <a href="/account-settings" className="text-blue-600 hover:underline">Account Settings</a> to manage your subscription.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

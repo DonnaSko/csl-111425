@@ -423,7 +423,7 @@ function formatRenewalReminderHTML(
         <a href="${FRONTEND_URL}/account-settings" class="btn btn-primary">
           Manage Subscription →
         </a>
-        <a href="${FRONTEND_URL}/account-settings" class="btn btn-danger">
+        <a href="${FRONTEND_URL}/account-settings?action=cancel" class="btn btn-danger">
           Cancel Subscription
         </a>
       </div>
