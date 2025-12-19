@@ -10,7 +10,6 @@ const Subscription = () => {
   const { refreshSubscription, hasActiveSubscription, loading: subscriptionLoading, subscription } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [redirecting, setRedirecting] = useState(false);
 
   // Make sure we have the freshest subscription status when landing on this page
   useEffect(() => {

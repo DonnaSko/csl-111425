@@ -26,6 +26,8 @@ const AccountSettings = () => {
   const [exportingAll, setExportingAll] = useState(false);
   const [deleteRequested, setDeleteRequested] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -143,6 +145,28 @@ const AccountSettings = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    setMessage(null);
+    try {
+      const response = await api.post('/subscriptions/cancel');
+      setShowCancelConfirm(false);
+      await refreshSubscription();
+      setMessage({ 
+        type: 'success', 
+        text: `Your subscription will be canceled at the end of the current period (${formatDate(response.data.currentPeriodEnd)}). You will continue to have access until then.` 
+      });
+    } catch (error: any) {
+      console.error('Cancel subscription failed:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.error || 'Failed to cancel subscription. Please try again or contact support.' 
+      });
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -213,30 +237,96 @@ const AccountSettings = () => {
                   )}
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await api.post('/subscriptions/create-portal-session');
-                      if (response.data.url) {
-                        window.location.href = response.data.url;
-                      }
-                    } catch (error: any) {
-                      console.error('Failed to create portal session:', error);
-                      setMessage({ 
-                        type: 'error', 
-                        text: error.response?.data?.error || 'Failed to open subscription management. Please try again.' 
-                      });
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
-                >
-                  Manage Subscription in Stripe →
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Click "Manage Subscription in Stripe" to update payment method, view invoices, or cancel your subscription.
-              </p>
+              {!subscription.cancelAtPeriodEnd ? (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/subscriptions/create-portal-session');
+                          if (response.data.url) {
+                            window.location.href = response.data.url;
+                          }
+                        } catch (error: any) {
+                          console.error('Failed to create portal session:', error);
+                          setMessage({ 
+                            type: 'error', 
+                            text: error.response?.data?.error || 'Failed to open subscription management. Please try again.' 
+                          });
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
+                    >
+                      Manage Payment Method in Stripe →
+                    </button>
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-center"
+                    >
+                      Cancel Subscription
+                    </button>
+                  </div>
+                  {showCancelConfirm && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 mb-4 font-medium">
+                        Are you sure you want to cancel your subscription?
+                      </p>
+                      <p className="text-sm text-yellow-700 mb-4">
+                        Your subscription will remain active until {formatDate(subscription.currentPeriodEnd)}. 
+                        You will continue to have full access until then. After that date, your subscription will not renew.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleCancelSubscription}
+                          disabled={canceling}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {canceling ? 'Canceling...' : 'Yes, Cancel Subscription'}
+                        </button>
+                        <button
+                          onClick={() => setShowCancelConfirm(false)}
+                          disabled={canceling}
+                          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                        >
+                          Keep Subscription
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 mt-2">
+                    <strong>Cancel Subscription:</strong> Cancel your subscription to prevent future renewals. You'll keep access until {formatDate(subscription.currentPeriodEnd)}.
+                    <br />
+                    <strong>Manage Payment Method:</strong> Update your payment method or view invoices in Stripe.
+                  </p>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/subscriptions/create-portal-session');
+                          if (response.data.url) {
+                            window.location.href = response.data.url;
+                          }
+                        } catch (error: any) {
+                          console.error('Failed to create portal session:', error);
+                          setMessage({ 
+                            type: 'error', 
+                            text: error.response?.data?.error || 'Failed to open subscription management. Please try again.' 
+                          });
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
+                    >
+                      Manage Payment Method in Stripe →
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Your subscription is scheduled to cancel at the end of the current period. You can reactivate it in Stripe if needed.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

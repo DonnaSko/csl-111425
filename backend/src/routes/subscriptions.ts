@@ -262,6 +262,7 @@ router.post('/sync-from-stripe', authenticate, async (req: AuthRequest, res) => 
 });
 
 // Cancel subscription (requires active subscription)
+// Allows cancellation anytime for future renewals - no 5-day restriction
 router.post('/cancel', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const subscription = await prisma.subscription.findFirst({
@@ -275,15 +276,8 @@ router.post('/cancel', authenticate, requireActiveSubscription, async (req: Auth
       return res.status(404).json({ error: 'No active subscription found' });
     }
 
-    // Check if cancellation is allowed (5+ days before renewal)
-    if (!canCancelSubscription(subscription.currentPeriodEnd)) {
-      return res.status(400).json({ 
-        error: 'Cancellation must be at least 5 days before renewal date',
-        currentPeriodEnd: subscription.currentPeriodEnd
-      });
-    }
-
-    // Cancel at period end in Stripe
+    // Allow cancellation anytime - subscription will cancel at period end
+    // This ensures users keep access until the end of their paid period
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true
     });
