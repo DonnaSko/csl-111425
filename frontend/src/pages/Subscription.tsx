@@ -123,44 +123,19 @@ const Subscription = () => {
     );
   }
 
-  const handleCancelSubscription = async () => {
-    if (!subscription?.currentPeriodEnd) {
-      alert('Unable to cancel: subscription information not available.');
-      return;
-    }
-
-    const canCancel = Math.ceil(
-      (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    ) >= 5;
-
-    if (!canCancel) {
-      const daysLeft = Math.ceil(
-        (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      alert(`Cancellation must be at least 5 days before renewal. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining.`);
-      return;
-    }
-
-    if (!confirm('Are you sure you want to cancel your subscription? Your subscription will remain active until the end of the current period.')) {
-      return;
-    }
-
+  const handleOpenStripePortal = async () => {
     try {
-      await api.post('/subscriptions/cancel');
-      alert('Subscription will be canceled at the end of the current period.');
-      await refreshSubscription();
+      const response = await api.post('/subscriptions/create-portal-session');
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
     } catch (error: any) {
-      console.error('Cancel subscription error:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to cancel subscription. Please try again or contact support.';
-      alert(errorMessage);
+      console.error('Failed to create portal session:', error);
+      alert(error.response?.data?.error || 'Failed to open subscription management. Please try again.');
     }
   };
 
   if (hasActiveSubscription) {
-    const canCancel = subscription?.currentPeriodEnd 
-      ? Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) >= 5
-      : false;
-
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
@@ -183,11 +158,23 @@ const Subscription = () => {
 
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Subscription Actions</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Manage Your Subscription</h3>
+                <p className="text-gray-600 mb-4">
+                  Use Stripe's secure customer portal to manage your subscription, update payment methods, view invoices, or cancel your subscription.
+                </p>
+                <button
+                  onClick={handleOpenStripePortal}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 w-full sm:w-auto"
+                >
+                  Open Stripe Customer Portal →
+                </button>
+              </div>
+
+              <div className="border-t pt-6 mt-6">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => navigate('/account-settings')}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                    className="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700"
                   >
                     Go to Account Settings
                   </button>
@@ -199,31 +186,6 @@ const Subscription = () => {
                   </button>
                 </div>
               </div>
-
-              {canCancel && !subscription?.cancelAtPeriodEnd && (
-                <div className="border-t pt-6 mt-6">
-                  <h3 className="text-lg font-semibold text-red-600 mb-3">Cancel Subscription</h3>
-                  <p className="text-gray-600 mb-4">
-                    You can cancel your subscription anytime before the renewal date. 
-                    After cancellation, you will have access until the end of the current period.
-                  </p>
-                  <button
-                    onClick={handleCancelSubscription}
-                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
-                  >
-                    Cancel Subscription
-                  </button>
-                </div>
-              )}
-
-              {!canCancel && subscription?.currentPeriodEnd && (
-                <div className="border-t pt-6 mt-6">
-                  <p className="text-gray-600 bg-gray-50 p-4 rounded-lg">
-                    Cancellation must be at least 5 days before renewal. 
-                    Please visit <a href="/account-settings" className="text-blue-600 hover:underline">Account Settings</a> to manage your subscription.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>

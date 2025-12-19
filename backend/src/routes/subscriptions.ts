@@ -382,7 +382,7 @@ router.post('/create-portal-session', authenticate, requireActiveSubscription, a
 
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
-      return_url: `${process.env.FRONTEND_URL}/dashboard`
+      return_url: `${process.env.FRONTEND_URL}/account-settings`
     });
 
     res.json({ url: session.url });
