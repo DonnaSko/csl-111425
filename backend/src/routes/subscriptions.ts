@@ -261,26 +261,56 @@ router.post('/sync-from-stripe', authenticate, async (req: AuthRequest, res) => 
   }
 });
 
-// Cancel subscription (requires active subscription)
+// Cancel subscription (allows active or trialing subscriptions)
 // Allows cancellation anytime for future renewals - no 5-day restriction
-router.post('/cancel', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
+// Paid users (active or trialing) can cancel future auto-renewals
+router.post('/cancel', authenticate, async (req: AuthRequest, res) => {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:266',message:'Cancel subscription endpoint called',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    // Find subscription with active or trialing status (paid users)
     const subscription = await prisma.subscription.findFirst({
       where: {
         userId: req.userId!,
-        status: 'active'
+        status: {
+          in: ['active', 'trialing']
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
     if (!subscription) {
-      return res.status(404).json({ error: 'No active subscription found' });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:277',message:'No active or trialing subscription found',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return res.status(404).json({ error: 'No active or trialing subscription found. Only paid users can cancel future subscriptions.' });
     }
+
+    // Check if subscription is already set to cancel
+    if (subscription.cancelAtPeriodEnd) {
+      return res.status(400).json({ 
+        error: 'Subscription is already set to cancel at the end of the current period',
+        currentPeriodEnd: subscription.currentPeriodEnd
+      });
+    }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:281',message:'Updating Stripe subscription to cancel at period end',data:{subscriptionId:subscription.id,stripeSubscriptionId:subscription.stripeSubscriptionId,currentPeriodEnd:subscription.currentPeriodEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Allow cancellation anytime - subscription will cancel at period end
     // This ensures users keep access until the end of their paid period
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true
     });
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:286',message:'Stripe subscription updated successfully, updating database',data:{subscriptionId:subscription.id},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Update in database
     await prisma.subscription.update({
@@ -291,11 +321,18 @@ router.post('/cancel', authenticate, requireActiveSubscription, async (req: Auth
       }
     });
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:297',message:'Subscription cancellation completed successfully',data:{subscriptionId:subscription.id,currentPeriodEnd:subscription.currentPeriodEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
     res.json({ 
       message: 'Subscription will be canceled at the end of the current period',
       currentPeriodEnd: subscription.currentPeriodEnd
     });
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:300',message:'Cancel subscription error',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'cancel-subscription',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     console.error('Cancel subscription error:', error);
     res.status(500).json({ error: 'Failed to cancel subscription' });
   }
@@ -366,21 +403,39 @@ router.post('/fix-subscription', authenticate, async (req: AuthRequest, res) => 
 
 router.post('/create-portal-session', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:389',message:'Create portal session endpoint called',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     const subscription = await prisma.subscription.findFirst({
       where: { userId: req.userId! }
     });
 
     if (!subscription) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:396',message:'No subscription found for portal session',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       return res.status(404).json({ error: 'No subscription found' });
     }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:400',message:'Creating Stripe billing portal session',data:{subscriptionId:subscription.id,stripeCustomerId:subscription.stripeCustomerId,returnUrl:`${process.env.FRONTEND_URL}/account-settings`},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
 
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
       return_url: `${process.env.FRONTEND_URL}/account-settings`
     });
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:405',message:'Stripe portal session created successfully',data:{hasUrl:!!session.url,urlLength:session.url?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
     res.json({ url: session.url });
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:410',message:'Portal session creation error',data:{error:error instanceof Error ? error.message : String(error),type:error instanceof Error ? error.constructor.name : typeof error},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     console.error('Portal session error:', error);
     res.status(500).json({ error: 'Failed to create portal session' });
   }
