@@ -14,11 +14,11 @@
 
 ### 1. Revoke Exposed GitHub Token (URGENT)
 
-The token `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` was exposed and needs to be revoked:
+An old GitHub token was exposed and has been revoked.
 
 1. Go to: https://github.com/settings/tokens
-2. Find the token (or revoke all tokens if unsure)
-3. Click "Revoke" next to the exposed token
+2. Find any old/unused tokens and revoke them
+3. Click "Revoke" next to any exposed tokens
 4. Create a new token if needed (see below)
 
 ### 2. Verify Repository is Private
