@@ -26,8 +26,6 @@ const AccountSettings = () => {
   const [exportingAll, setExportingAll] = useState(false);
   const [deleteRequested, setDeleteRequested] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [canceling, setCanceling] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -162,87 +160,6 @@ const AccountSettings = () => {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    setCanceling(true);
-    setMessage(null);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:148',message:'Cancel subscription initiated from AccountSettings',data:{userId:user?.id,subscriptionId:subscription?.id,hasSubscription:!!subscription},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
-    try {
-      // Step 1: Cancel subscription via API
-      const cancelResponse = await api.post('/subscriptions/cancel');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:156',message:'Cancel subscription API call successful',data:{currentPeriodEnd:cancelResponse.data.currentPeriodEnd,message:cancelResponse.data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      setShowCancelConfirm(false);
-      await refreshSubscription();
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:162',message:'Subscription refreshed after cancellation',data:{subscriptionStatus:subscription?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      // Step 2: Show success message acknowledging cancellation
-      const periodEndDate = formatDate(cancelResponse.data.currentPeriodEnd);
-      setMessage({ 
-        type: 'success', 
-        text: `✓ Future auto-renewals have been canceled. Your subscription will remain active until ${periodEndDate}, and you will continue to have full access until then. No future charges will be made after that date. Redirecting to Stripe to view your subscription details...` 
-      });
-      
-      // Step 3: Wait 2 seconds to show message, then redirect to Stripe portal
-      setTimeout(async () => {
-        try {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:175',message:'Creating Stripe portal session after cancellation',data:{userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
-          
-          const portalResponse = await api.post('/subscriptions/create-portal-session');
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:181',message:'Stripe portal session created successfully',data:{hasUrl:!!portalResponse.data.url},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
-          
-          if (portalResponse.data.url) {
-            window.location.href = portalResponse.data.url;
-          } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:187',message:'Stripe portal session missing URL',data:{response:portalResponse.data},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            setMessage({ 
-              type: 'error', 
-              text: 'Subscription canceled successfully, but failed to open Stripe portal. You can access it from Account Settings.' 
-            });
-          }
-        } catch (portalError: any) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:194',message:'Failed to create Stripe portal session',data:{error:portalError.response?.data?.error || portalError.message,status:portalError.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
-          console.error('Failed to create portal session:', portalError);
-          setMessage({ 
-            type: 'success', 
-            text: `✓ Future auto-renewals have been canceled successfully. Your subscription will remain active until ${periodEndDate}. You can view your subscription details in Stripe from Account Settings.` 
-          });
-        }
-      }, 2000);
-      
-    } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:207',message:'Cancel subscription API call failed',data:{error:error.response?.data?.error || error.message,status:error.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'account-settings-cancel',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      console.error('Cancel subscription failed:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || 'Failed to cancel subscription. Please try again or contact support.' 
-      });
-    } finally {
-      setCanceling(false);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -345,83 +262,59 @@ const AccountSettings = () => {
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button
                       onClick={async () => {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:303',message:'Manage Payment Method button clicked',data:{userId:user?.id,hasSubscription:!!subscription},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                        // #endregion
                         try {
                           const response = await api.post('/subscriptions/create-portal-session');
                           
-                          // #region agent log
-                          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:308',message:'Portal session API response received',data:{hasUrl:!!response.data.url,urlLength:response.data.url?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                          // #endregion
-                          
                           if (response.data.url) {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:312',message:'Redirecting to Stripe portal',data:{url:response.data.url},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                            // #endregion
                             window.location.href = response.data.url;
                           } else {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:316',message:'Portal session missing URL',data:{response:response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                            // #endregion
                             setMessage({ 
                               type: 'error', 
-                              text: 'Failed to open subscription management. No URL received from server.' 
+                              text: 'Failed to open Stripe portal. No URL received from server.' 
                             });
                           }
                         } catch (error: any) {
-                          // #region agent log
-                          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:323',message:'Portal session creation failed',data:{error:error.response?.data?.error || error.message,status:error.response?.status,code:error.response?.data?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                          // #endregion
                           console.error('Failed to create portal session:', error);
                           setMessage({ 
                             type: 'error', 
-                            text: error.response?.data?.error || 'Failed to open subscription management. Please try again.' 
+                            text: error.response?.data?.error || 'Failed to open Stripe portal. Please try again.' 
                           });
                         }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
                     >
-                      Manage Payment Method in Stripe →
+                      Manage Payment Method
                     </button>
                     <button
-                      onClick={() => setShowCancelConfirm(true)}
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/subscriptions/create-portal-session');
+                          
+                          if (response.data.url) {
+                            window.location.href = response.data.url;
+                          } else {
+                            setMessage({ 
+                              type: 'error', 
+                              text: 'Failed to open Stripe portal. No URL received from server.' 
+                            });
+                          }
+                        } catch (error: any) {
+                          console.error('Failed to create portal session:', error);
+                          setMessage({ 
+                            type: 'error', 
+                            text: error.response?.data?.error || 'Failed to open Stripe portal. Please try again.' 
+                          });
+                        }
+                      }}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-center"
                     >
-                      Cancel Future Auto-Renewals
+                      Cancel Subscription
                     </button>
                   </div>
-                  {showCancelConfirm && (
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-yellow-800 mb-4 font-medium">
-                        Cancel Future Auto-Renewals?
-                      </p>
-                      <p className="text-sm text-yellow-700 mb-4">
-                        This will cancel your subscription's automatic renewal. Your subscription will remain active until {formatDate(subscription.currentPeriodEnd)}. 
-                        You will continue to have full access until then. After that date, your subscription will not automatically renew and no future charges will be made.
-                      </p>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleCancelSubscription}
-                          disabled={canceling}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                        >
-                          {canceling ? 'Canceling...' : 'Yes, Cancel Future Renewals'}
-                        </button>
-                        <button
-                          onClick={() => setShowCancelConfirm(false)}
-                          disabled={canceling}
-                          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:opacity-50"
-                        >
-                          Keep Auto-Renewal
-                        </button>
-                      </div>
-                    </div>
-                  )}
                   <p className="text-sm text-gray-500 mt-2">
-                    <strong>Cancel Future Auto-Renewals:</strong> Stop automatic subscription renewals. You'll keep full access until {formatDate(subscription.currentPeriodEnd)}. No future charges will be made after that date.
+                    <strong>Manage Payment Method:</strong> Update your payment method, view invoices, or manage billing details in Stripe.
                     <br />
-                    <strong>Manage Payment Method:</strong> Update your payment method or view invoices in Stripe.
+                    <strong>Cancel Subscription:</strong> Cancel your subscription through Stripe. You'll keep access until the end of your current billing period.
                   </p>
                 </>
               ) : (
@@ -446,50 +339,34 @@ const AccountSettings = () => {
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button
                       onClick={async () => {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:387',message:'Manage Payment Method button clicked (canceled subscription)',data:{userId:user?.id,hasSubscription:!!subscription},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                        // #endregion
                         try {
                           const response = await api.post('/subscriptions/create-portal-session');
                           
-                          // #region agent log
-                          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:392',message:'Portal session API response received (canceled subscription)',data:{hasUrl:!!response.data.url,urlLength:response.data.url?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                          // #endregion
-                          
                           if (response.data.url) {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:396',message:'Redirecting to Stripe portal (canceled subscription)',data:{url:response.data.url},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                            // #endregion
                             window.location.href = response.data.url;
                           } else {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:400',message:'Portal session missing URL (canceled subscription)',data:{response:response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                            // #endregion
                             setMessage({ 
                               type: 'error', 
-                              text: 'Failed to open subscription management. No URL received from server.' 
+                              text: 'Failed to open Stripe portal. No URL received from server.' 
                             });
                           }
                         } catch (error: any) {
-                          // #region agent log
-                          fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountSettings.tsx:407',message:'Portal session creation failed (canceled subscription)',data:{error:error.response?.data?.error || error.message,status:error.response?.status,code:error.response?.data?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'manage-payment',hypothesisId:'B'})}).catch(()=>{});
-                          // #endregion
                           console.error('Failed to create portal session:', error);
                           setMessage({ 
                             type: 'error', 
-                            text: error.response?.data?.error || 'Failed to open subscription management. Please try again.' 
+                            text: error.response?.data?.error || 'Failed to open Stripe portal. Please try again.' 
                           });
                         }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
                     >
-                      Manage Payment Method in Stripe →
+                      Manage Subscription in Stripe
                     </button>
                   </div>
                   <p className="text-sm text-gray-500">
                     {subscription.cancelAtPeriodEnd 
-                      ? 'Your subscription is scheduled to cancel at the end of the current period. You can reactivate it in Stripe if needed.'
-                      : 'Use Stripe to manage your subscription settings.'}
+                      ? 'Your subscription is scheduled to cancel at the end of the current period. You can reactivate it or manage other settings in Stripe.'
+                      : 'Manage your subscription settings in Stripe.'}
                   </p>
                 </div>
               )}
