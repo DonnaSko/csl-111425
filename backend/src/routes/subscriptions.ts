@@ -401,43 +401,56 @@ router.post('/fix-subscription', authenticate, async (req: AuthRequest, res) => 
   }
 });
 
-router.post('/create-portal-session', authenticate, requireActiveSubscription, async (req: AuthRequest, res) => {
+// Create Stripe Customer Portal session
+// NOTE: This endpoint does NOT require an active subscription
+// This allows users to:
+// - Cancel future auto-renewals
+// - Reactivate canceled subscriptions
+// - Update payment methods
+// - View invoices and billing history
+router.post('/create-portal-session', authenticate, async (req: AuthRequest, res) => {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:389',message:'Create portal session endpoint called',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    console.log(`[Portal Session] Request from user ${req.userId}`);
     
     const subscription = await prisma.subscription.findFirst({
-      where: { userId: req.userId! }
+      where: { userId: req.userId! },
+      orderBy: { createdAt: 'desc' }
     });
 
-    if (!subscription) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:396',message:'No subscription found for portal session',data:{userId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      return res.status(404).json({ error: 'No subscription found' });
+    if (!subscription || !subscription.stripeCustomerId) {
+      console.error(`[Portal Session] No subscription or Stripe customer found for user ${req.userId}`);
+      return res.status(404).json({ 
+        error: 'No subscription found. Please subscribe first to manage your billing.',
+        code: 'NO_SUBSCRIPTION'
+      });
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:400',message:'Creating Stripe billing portal session',data:{subscriptionId:subscription.id,stripeCustomerId:subscription.stripeCustomerId,returnUrl:`${process.env.FRONTEND_URL}/account-settings`},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    console.log(`[Portal Session] Creating portal session for customer ${subscription.stripeCustomerId}`);
 
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
       return_url: `${process.env.FRONTEND_URL}/account-settings`
     });
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:405',message:'Stripe portal session created successfully',data:{hasUrl:!!session.url,urlLength:session.url?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    console.log(`[Portal Session] Successfully created portal session, URL length: ${session.url?.length || 0}`);
 
     res.json({ url: session.url });
-  } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions.ts:410',message:'Portal session creation error',data:{error:error instanceof Error ? error.message : String(error),type:error instanceof Error ? error.constructor.name : typeof error},timestamp:Date.now(),sessionId:'debug-session',runId:'portal-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    console.error('Portal session error:', error);
-    res.status(500).json({ error: 'Failed to create portal session' });
+  } catch (error: any) {
+    console.error('[Portal Session] Error:', error);
+    
+    // Handle specific Stripe errors
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        error: 'Unable to create billing portal session. Please contact support.',
+        code: 'STRIPE_ERROR',
+        details: error.message
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to create portal session. Please try again or contact support.',
+      code: 'PORTAL_ERROR'
+    });
   }
 });
 
