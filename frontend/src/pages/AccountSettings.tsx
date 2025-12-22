@@ -34,6 +34,23 @@ const AccountSettings = () => {
     fetchPreferences();
   }, []);
 
+  // Debug: Log subscription data when it changes
+  useEffect(() => {
+    if (subscription) {
+      console.log('📊 AccountSettings - Subscription data:', {
+        id: subscription.id,
+        status: subscription.status,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        canceledAt: subscription.canceledAt,
+        canCancel: subscription.canCancel,
+        fullObject: subscription
+      });
+    } else {
+      console.log('📊 AccountSettings - No subscription found');
+    }
+  }, [subscription]);
+
   // Check if user came from email link to manage subscription
   useEffect(() => {
     if (searchParams.get('action') === 'cancel' && subscription) {
@@ -268,6 +285,15 @@ const AccountSettings = () => {
         {/* Subscription Status */}
         <div id="subscription-section" className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">💳 Subscription Status</h2>
+          
+          {/* DEBUG: Always show subscription data */}
+          {subscription && (
+            <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
+              <strong>DEBUG:</strong> Status={subscription.status}, cancelAtPeriodEnd={String(subscription.cancelAtPeriodEnd)}, 
+              Should show button: {String((subscription.status === 'active' || subscription.status === 'trialing') && !subscription.cancelAtPeriodEnd)}
+            </div>
+          )}
+          
           {subscription ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -297,7 +323,24 @@ const AccountSettings = () => {
                 </div>
               )}
               {/* Show cancel option for active or trialing subscriptions that aren't already set to cancel */}
-              {!subscription.cancelAtPeriodEnd && (subscription.status === 'active' || subscription.status === 'trialing') ? (
+              {(() => {
+                // Handle null/undefined cancelAtPeriodEnd as false (not canceled)
+                const isCanceled = subscription.cancelAtPeriodEnd === true;
+                const isPaidUser = subscription.status === 'active' || subscription.status === 'trialing';
+                const shouldShow = isPaidUser && !isCanceled;
+                
+                // Debug logging
+                console.log('🔍 Subscription cancel button check:', {
+                  status: subscription.status,
+                  cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+                  isCanceled,
+                  isPaidUser,
+                  shouldShow,
+                  fullSubscription: subscription
+                });
+                
+                return shouldShow;
+              })() ? (
                 <>
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button
@@ -383,6 +426,23 @@ const AccountSettings = () => {
                 </>
               ) : (
                 <div className="space-y-3">
+                  {/* Show why cancel button is not available */}
+                  {subscription.status !== 'active' && subscription.status !== 'trialing' && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> Cancel button is only available for active or trialing subscriptions. 
+                        Current status: <strong>{subscription.status}</strong>
+                      </p>
+                    </div>
+                  )}
+                  {subscription.cancelAtPeriodEnd && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        Your subscription is already set to cancel at the end of the current period.
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button
                       onClick={async () => {
@@ -427,7 +487,9 @@ const AccountSettings = () => {
                     </button>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Your subscription is scheduled to cancel at the end of the current period. You can reactivate it in Stripe if needed.
+                    {subscription.cancelAtPeriodEnd 
+                      ? 'Your subscription is scheduled to cancel at the end of the current period. You can reactivate it in Stripe if needed.'
+                      : 'Use Stripe to manage your subscription settings.'}
                   </p>
                 </div>
               )}
