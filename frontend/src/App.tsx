@@ -15,6 +15,7 @@ import Todos from './pages/Todos';
 import GettingStarted from './pages/GettingStarted';
 import Subscription from './pages/Subscription';
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
+import CancelSubscription from './pages/CancelSubscription';
 import BuyingGroupMaintenance from './pages/BuyingGroupMaintenance';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -41,6 +42,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <SubscriptionSuccess />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/subscription/cancel"
+              element={
+                <PrivateRoute requireSubscription>
+                  <CancelSubscription />
                 </PrivateRoute>
               }
             />

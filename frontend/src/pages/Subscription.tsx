@@ -161,12 +161,20 @@ const Subscription = () => {
                 <p className="text-gray-600 mb-4">
                   Use Stripe's secure customer portal to manage your subscription, update payment methods, view invoices, or cancel your subscription.
                 </p>
-                <button
-                  onClick={handleOpenStripePortal}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 w-full sm:w-auto"
-                >
-                  Open Stripe Customer Portal →
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleOpenStripePortal}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                  >
+                    Open Stripe Customer Portal →
+                  </button>
+                  <button
+                    onClick={() => navigate('/subscription/cancel')}
+                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
+                  >
+                    Cancel Subscription
+                  </button>
+                </div>
               </div>
 
               <div className="border-t pt-6 mt-6">
