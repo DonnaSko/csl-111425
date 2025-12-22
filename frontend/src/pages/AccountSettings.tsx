@@ -13,7 +13,7 @@ interface UserPreferences {
 
 const AccountSettings = () => {
   const { user } = useAuth();
-  const { subscription, refreshSubscription } = useSubscription();
+  const { subscription } = useSubscription();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [preferences, setPreferences] = useState<UserPreferences>({
