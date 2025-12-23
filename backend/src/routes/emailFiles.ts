@@ -394,13 +394,13 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
         }
         
         // Create attachment object with buffer content
-        // Format expected by sendEmail: { filename, content: Buffer, contentType, contentDisposition }
-        // CRITICAL FIX: Ensure proper nodemailer attachment format
+        // Format expected by nodemailer: { filename, content: Buffer, contentType? }
+        // CRITICAL FIX: DO NOT set contentDisposition - nodemailer handles this automatically for Buffer content
+        // Manually setting contentDisposition can cause nodemailer to ignore attachments
         const attachmentObj = {
           filename: uploadedFile.originalname,
           content: fileContent, // Buffer from file read
-          contentType: contentType,
-          contentDisposition: 'attachment' // Explicitly set for nodemailer
+          contentType: contentType
         };
         
         // #region agent log

@@ -216,13 +216,13 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
         }
         
         // Create attachment object with content as Buffer
-        // Nodemailer format: { filename, content: Buffer, contentType?, contentDisposition? }
-        // CRITICAL FIX: Ensure proper format for nodemailer Buffer attachments
+        // Nodemailer format: { filename, content: Buffer, contentType? }
+        // CRITICAL FIX: DO NOT set contentDisposition - nodemailer handles this automatically for Buffer content
+        // Manually setting contentDisposition can cause nodemailer to ignore attachments
         const attachmentObj: any = {
           filename: att.filename,
           content: fileContent,
-          contentType: contentType || 'application/octet-stream',
-          contentDisposition: 'attachment' // Explicitly set attachment disposition
+          contentType: contentType || 'application/octet-stream'
         };
         
         console.log(`[Email] Created attachment object:`, {
@@ -252,12 +252,6 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
             console.error(`[Email] ✗ Failed to convert to Buffer:`, e);
             continue;
           }
-        }
-        
-        // CRITICAL FIX: Ensure Buffer is a proper Node.js Buffer instance
-        // Create a fresh Buffer copy to ensure nodemailer compatibility
-        if (Buffer.isBuffer(attachmentObj.content)) {
-          attachmentObj.content = Buffer.from(attachmentObj.content);
         }
         
         // Final validation: Ensure attachment has all required fields for nodemailer
@@ -343,8 +337,7 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
       filename: a.filename,
       hasContent: !!a.content,
       contentLength: a.content ? a.content.length : 0,
-      contentType: a.contentType || 'not set',
-      contentDisposition: a.contentDisposition || 'not set'
+      contentType: a.contentType || 'not set'
     })) : `INVALID: ${typeof mailOptions.attachments}`
   });
   console.log(`[Email] ==========================================`);
@@ -369,8 +362,7 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
       filename: a.filename,
       hasContent: !!a.content,
       contentLength: a.content ? a.content.length : 0,
-      contentType: a.contentType || 'not set',
-      contentDisposition: a.contentDisposition || 'not set'
+      contentType: a.contentType || 'not set'
     })));
   } else {
     console.error(`[Email] ✗ NO ATTACHMENTS IN mailOptions!`);
