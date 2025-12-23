@@ -402,8 +402,7 @@ model EmailFile {
   originalName String
   mimeType    String
   size        Int
-  path        String?  // Made optional - now using content instead
-  content     Bytes?   // NEW: Store file content in database
+  path        String
   description String?  // Optional description (e.g., "2025 Catalog", "Product Sheet A")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
