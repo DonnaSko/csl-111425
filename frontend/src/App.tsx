@@ -160,7 +160,7 @@ function App() {
             <Route
               path="/"
               element={
-                <PrivateRoute>
+                <PrivateRoute requireSubscription>
                   <Navigate to="/dashboard" replace />
                 </PrivateRoute>
               }
