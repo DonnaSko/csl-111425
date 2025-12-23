@@ -74,6 +74,16 @@ const upload = multer({
   }
 });
 
+// Separate multer instance for email sending endpoint - uses memoryStorage to get buffer directly
+// This is more efficient and reliable than reading from disk
+const uploadForEmail = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB max
+  }
+});
+
 router.use(authenticate);
 router.use(requireActiveSubscription);
 
@@ -253,7 +263,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
 // Send email with attachments - accepts multipart/form-data with files
 // NEW APPROACH: Files are sent directly in FormData, not fileIds
-router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
+// Uses memoryStorage to get buffer directly (more reliable than reading from disk)
+router.post('/send', uploadForEmail.array('files'), async (req: AuthRequest, res) => {
   try {
     // #region agent log
     debugLog('emailFiles.ts:254', 'Email send request received', {
@@ -331,33 +342,45 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
       console.log(`[Email] Processing file: ${uploadedFile.originalname}`);
       console.log(`[Email]   Size: ${Math.round(uploadedFile.size / 1024)} KB`);
       console.log(`[Email]   MIME type: ${uploadedFile.mimetype}`);
-      console.log(`[Email]   Path: ${uploadedFile.path}`);
+      console.log(`[Email]   Has buffer: ${!!uploadedFile.buffer}`);
+      console.log(`[Email]   Buffer size: ${uploadedFile.buffer ? uploadedFile.buffer.length : 0} bytes`);
       
       // #region agent log
-      debugLog('emailFiles.ts:330', 'Before reading file from disk', {
+      debugLog('emailFiles.ts:330', 'Processing uploaded file', {
         filename: uploadedFile.originalname,
-        path: uploadedFile.path,
-        pathExists: fs.existsSync(uploadedFile.path),
+        hasBuffer: !!uploadedFile.buffer,
+        bufferLength: uploadedFile.buffer ? uploadedFile.buffer.length : 0,
+        bufferIsBuffer: uploadedFile.buffer ? Buffer.isBuffer(uploadedFile.buffer) : false,
         size: uploadedFile.size
       }, 'HYP_A');
       // #endregion
       
       try {
-        // CRITICAL: Verify file exists before reading
-        if (!fs.existsSync(uploadedFile.path)) {
-          console.error(`[Email] ✗ File does not exist at path: ${uploadedFile.path}`);
+        // CRITICAL FIX: Use buffer directly from multer memoryStorage (more reliable)
+        // With memoryStorage, multer provides the buffer directly in req.file.buffer
+        let fileContent: Buffer;
+        
+        if (uploadedFile.buffer && Buffer.isBuffer(uploadedFile.buffer)) {
+          // Use buffer directly from multer (memoryStorage)
+          fileContent = uploadedFile.buffer;
+          console.log(`[Email]   ✓ Using buffer directly from multer (${fileContent.length} bytes)`);
+        } else if (uploadedFile.path && fs.existsSync(uploadedFile.path)) {
+          // Fallback: Read from disk if buffer not available (shouldn't happen with memoryStorage)
+          fileContent = fs.readFileSync(uploadedFile.path);
+          console.log(`[Email]   ✓ File read from disk (${fileContent.length} bytes) - fallback path`);
+        } else {
+          console.error(`[Email] ✗ No buffer or valid path available for file: ${uploadedFile.originalname}`);
+          console.error(`[Email] Has buffer: ${!!uploadedFile.buffer}, Has path: ${!!uploadedFile.path}`);
           // #region agent log
-          debugLog('emailFiles.ts:338', 'File not found on disk', {
+          debugLog('emailFiles.ts:338', 'File buffer/path not available', {
             filename: uploadedFile.originalname,
-            path: uploadedFile.path,
-            pathExists: false
+            hasBuffer: !!uploadedFile.buffer,
+            hasPath: !!uploadedFile.path,
+            pathExists: uploadedFile.path ? fs.existsSync(uploadedFile.path) : false
           }, 'HYP_B');
           // #endregion
           continue;
         }
-        
-        // Read file content as buffer
-        const fileContent = fs.readFileSync(uploadedFile.path);
         
         // CRITICAL FIX: Ensure we have a valid Buffer
         if (!Buffer.isBuffer(fileContent) || fileContent.length === 0) {
@@ -366,14 +389,13 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
           continue;
         }
         
-        console.log(`[Email]   ✓ File read successfully (${fileContent.length} bytes)`);
-        
         // #region agent log
-        debugLog('emailFiles.ts:348', 'File read from disk', {
+        debugLog('emailFiles.ts:348', 'File buffer ready', {
           filename: uploadedFile.originalname,
           contentLength: fileContent.length,
           contentIsBuffer: Buffer.isBuffer(fileContent),
-          bufferType: typeof fileContent
+          bufferType: typeof fileContent,
+          bufferSource: uploadedFile.buffer ? 'multer-buffer' : 'disk-read'
         }, 'HYP_B');
         // #endregion
         
@@ -397,9 +419,10 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
         // Format expected by nodemailer: { filename, content: Buffer, contentType? }
         // CRITICAL FIX: DO NOT set contentDisposition - nodemailer handles this automatically for Buffer content
         // Manually setting contentDisposition can cause nodemailer to ignore attachments
+        // Create a fresh Buffer copy to ensure nodemailer gets a clean reference
         const attachmentObj = {
           filename: uploadedFile.originalname,
-          content: fileContent, // Buffer from file read
+          content: Buffer.from(fileContent), // Fresh Buffer copy for nodemailer
           contentType: contentType
         };
         
@@ -558,17 +581,7 @@ router.post('/send', upload.array('files'), async (req: AuthRequest, res) => {
     console.log(`[Email] Sent email to ${to}${ccArray ? `, CC: ${ccArray.join(', ')}` : ''} - Message ID: ${messageId || 'N/A'}`);
     console.log(`[Email] Email sent with ${attachments.length} attachment(s) out of ${uploadedFiles.length} file(s) received`);
     
-    // Clean up temporary uploaded files
-    for (const uploadedFile of uploadedFiles) {
-      try {
-        if (fs.existsSync(uploadedFile.path)) {
-          fs.unlinkSync(uploadedFile.path);
-          console.log(`[Email] Cleaned up temporary file: ${uploadedFile.path}`);
-        }
-      } catch (error: any) {
-        console.warn(`[Email] Could not delete temporary file ${uploadedFile.path}:`, error.message);
-      }
-    }
+    // No cleanup needed with memoryStorage - files are in memory only, not on disk
     
     // Return detailed response including attachment info for debugging
     res.json({ 
