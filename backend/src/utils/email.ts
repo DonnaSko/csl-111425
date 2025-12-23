@@ -225,6 +225,20 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
           contentType: contentType || 'application/octet-stream'
         };
         
+        // #region agent log
+        debugLog('email.ts:222', 'Attachment object created for nodemailer', {
+          filename: attachmentObj.filename,
+          hasContent: !!attachmentObj.content,
+          contentLength: attachmentObj.content ? attachmentObj.content.length : 0,
+          contentType: attachmentObj.contentType,
+          contentIsBuffer: Buffer.isBuffer(attachmentObj.content),
+          objectKeys: Object.keys(attachmentObj),
+          hasPath: 'path' in attachmentObj,
+          hasContentDisposition: 'contentDisposition' in attachmentObj,
+          hasCid: 'cid' in attachmentObj
+        }, 'HYP_3');
+        // #endregion
+        
         console.log(`[Email] Created attachment object:`, {
           filename: attachmentObj.filename,
           hasContent: !!attachmentObj.content,
@@ -399,6 +413,23 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
   }, 'HYP_E');
   // #endregion
   
+  // #region agent log
+  debugLog('email.ts:402', 'BEFORE transporter.sendMail - final validation', {
+    mailOptionsKeys: Object.keys(mailOptions),
+    attachmentsType: typeof mailOptions.attachments,
+    attachmentsIsArray: Array.isArray(mailOptions.attachments),
+    attachmentsCount: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0,
+    firstAttachmentStructure: Array.isArray(mailOptions.attachments) && mailOptions.attachments && mailOptions.attachments.length > 0 ? {
+      keys: Object.keys(mailOptions.attachments[0] as any),
+      filename: (mailOptions.attachments[0] as any).filename,
+      hasContent: !!(mailOptions.attachments[0] as any).content,
+      contentType: typeof (mailOptions.attachments[0] as any).content,
+      contentIsBuffer: Buffer.isBuffer((mailOptions.attachments[0] as any).content),
+      allKeysPresent: ['filename', 'content'].every(k => k in (mailOptions.attachments![0] as any))
+    } : null
+  }, 'HYP_G');
+  // #endregion
+  
   const info = await transporter.sendMail(mailOptions);
   
   // #region agent log
@@ -408,7 +439,11 @@ export async function sendEmail({ to, cc, subject, text, html, attachments }: Se
     rejected: info.rejected,
     emailAttachmentsCount: emailAttachments.length,
     attachmentsInMailOptions: Array.isArray(mailOptions.attachments) ? mailOptions.attachments.length : 0,
-    responseKeys: Object.keys(info)
+    responseKeys: Object.keys(info),
+    hasEnvelope: !!info.envelope,
+    envelopeTo: info.envelope?.to,
+    responseType: typeof info,
+    infoKeys: Object.keys(info)
   }, 'HYP_F');
   // #endregion
   

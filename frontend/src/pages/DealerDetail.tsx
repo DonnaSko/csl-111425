@@ -297,101 +297,42 @@ const DealerDetail = () => {
       console.log('[Email] Email body length:', emailBody?.length || 0);
       console.log('[Email] Email CC:', emailCc);
       
-      // NEW APPROACH: Fetch actual files and send via FormData
+      // NEW APPROACH: Send fileIds directly - backend will read files from disk
+      // This avoids the 404 download issue completely
       // Verify selectedFileIds is an array and filter out any invalid values
       const fileIdsToSend = Array.isArray(selectedFileIds) 
         ? selectedFileIds.filter(id => id && typeof id === 'string' && id.trim().length > 0)
         : [];
       
       console.log('[Email] Selected file IDs:', fileIdsToSend);
-      
-      // Create FormData for multipart/form-data request
-      const formData = new FormData();
-      formData.append('to', dealer.email);
-      if (emailCc) {
-        formData.append('cc', emailCc);
-      }
-      formData.append('subject', emailSubject);
-      if (emailBody) {
-        formData.append('body', emailBody);
-      }
-      
-      // Fetch and append files to FormData
-      let filesFetched = 0;
-      if (fileIdsToSend.length > 0) {
-        console.log('[Email] Fetching', fileIdsToSend.length, 'file(s) to attach...');
-        
-        for (const fileId of fileIdsToSend) {
-          try {
-            // Find file metadata
-            const fileMeta = emailFiles.find(f => f.id === fileId);
-            if (!fileMeta) {
-              console.warn(`[Email] File metadata not found for ID: ${fileId}`);
-              continue;
-            }
-            
-            // Fetch file content
-            const token = localStorage.getItem('token');
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-            const fileResponse = await fetch(`${API_URL}/email-files/${fileId}/download`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-            
-            if (!fileResponse.ok) {
-              console.error(`[Email] Failed to fetch file ${fileMeta.originalName}:`, fileResponse.statusText);
-              continue;
-            }
-            
-            // Convert response to blob, then to File
-            const blob = await fileResponse.blob();
-            const file = new File([blob], fileMeta.originalName, { type: blob.type || 'application/octet-stream' });
-            
-            // Append to FormData
-            formData.append('files', file);
-            filesFetched++;
-            console.log(`[Email] ✓ Fetched and added file: ${fileMeta.originalName} (${Math.round(blob.size / 1024)} KB)`);
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:320',message:'File fetched and added to FormData',data:{fileId:fileId,filename:fileMeta.originalName,fileSize:blob.size,filesFetched:filesFetched},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_G'})}).catch(()=>{});
-            // #endregion
-          } catch (error: any) {
-            console.error(`[Email] Error fetching file ${fileId}:`, error);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:330',message:'Error fetching file',data:{fileId:fileId,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_H'})}).catch(()=>{});
-            // #endregion
-          }
-        }
-        
-        console.log(`[Email] Fetched ${filesFetched} of ${fileIdsToSend.length} file(s) for attachment`);
-      } else {
-        console.log('[Email] No files selected - sending email without attachments');
-      }
+      console.log('[Email] Sending fileIds directly to backend (no download step)');
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:340',message:'About to send FormData request',data:{filesFetched:filesFetched,fileIdsRequested:fileIdsToSend.length,formDataKeys:Array.from(formData.keys())},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_I'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:300',message:'Preparing to send email with fileIds',data:{fileIdsCount:fileIdsToSend.length,fileIds:fileIdsToSend,to:dealer.email,subject:emailSubject},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FILEID_FRONTEND_1'})}).catch(()=>{});
       // #endregion
       
-      console.log('[Email] Sending FormData with', filesFetched, 'file(s)');
-
-      // Send FormData using fetch directly - DO NOT set Content-Type header
-      // Browser will automatically set it with the correct boundary
       const token = localStorage.getItem('token');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:376',message:'About to send FormData - NO Content-Type header',data:{filesFetched:filesFetched,formDataKeys:Array.from(formData.keys()),hasContentTypeHeader:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_J'})}).catch(()=>{});
-      // #endregion
-      
+      // Send JSON with fileIds - backend will read files directly
       const emailResponse = await fetch(`${API_URL}/email-files/send`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-          // ✅ NO Content-Type header - browser sets it automatically with boundary
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          to: dealer.email,
+          cc: emailCc || undefined,
+          subject: emailSubject,
+          body: emailBody || undefined,
+          fileIds: fileIdsToSend.length > 0 ? fileIdsToSend : undefined
+        })
       });
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:330',message:'Email request sent',data:{status:emailResponse.status,statusText:emailResponse.statusText,ok:emailResponse.ok,fileIdsSent:fileIdsToSend.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FILEID_FRONTEND_2'})}).catch(()=>{});
+      // #endregion
       
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/c00397ca-8385-4dae-b4eb-3c3289803dbd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DealerDetail.tsx:390',message:'FormData request sent',data:{status:emailResponse.status,statusText:emailResponse.statusText,ok:emailResponse.ok,contentType:emailResponse.headers.get('content-type')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'FORMDATA_K'})}).catch(()=>{});
@@ -420,7 +361,7 @@ const DealerDetail = () => {
       }
 
       // Check attachment status from response
-      const attachmentsRequested = filesFetched; // Use files actually fetched, not just IDs
+      const attachmentsRequested = fileIdsToSend.length; // Number of file IDs sent
       const attachmentsSent = emailData.attachmentsSent || 0;
       
       if (attachmentsRequested > 0 && attachmentsSent === 0) {
