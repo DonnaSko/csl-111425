@@ -14,6 +14,7 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
 
   const navigation = [
+    { name: 'Apps', href: '/dashboard', icon: '📱' },
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
     { name: 'Getting Started', href: '/getting-started', icon: '❓' },
     { name: 'Capture Lead', href: '/capture-lead', icon: '📷' },
