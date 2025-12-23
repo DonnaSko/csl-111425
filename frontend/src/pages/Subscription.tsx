@@ -18,14 +18,6 @@ const Subscription = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redirect paid users to dashboard - they shouldn't be on subscription page
-  useEffect(() => {
-    if (!subscriptionLoading && hasActiveSubscription) {
-      // Paid user trying to access subscription page - redirect to dashboard
-      navigate('/dashboard', { replace: true });
-    }
-  }, [subscriptionLoading, hasActiveSubscription, navigate]);
-
   const subscriptionEndsOn = subscription?.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
     : null;
