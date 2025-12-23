@@ -15,7 +15,7 @@ interface SubscriptionContextType {
   subscription: Subscription | null;
   hasActiveSubscription: boolean;
   loading: boolean;
-  refreshSubscription: () => Promise<void>;
+  refreshSubscription: () => Promise<{ isActive: boolean; subscription: Subscription | null }>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -29,7 +29,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const refreshSubscription = async () => {
     if (!user) {
       setLoading(false);
-      return;
+      return { isActive: false, subscription: null };
     }
 
     try {
@@ -37,14 +37,17 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (response.data.hasSubscription) {
         setSubscription(response.data.subscription);
         setHasActiveSubscription(response.data.isActive);
+        return { isActive: response.data.isActive, subscription: response.data.subscription };
       } else {
         setSubscription(null);
         setHasActiveSubscription(false);
+        return { isActive: false, subscription: null };
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
       setSubscription(null);
       setHasActiveSubscription(false);
+      return { isActive: false, subscription: null };
     } finally {
       setLoading(false);
     }

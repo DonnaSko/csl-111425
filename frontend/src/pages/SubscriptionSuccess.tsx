@@ -11,9 +11,15 @@ const SubscriptionSuccess = () => {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       // Refresh subscription status
-      refreshSubscription().then(() => {
+      refreshSubscription().then((subStatus) => {
         setTimeout(() => {
-          navigate('/dashboard');
+          // Navigate to dashboard if subscription is active
+          if (subStatus.isActive) {
+            navigate('/dashboard');
+          } else {
+            // Fallback to subscription page if something went wrong
+            navigate('/subscription');
+          }
         }, 2000);
       });
     }

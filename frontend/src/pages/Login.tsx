@@ -19,22 +19,19 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Step 1: Complete login
       await login(email, password);
       
-      // Check subscription status directly from API before navigating
-      // This ensures we have the most up-to-date subscription info
-      const subResponse = await api.get('/subscriptions/status');
+      // Step 2: Refresh subscription data and get the actual status
+      const subStatus = await refreshSubscription();
       
-      // Also refresh the subscription context so it's in sync
-      await refreshSubscription();
-      
-      // Navigate based on actual subscription status
-      // If user has active subscription, go to dashboard
-      // Otherwise, they'll be redirected by PrivateRoute
-      if (subResponse.data.isActive) {
+      // Step 3: Navigate based on ACTUAL subscription status (not context state)
+      // This avoids race condition where context state hasn't updated yet
+      if (subStatus.isActive) {
+        // User has active subscription - go to dashboard
         navigate('/dashboard');
       } else {
-        // User doesn't have active subscription, redirect to subscription page
+        // User doesn't have active subscription - go to subscription page
         navigate('/subscription');
       }
     } catch (err: any) {

@@ -73,9 +73,11 @@ const Subscription = () => {
           daysLeft !== undefined
             ? ` You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining${readableEnd ? ` (through ${readableEnd})` : ''}.`
             : '';
-        await refreshSubscription();
+        const subStatus = await refreshSubscription();
         alert(`${errorMessage}${suffix} Redirecting you to your dashboard.`);
-        navigate('/dashboard');
+        if (subStatus.isActive) {
+          navigate('/dashboard');
+        }
       } else {
         alert(errorMessage);
         setLoadingPlan(null);
@@ -88,11 +90,11 @@ const Subscription = () => {
     try {
       const response = await api.post('/subscriptions/sync-from-stripe');
       
-      // Refresh subscription status
-      await refreshSubscription();
+      // Refresh subscription status and get actual result
+      const subStatus = await refreshSubscription();
       
-      // Check if subscription is active after sync
-      if (response.data.subscription?.isActive) {
+      // Check if subscription is active after sync (use direct API response)
+      if (response.data.subscription?.isActive || subStatus.isActive) {
         // If user has paid (subscription is active), redirect based on auth status
         // If user is authenticated, redirect to dashboard
         // If user is NOT authenticated, redirect to login (as requested)
