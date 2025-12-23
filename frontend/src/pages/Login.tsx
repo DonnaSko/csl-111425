@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { refreshSubscription } = useSubscription();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,6 +19,8 @@ const Login = () => {
 
     try {
       await login(email, password);
+      // Wait for subscription to load before navigating
+      await refreshSubscription();
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
