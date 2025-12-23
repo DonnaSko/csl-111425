@@ -127,8 +127,12 @@ router.get('/status', authenticate, async (req: AuthRequest, res) => {
     }
 
     const now = new Date();
+    
+    // Match the paywall middleware logic:
+    // User has access if they're within their paid period, regardless of cancelAtPeriodEnd status
+    // This matches how the paywall middleware works
     const isActive = 
-      subscription.status === 'active' && 
+      (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'canceled') && 
       subscription.currentPeriodEnd >= now;
 
     // If subscription expired, send a one-time expiry notification with resubscribe link
@@ -227,7 +231,7 @@ router.post('/sync-from-stripe', authenticate, async (req: AuthRequest, res) => 
     });
 
     const isActive = 
-      updated.status === 'active' && 
+      (updated.status === 'active' || updated.status === 'trialing' || updated.status === 'canceled') && 
       updated.currentPeriodEnd >= new Date();
 
     console.log(`Subscription synced:`, {
