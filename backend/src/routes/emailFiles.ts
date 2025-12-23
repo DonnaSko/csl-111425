@@ -103,7 +103,7 @@ router.get('/', async (req: AuthRequest, res) => {
       
       try {
         // Try the stored path
-        if (fs.existsSync(file.path)) {
+        if (file.path && fs.existsSync(file.path)) {
           exists = true;
           actualPath = file.path;
         } else {
@@ -113,8 +113,8 @@ router.get('/', async (req: AuthRequest, res) => {
             path.join(emailFilesDir, file.originalName),
             path.join(uploadDir, file.filename),
             path.join(uploadDir, file.originalName),
-            path.resolve(file.path),
-            path.resolve(emailFilesDir, path.basename(file.path))
+            file.path ? path.resolve(file.path) : '',
+            file.path ? path.resolve(emailFilesDir, path.basename(file.path)) : ''
           ];
           
           for (const possiblePath of possiblePaths) {
@@ -229,17 +229,17 @@ router.get('/:id/download', async (req: AuthRequest, res) => {
       filename: file.filename,
       originalName: file.originalName,
       storedPath: file.path,
-      storedPathExists: fs.existsSync(file.path),
+      storedPathExists: file.path ? fs.existsSync(file.path) : false,
       emailFilesDir: emailFilesDir,
       uploadDir: uploadDir
     }, 'DOWNLOAD_3');
     // #endregion
 
     // Try multiple path resolution strategies
-    let filePath = file.path;
-    const triedPaths = [filePath];
+    let filePath = file.path || '';
+    const triedPaths: string[] = filePath ? [filePath] : [];
     
-    if (!fs.existsSync(filePath)) {
+    if (!filePath || !fs.existsSync(filePath)) {
       // Try alternative paths
       const possiblePaths = [
         path.resolve(emailFilesDir, file.filename),
@@ -272,12 +272,12 @@ router.get('/:id/download', async (req: AuthRequest, res) => {
     }, 'DOWNLOAD_4');
     // #endregion
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath || !fs.existsSync(filePath)) {
       console.error(`[Email Files] File not found on disk: ${file.originalName}`);
       console.error(`[Email Files] Tried paths:`, triedPaths);
       return res.status(404).json({ 
         error: 'File not found on disk',
-        triedPaths: triedPaths.map(p => ({ path: p, exists: fs.existsSync(p) }))
+        triedPaths: triedPaths.filter(p => p).map(p => ({ path: p, exists: fs.existsSync(p) }))
       });
     }
 
@@ -323,8 +323,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    // Delete physical file
-    if (fs.existsSync(file.path)) {
+    // Delete physical file (if it exists on disk)
+    if (file.path && fs.existsSync(file.path)) {
       fs.unlinkSync(file.path);
     }
 
@@ -503,7 +503,7 @@ router.post('/send', uploadForEmail.array('files'), async (req: AuthRequest, res
               source: 'database'
             }, 'FILEID_DB');
             // #endregion
-          } else if (file.path && fs.existsSync(file.path)) {
+          } else if (file.path && typeof file.path === 'string' && fs.existsSync(file.path)) {
             // FALLBACK: Try to read from disk (for old files uploaded before database storage)
             fileContent = fs.readFileSync(file.path);
             console.log(`[Email] ⚠️  Using file content from disk (legacy): ${file.originalName} (${Math.round(fileContent.length / 1024)} KB)`);
@@ -715,8 +715,9 @@ router.post('/send', uploadForEmail.array('files'), async (req: AuthRequest, res
       }
     }
     
-    console.log(`[Email] ===== FORMDATA PROCESSING COMPLETE =====`);
-    console.log(`[Email] Total attachments prepared: ${attachments.length}`);
+      console.log(`[Email] ===== FORMDATA PROCESSING COMPLETE =====`);
+      console.log(`[Email] Total attachments prepared: ${attachments.length}`);
+    }
 
     console.log(`[Email] ===== ATTACHMENT SUMMARY =====`);
     console.log(`[Email] Files received in FormData: ${uploadedFiles.length}`);
