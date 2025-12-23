@@ -18,16 +18,13 @@ const Subscription = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Don't auto-redirect - show management options instead
-  // useEffect(() => {
-  //   if (!subscriptionLoading && hasActiveSubscription) {
-  //     setRedirecting(true);
-  //     const timer = setTimeout(() => {
-  //       navigate('/dashboard', { replace: true });
-  //     }, 1200);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [subscriptionLoading, hasActiveSubscription, navigate]);
+  // Redirect paid users to dashboard - they shouldn't be on subscription page
+  useEffect(() => {
+    if (!subscriptionLoading && hasActiveSubscription) {
+      // Paid user trying to access subscription page - redirect to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  }, [subscriptionLoading, hasActiveSubscription, navigate]);
 
   const subscriptionEndsOn = subscription?.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
