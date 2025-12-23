@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import api from '../services/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -19,9 +20,23 @@ const Login = () => {
 
     try {
       await login(email, password);
-      // Wait for subscription to load before navigating
+      
+      // Check subscription status directly from API before navigating
+      // This ensures we have the most up-to-date subscription info
+      const subResponse = await api.get('/subscriptions/status');
+      
+      // Also refresh the subscription context so it's in sync
       await refreshSubscription();
-      navigate('/dashboard');
+      
+      // Navigate based on actual subscription status
+      // If user has active subscription, go to dashboard
+      // Otherwise, they'll be redirected by PrivateRoute
+      if (subResponse.data.isActive) {
+        navigate('/dashboard');
+      } else {
+        // User doesn't have active subscription, redirect to subscription page
+        navigate('/subscription');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Login failed';
