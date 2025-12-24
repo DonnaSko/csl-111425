@@ -203,14 +203,6 @@ const AccountSettings = () => {
         <div id="subscription-section" className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">💳 Subscription Status</h2>
           
-          {/* DEBUG: Always show subscription data */}
-          {subscription && (
-            <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
-              <strong>DEBUG:</strong> Status={subscription.status}, cancelAtPeriodEnd={String(subscription.cancelAtPeriodEnd)}, 
-              Should show button: {String((subscription.status === 'active' || subscription.status === 'trialing') && !subscription.cancelAtPeriodEnd)}
-            </div>
-          )}
-          
           {subscription ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
