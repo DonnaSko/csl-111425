@@ -15,7 +15,8 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "admin": "tsx src/scripts/admin.ts"
   },
   "keywords": [],
   "author": "",
