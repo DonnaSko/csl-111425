@@ -113,13 +113,22 @@ const Login = () => {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <Link
               to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="block font-medium text-blue-600 hover:text-blue-500"
             >
               Don't have an account? Register
             </Link>
+            <div className="text-sm text-gray-600">
+              Need a subscription?{' '}
+              <Link
+                to="/subscription"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                View Plans & Pricing
+              </Link>
+            </div>
           </div>
         </form>
       </div>

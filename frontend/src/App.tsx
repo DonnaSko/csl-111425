@@ -31,11 +31,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route
               path="/subscription"
-              element={
-                <PrivateRoute>
-                  <Subscription />
-                </PrivateRoute>
-              }
+              element={<Subscription />}
             />
             <Route
               path="/subscription/success"
@@ -159,11 +155,7 @@ function App() {
             />
             <Route
               path="/"
-              element={
-                <PrivateRoute requireSubscription>
-                  <Navigate to="/dashboard" replace />
-                </PrivateRoute>
-              }
+              element={<Navigate to="/login" replace />}
             />
           </Routes>
         </SubscriptionProvider>
