@@ -119,6 +119,9 @@ const DealerDetail = () => {
   const [showCreateBuyingGroup, setShowCreateBuyingGroup] = useState(false);
   const [newBuyingGroupName, setNewBuyingGroupName] = useState('');
   
+  // Photo modal state
+  const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; originalName: string; tradeshowName?: string } | null>(null);
+  
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -2092,7 +2095,8 @@ const DealerDetail = () => {
                       <img 
                         src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
                         alt={photo.originalName}
-                        className="w-full h-32 object-cover rounded mb-2"
+                        className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
+                        onClick={() => setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName })}
                         onError={(e) => {
                           // Fallback if image fails to load
                           e.currentTarget.style.display = 'none';
@@ -3039,6 +3043,35 @@ const DealerDetail = () => {
                   {dealer.buyingGroup ? 'Change' : 'Assign'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Modal */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setSelectedPhoto(null)}
+              className="absolute top-2 right-2 bg-white rounded-full w-10 h-10 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg z-10"
+            >
+              ×
+            </button>
+            <img 
+              src={`${import.meta.env.VITE_API_URL}/uploads/photo/${selectedPhoto.id}`}
+              alt={selectedPhoto.originalName}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="mt-4 text-center text-white bg-black bg-opacity-50 rounded p-2">
+              <p className="font-semibold">{selectedPhoto.originalName}</p>
+              {selectedPhoto.tradeshowName && (
+                <p className="text-sm mt-1">📍 {selectedPhoto.tradeshowName}</p>
+              )}
             </div>
           </div>
         </div>
