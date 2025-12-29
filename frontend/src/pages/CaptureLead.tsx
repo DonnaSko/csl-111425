@@ -2,6 +2,18 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import Tesseract from 'tesseract.js';
+
+interface DealerMatch {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  score: number;
+}
 
 const CaptureLead = () => {
   const [formData, setFormData] = useState({
@@ -18,8 +30,12 @@ const CaptureLead = () => {
     status: 'Prospect',
   });
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [badgeImage, setBadgeImage] = useState<File | null>(null);
   const [badgePreview, setBadgePreview] = useState<string | null>(null);
+  const [matchingDealers, setMatchingDealers] = useState<DealerMatch[]>([]);
+  const [showMatches, setShowMatches] = useState(false);
+  const [extractedText, setExtractedText] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -68,31 +84,142 @@ const CaptureLead = () => {
     fileInputRef.current?.click();
   };
 
-  const handleBadgeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const performOCR = async (file: File): Promise<string> => {
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+      return text;
+    } catch (error) {
+      console.error('OCR error:', error);
+      return '';
+    }
+  };
+
+  const searchDealers = async (searchText: string): Promise<DealerMatch[]> => {
+    try {
+      // Extract potential company and contact names from OCR text
+      const lines = searchText.split('\n').filter(line => line.trim().length > 2);
+      const searchTerms = lines.slice(0, 5).join(' '); // Use first 5 lines
+      
+      // Search dealers using the fuzzy search endpoint
+      const response = await api.get('/dealers/search', {
+        params: { q: searchTerms, limit: 10 }
+      });
+      
+      return response.data.map((dealer: any) => ({
+        id: dealer.id,
+        companyName: dealer.companyName,
+        contactName: dealer.contactName,
+        email: dealer.email,
+        phone: dealer.phone,
+        city: dealer.city,
+        state: dealer.state,
+        score: dealer.score || 0
+      }));
+    } catch (error) {
+      console.error('Search error:', error);
+      return [];
+    }
+  };
+
+  const handleBadgeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setBadgeImage(file);
+    if (!file) return;
+
+    setBadgeImage(file);
+    setScanning(true);
+    setMatchingDealers([]);
+    setShowMatches(false);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBadgePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      // Perform OCR on the badge
+      const text = await performOCR(file);
+      setExtractedText(text);
+      console.log('Extracted text:', text);
+
+      if (text.trim()) {
+        // Search for matching dealers
+        const matches = await searchDealers(text);
+        console.log('Found matches:', matches);
+
+        if (matches.length === 1 && matches[0].score > 0.8) {
+          // Strong single match - go directly to dealer
+          navigate(`/dealers/${matches[0].id}`);
+          return;
+        } else if (matches.length > 0) {
+          // Multiple matches or weak match - show options
+          setMatchingDealers(matches);
+          setShowMatches(true);
+          
+          // Auto-fill form with extracted text if no strong matches
+          const lines = text.split('\n').filter(l => l.trim().length > 2);
+          if (lines.length > 0 && matches[0].score < 0.8) {
+            setFormData(prev => ({
+              ...prev,
+              companyName: lines[0]?.trim() || prev.companyName,
+              contactName: lines[1]?.trim() || prev.contactName,
+            }));
+          }
+        } else {
+          // No matches - auto-fill form with OCR data
+          const lines = text.split('\n').filter(l => l.trim().length > 2);
+          if (lines.length > 0) {
+            setFormData(prev => ({
+              ...prev,
+              companyName: lines[0]?.trim() || '',
+              contactName: lines[1]?.trim() || '',
+            }));
+          }
+        }
+      }
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBadgePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      // Scroll to form
+      // Scroll to results or form
       setTimeout(() => {
-        document.getElementById('dealer-form')?.scrollIntoView({ behavior: 'smooth' });
+        if (matchingDealers.length > 0) {
+          document.getElementById('dealer-matches')?.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          document.getElementById('dealer-form')?.scrollIntoView({ behavior: 'smooth' });
+        }
       }, 100);
+    } catch (error) {
+      console.error('Badge processing error:', error);
+    } finally {
+      setScanning(false);
     }
   };
 
   const handleClearBadge = () => {
     setBadgeImage(null);
     setBadgePreview(null);
+    setMatchingDealers([]);
+    setShowMatches(false);
+    setExtractedText('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleSelectDealer = (dealerId: string) => {
+    navigate(`/dealers/${dealerId}`);
+  };
+
+  const handleCreateNew = () => {
+    setShowMatches(false);
+    setTimeout(() => {
+      document.getElementById('dealer-form')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   return (
@@ -133,7 +260,9 @@ const CaptureLead = () => {
             {badgePreview && (
               <div className="mt-4 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-green-800">✓ Badge Photo Captured</span>
+                  <span className="text-sm font-medium text-green-800">
+                    {scanning ? '🔍 Scanning badge...' : '✓ Badge Photo Captured'}
+                  </span>
                   <button
                     type="button"
                     onClick={handleClearBadge}
@@ -147,12 +276,65 @@ const CaptureLead = () => {
                   alt="Badge preview" 
                   className="w-full max-w-md mx-auto rounded border border-gray-300"
                 />
-                <p className="text-xs text-gray-600 mt-2 text-center">
-                  Badge will be saved with dealer. Please fill in the information below.
-                </p>
+                {scanning && (
+                  <div className="mt-3 text-center">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-700"></div>
+                    <p className="text-xs text-gray-600 mt-2">Reading badge text...</p>
+                  </div>
+                )}
+                {!scanning && extractedText && (
+                  <p className="text-xs text-gray-600 mt-2 text-center">
+                    {matchingDealers.length > 0 
+                      ? `Found ${matchingDealers.length} possible match${matchingDealers.length > 1 ? 'es' : ''} - choose below`
+                      : 'No matches found - fill in form below'}
+                  </p>
+                )}
               </div>
             )}
           </div>
+
+          {/* Matching Dealers Section */}
+          {showMatches && matchingDealers.length > 0 && (
+            <div id="dealer-matches" className="mb-6 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-3">
+                🎯 Found {matchingDealers.length} Possible Match{matchingDealers.length > 1 ? 'es' : ''}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Is this the dealer you scanned? Click to view their profile:
+              </p>
+              <div className="space-y-2">
+                {matchingDealers.map((dealer) => (
+                  <button
+                    key={dealer.id}
+                    onClick={() => handleSelectDealer(dealer.id)}
+                    className="w-full text-left p-3 bg-white border border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">{dealer.companyName}</p>
+                        {dealer.contactName && (
+                          <p className="text-sm text-gray-600">{dealer.contactName}</p>
+                        )}
+                        <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                          {dealer.city && dealer.state && (
+                            <span>📍 {dealer.city}, {dealer.state}</span>
+                          )}
+                          {dealer.phone && <span>📞 {dealer.phone}</span>}
+                        </div>
+                      </div>
+                      <span className="text-blue-600 text-sm font-medium">View →</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleCreateNew}
+                className="w-full mt-3 p-3 bg-white border-2 border-dashed border-gray-400 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium text-gray-700"
+              >
+                ➕ None of these - Create New Dealer
+              </button>
+            </div>
+          )}
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
