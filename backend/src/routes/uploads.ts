@@ -248,6 +248,9 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
       return res.status(404).json({ error: 'Dealer not found' });
     }
 
+    // Read file content into buffer for database storage
+    const fileContent = fs.readFileSync(req.file.path);
+
     // Parse date properly - if date is provided, use it; otherwise default to today
     let recordingDate: Date | null = null;
     if (req.body.date) {
@@ -277,16 +280,20 @@ router.post('/recording/:dealerId', audioUpload.single('recording'), async (req:
         mimeType: req.file.mimetype,
         size: req.file.size,
         path: req.file.path,
+        content: fileContent, // Store in database
         duration: req.body.duration ? parseInt(req.body.duration) : null,
         date: recordingDate,
         tradeshowName: req.body.tradeshowName || null
       }
     });
 
+    // Clean up the temporary file
+    fs.unlinkSync(req.file.path);
+
     res.status(201).json(recording);
   } catch (error) {
     console.error('Upload recording error:', error);
-    if (req.file) {
+    if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ error: 'Failed to upload recording' });
@@ -309,41 +316,52 @@ router.get('/recording/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Recording not found' });
     }
 
-    // Check if file exists
-    const filePath = path.resolve(recording.path);
-    if (!fs.existsSync(filePath)) {
-      console.error(`Recording file not found: ${filePath}`);
-      return res.status(404).json({ error: 'Recording file not found' });
+    // Try to get content from database first (new method)
+    if (recording.content) {
+      const mimeType = recording.mimeType || 'audio/webm';
+      const buffer = Buffer.from(recording.content);
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(recording.originalName)}"`);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      
+      return res.send(buffer);
     }
 
-    // Get file stats to verify it's readable
-    const stats = fs.statSync(filePath);
-    if (stats.size === 0) {
-      console.error(`Recording file is empty: ${filePath}`);
-      return res.status(404).json({ error: 'Recording file is empty' });
-    }
+    // Fallback to file system (for old recordings uploaded before this fix)
+    if (recording.path) {
+      const filePath = path.resolve(recording.path);
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (stats.size > 0) {
+          const mimeType = recording.mimeType || 'audio/webm';
+          res.setHeader('Content-Type', mimeType);
+          res.setHeader('Content-Length', stats.size);
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(recording.originalName)}"`);
+          res.setHeader('Accept-Ranges', 'bytes');
+          res.setHeader('Cache-Control', 'public, max-age=3600');
 
-    // Set appropriate headers before sending
-    const mimeType = recording.mimeType || 'audio/webm';
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Length', stats.size);
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(recording.originalName)}"`);
-    res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+          const fileStream = fs.createReadStream(filePath);
+          
+          fileStream.on('error', (err) => {
+            console.error('Error reading recording file:', err);
+            if (!res.headersSent) {
+              res.status(500).json({ error: 'Failed to read recording file' });
+            } else {
+              res.end();
+            }
+          });
 
-    // Read and send file as stream for better reliability
-    const fileStream = fs.createReadStream(filePath);
-    
-    fileStream.on('error', (err) => {
-      console.error('Error reading recording file:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to read recording file' });
-      } else {
-        res.end();
+          return fileStream.pipe(res);
+        }
       }
-    });
+    }
 
-    fileStream.pipe(res);
+    // If we get here, recording exists in database but file content is not available
+    console.error(`Recording ${req.params.id} has no content in database or disk`);
+    return res.status(404).json({ error: 'Recording file content not available' });
   } catch (error) {
     console.error('Get recording error:', error);
     if (!res.headersSent) {

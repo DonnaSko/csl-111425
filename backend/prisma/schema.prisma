@@ -155,7 +155,8 @@ model VoiceRecording {
   originalName  String
   mimeType      String
   size          Int
-  path          String
+  path          String?   // Made optional, using content instead
+  content       Bytes?    // Store audio file in database
   duration      Int?      // in seconds
   date          DateTime? // Date associated with the recording
   tradeshowName String?   // Name of the tradeshow

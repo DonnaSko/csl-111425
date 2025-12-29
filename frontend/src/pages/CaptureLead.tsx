@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
@@ -18,6 +18,9 @@ const CaptureLead = () => {
     status: 'Prospect',
   });
   const [loading, setLoading] = useState(false);
+  const [badgeImage, setBadgeImage] = useState<File | null>(null);
+  const [badgePreview, setBadgePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -33,7 +36,25 @@ const CaptureLead = () => {
 
     try {
       const response = await api.post('/dealers', formData);
-      navigate(`/dealers/${response.data.id}`);
+      const dealerId = response.data.id;
+      
+      // If badge image was captured, upload it
+      if (badgeImage && dealerId) {
+        try {
+          const formData = new FormData();
+          formData.append('photo', badgeImage);
+          formData.append('type', 'badge');
+          
+          await api.post(`/uploads/photo/${dealerId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } catch (error) {
+          console.error('Failed to upload badge photo:', error);
+          // Continue anyway - dealer was created
+        }
+      }
+      
+      navigate(`/dealers/${dealerId}`);
     } catch (error: any) {
       console.error('Failed to create dealer:', error);
       alert(error.response?.data?.error || 'Failed to create dealer');
@@ -43,8 +64,35 @@ const CaptureLead = () => {
   };
 
   const handleScanBadge = () => {
-    // TODO: Implement badge scanning with OCR
-    alert('Badge scanning feature coming soon. For now, please enter dealer information manually.');
+    // Trigger the hidden file input
+    fileInputRef.current?.click();
+  };
+
+  const handleBadgeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBadgeImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBadgePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      // Scroll to form
+      setTimeout(() => {
+        document.getElementById('dealer-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  const handleClearBadge = () => {
+    setBadgeImage(null);
+    setBadgePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -64,13 +112,46 @@ const CaptureLead = () => {
 
           {/* Scan Badge Option */}
           <div className="mb-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleBadgeCapture}
+              className="hidden"
+            />
             <button
+              type="button"
               onClick={handleScanBadge}
               className="w-full border-2 border-green-300 rounded-lg p-4 sm:p-6 text-left hover:bg-green-50 transition-colors"
             >
               <span className="text-xl sm:text-2xl mr-3">📷</span>
-              <span className="text-sm sm:text-base font-medium">Scan Badge to Auto-Fill Information</span>
+              <span className="text-sm sm:text-base font-medium">Scan Badge / Take Photo</span>
             </button>
+            
+            {/* Badge Preview */}
+            {badgePreview && (
+              <div className="mt-4 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-green-800">✓ Badge Photo Captured</span>
+                  <button
+                    type="button"
+                    onClick={handleClearBadge}
+                    className="text-xs text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <img 
+                  src={badgePreview} 
+                  alt="Badge preview" 
+                  className="w-full max-w-md mx-auto rounded border border-gray-300"
+                />
+                <p className="text-xs text-gray-600 mt-2 text-center">
+                  Badge will be saved with dealer. Please fill in the information below.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="relative my-6">
@@ -78,12 +159,12 @@ const CaptureLead = () => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-xs sm:text-sm">
-              <span className="px-2 bg-white text-gray-500">— OR —</span>
+              <span className="px-2 bg-white text-gray-500">— {badgePreview ? 'ENTER INFO' : 'OR ENTER MANUALLY'} —</span>
             </div>
           </div>
 
           {/* Manual Entry Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id="dealer-form" onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Company Name *
