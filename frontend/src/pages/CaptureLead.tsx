@@ -84,12 +84,74 @@ const CaptureLead = () => {
     fileInputRef.current?.click();
   };
 
+  const preprocessImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      img.onload = () => {
+        try {
+          // Set canvas size
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          if (!ctx) {
+            resolve(URL.createObjectURL(file));
+            return;
+          }
+          
+          // Draw original image
+          ctx.drawImage(img, 0, 0);
+          
+          // Get image data
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          // Convert to grayscale and increase contrast
+          for (let i = 0; i < data.length; i += 4) {
+            // Grayscale
+            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            
+            // Increase contrast (threshold)
+            const contrast = gray > 128 ? 255 : 0;
+            
+            data[i] = contrast;     // Red
+            data[i + 1] = contrast; // Green
+            data[i + 2] = contrast; // Blue
+          }
+          
+          // Put processed image back
+          ctx.putImageData(imageData, 0, 0);
+          
+          // Convert to blob URL
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(URL.createObjectURL(blob));
+            } else {
+              resolve(URL.createObjectURL(file));
+            }
+          });
+        } catch (error) {
+          console.error('Image preprocessing error:', error);
+          resolve(URL.createObjectURL(file));
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(URL.createObjectURL(file));
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const performOCR = async (file: File): Promise<string> => {
     try {
-      // Preprocess image for better OCR
-      const imageUrl = URL.createObjectURL(file);
+      // Preprocess image for better OCR (grayscale + contrast)
+      const processedImageUrl = await preprocessImage(file);
       
-      const { data: { text } } = await Tesseract.recognize(imageUrl, 'eng', {
+      const { data: { text } } = await Tesseract.recognize(processedImageUrl, 'eng', {
         logger: (m) => {
           if (m.status === 'recognizing text') {
             console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
@@ -97,7 +159,7 @@ const CaptureLead = () => {
         }
       });
       
-      URL.revokeObjectURL(imageUrl);
+      URL.revokeObjectURL(processedImageUrl);
       
       // Clean up the text - remove lines with too many special characters
       const lines = text.split('\n')
@@ -106,14 +168,15 @@ const CaptureLead = () => {
           // Remove lines that are too short or too long
           if (line.length < 2 || line.length > 100) return false;
           
-          // Count alphanumeric characters
-          const alphaNum = line.replace(/[^a-zA-Z0-9]/g, '').length;
+          // Count alphanumeric and space characters
+          const goodChars = line.replace(/[^a-zA-Z0-9\s]/g, '').length;
           const total = line.length;
           
-          // Keep lines that are at least 50% alphanumeric
-          return alphaNum / total >= 0.5;
+          // Keep lines that are at least 60% good characters
+          return goodChars / total >= 0.6;
         });
       
+      console.log('OCR lines after filtering:', lines);
       return lines.join('\n');
     } catch (error) {
       console.error('OCR error:', error);
@@ -131,29 +194,26 @@ const CaptureLead = () => {
       // Look for name patterns - usually names are in ALL CAPS or Title Case on badges
       const nameLines = lines.filter(line => {
         // Check if line looks like a name (mostly letters, some spaces)
-        const hasLetters = /[A-Za-z]/.test(line);
-        const hasNumbers = /\d/.test(line);
-        // Prefer lines without numbers (names usually don't have numbers)
-        return hasLetters && !hasNumbers && line.length >= 3 && line.length <= 50;
+        const lettersAndSpaces = line.replace(/[^a-zA-Z\s]/g, '');
+        const ratio = lettersAndSpaces.length / line.length;
+        return ratio > 0.75 && line.length >= 3 && line.length <= 60;
       });
       
-      // Use the first few name-like lines for search
-      const searchTerms = nameLines.slice(0, 5).join(' ');
+      // Use all name-like lines for comprehensive search
+      const searchTerms = nameLines.length > 0 
+        ? nameLines.join(' ') 
+        : lines.slice(0, 3).join(' ');
       
-      if (!searchTerms.trim()) {
-        // Fallback to all lines if no name-like lines found
-        const fallbackTerms = lines.slice(0, 3).join(' ');
-        if (!fallbackTerms.trim()) return [];
-      }
+      if (!searchTerms.trim()) return [];
       
-      console.log('Searching with terms:', searchTerms || lines.slice(0, 3).join(' '));
+      console.log('Searching dealers with:', searchTerms);
       
       // Search dealers using the fuzzy search endpoint
       const response = await api.get('/dealers/search', {
-        params: { q: searchTerms || lines.slice(0, 3).join(' '), limit: 10 }
+        params: { q: searchTerms, limit: 10 }
       });
       
-      return response.data.map((dealer: any) => ({
+      const matches = response.data.map((dealer: any) => ({
         id: dealer.id,
         companyName: dealer.companyName,
         contactName: dealer.contactName,
@@ -163,6 +223,9 @@ const CaptureLead = () => {
         state: dealer.state,
         score: dealer.score || 0
       }));
+      
+      console.log('Found dealers:', matches);
+      return matches;
     } catch (error) {
       console.error('Search error:', error);
       return [];
@@ -197,8 +260,22 @@ const CaptureLead = () => {
         console.log('Found matches:', matches);
 
         if (matches.length === 1 && matches[0].score > 0.8) {
-          // Strong single match - go directly to dealer
-          navigate(`/dealers/${matches[0].id}`);
+          // Strong single match - save badge and go directly to dealer
+          const dealerId = matches[0].id;
+          
+          try {
+            const uploadFormData = new FormData();
+            uploadFormData.append('photo', file);
+            uploadFormData.append('type', 'badge');
+            
+            await api.post(`/uploads/photo/${dealerId}`, uploadFormData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+          } catch (error) {
+            console.error('Failed to upload badge photo:', error);
+          }
+          
+          navigate(`/dealers/${dealerId}`);
           return;
         } else if (matches.length > 0) {
           // Multiple matches or weak match - show options
@@ -215,22 +292,36 @@ const CaptureLead = () => {
           // Look for lines that look like names (mostly letters, proper length)
           const nameLines = lines.filter(line => {
             const lettersOnly = line.replace(/[^a-zA-Z\s]/g, '');
-            return lettersOnly.length >= 3 && 
-                   lettersOnly.length / line.length > 0.7 && // Mostly letters
-                   line.length <= 50; // Not too long
+            const hasMultipleWords = line.trim().split(/\s+/).length >= 2;
+            return lettersOnly.length >= 5 && 
+                   lettersOnly.length / line.length > 0.75 && // Mostly letters
+                   line.length <= 60 && // Not too long
+                   hasMultipleWords; // At least 2 words
           });
           
-          // First name-like line is usually the person's name
-          if (nameLines.length > 0) {
-            contactName = nameLines[0].trim();
-          }
+          console.log('Name-like lines:', nameLines);
           
-          // Second name-like line or longest line might be company
-          if (nameLines.length > 1) {
-            companyName = nameLines[1].trim();
-          } else if (lines.length > 0) {
-            // Use the longest line as company name
-            companyName = lines.reduce((a, b) => a.length > b.length ? a : b).trim();
+          // Badge structure is usually:
+          // Line 1: First name only (short)
+          // Line 2: Full name (2-3 words)
+          // Line 3: Company name (longer, 2+ words)
+          
+          if (nameLines.length >= 2) {
+            // Sort by length - longer lines are usually company names
+            const sorted = [...nameLines].sort((a, b) => b.length - a.length);
+            companyName = sorted[0].trim(); // Longest = company
+            contactName = sorted[sorted.length - 1].trim(); // Shortest = person's name
+          } else if (nameLines.length === 1) {
+            contactName = nameLines[0].trim();
+            // Look for any other reasonable line for company
+            const otherLines = lines.filter(l => l.length > 5 && l.length <= 60);
+            if (otherLines.length > 0) {
+              companyName = otherLines[0].trim();
+            }
+          } else if (lines.length >= 2) {
+            // Fallback: use first two lines
+            contactName = lines[0].trim();
+            companyName = lines[1].trim();
           }
           
           setFormData(prev => ({
@@ -267,7 +358,23 @@ const CaptureLead = () => {
     }
   };
 
-  const handleSelectDealer = (dealerId: string) => {
+  const handleSelectDealer = async (dealerId: string) => {
+    // If badge image exists, upload it to this dealer first
+    if (badgeImage) {
+      try {
+        const formData = new FormData();
+        formData.append('photo', badgeImage);
+        formData.append('type', 'badge');
+        
+        await api.post(`/uploads/photo/${dealerId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (error) {
+        console.error('Failed to upload badge photo:', error);
+        // Continue anyway
+      }
+    }
+    
     navigate(`/dealers/${dealerId}`);
   };
 
