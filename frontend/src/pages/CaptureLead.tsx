@@ -199,60 +199,119 @@ const CaptureLead = () => {
         return ratio > 0.75 && line.length >= 3 && line.length <= 60;
       });
       
-      // Use all name-like lines for comprehensive search
-      const searchTerms = nameLines.length > 0 
-        ? nameLines.join(' ') 
-        : lines.slice(0, 3).join(' ');
+      console.log('Name lines from OCR:', nameLines);
       
-      if (!searchTerms.trim()) return [];
+      // Search strategy: Try individual name lines first for better matches
+      const allMatches = new Map(); // Use Map to deduplicate by dealer ID
       
-      console.log('Searching dealers with:', searchTerms);
-      
-      // Use the CORRECT endpoint: /dealers with search parameter
-      const response = await api.get('/dealers', {
-        params: { 
-          search: searchTerms,
-          limit: 10 
+      // Search each name line individually (better matches)
+      for (const nameLine of nameLines) {
+        if (nameLine.trim().length < 3) continue;
+        
+        try {
+          console.log('Searching for:', nameLine);
+          const response = await api.get('/dealers', {
+            params: { 
+              search: nameLine,
+              limit: 20
+            }
+          });
+          
+          const dealersArray = response.data.dealers || response.data;
+          if (Array.isArray(dealersArray)) {
+            dealersArray.forEach(dealer => {
+              if (!allMatches.has(dealer.id)) {
+                allMatches.set(dealer.id, {
+                  ...dealer,
+                  searchTerm: nameLine // Track which term found this dealer
+                });
+              }
+            });
+          }
+        } catch (error) {
+          console.error(`Search error for "${nameLine}":`, error);
         }
-      });
-      
-      // The response is { dealers: [...], total: N }
-      const dealersArray = response.data.dealers || response.data;
-      
-      if (!Array.isArray(dealersArray)) {
-        console.error('Unexpected response format:', response.data);
-        return [];
       }
       
-      // Calculate match scores based on how well the search terms match
-      const matches = dealersArray.map((dealer: any) => {
+      // If no matches from individual lines, try combined search
+      if (allMatches.size === 0 && nameLines.length > 0) {
+        const combinedSearch = nameLines.join(' ');
+        console.log('Trying combined search:', combinedSearch);
+        
+        try {
+          const response = await api.get('/dealers', {
+            params: { 
+              search: combinedSearch,
+              limit: 20
+            }
+          });
+          
+          const dealersArray = response.data.dealers || response.data;
+          if (Array.isArray(dealersArray)) {
+            dealersArray.forEach(dealer => {
+              if (!allMatches.has(dealer.id)) {
+                allMatches.set(dealer.id, {
+                  ...dealer,
+                  searchTerm: combinedSearch
+                });
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Combined search error:', error);
+        }
+      }
+      
+      if (allMatches.size === 0) return [];
+      
+      // Calculate match scores with MUCH higher priority for full name matches
+      const matches = Array.from(allMatches.values()).map(dealer => {
         let score = 0;
-        const searchLower = searchTerms.toLowerCase();
+        const searchLower = (dealer.searchTerm || '').toLowerCase();
+        const companyLower = (dealer.companyName || '').toLowerCase();
+        const contactLower = (dealer.contactName || '').toLowerCase();
         
-        // Higher score for company name matches
-        if (dealer.companyName && dealer.companyName.toLowerCase().includes(searchLower)) {
-          score += 0.5;
-        }
-        
-        // Higher score for contact name matches  
-        if (dealer.contactName && dealer.contactName.toLowerCase().includes(searchLower)) {
-          score += 0.5;
-        }
-        
-        // Check individual words
-        const searchWords = searchLower.split(/\s+/);
-        for (const word of searchWords) {
-          if (word.length < 3) continue;
-          if (dealer.companyName && dealer.companyName.toLowerCase().includes(word)) {
-            score += 0.2;
+        // HIGHEST PRIORITY: Exact or very close contact name match
+        if (contactLower && searchLower) {
+          if (contactLower === searchLower) {
+            score += 10; // Exact match = top priority
+          } else if (contactLower.includes(searchLower) || searchLower.includes(contactLower)) {
+            score += 8; // Contains match
           }
-          if (dealer.contactName && dealer.contactName.toLowerCase().includes(word)) {
-            score += 0.2;
+          
+          // Check word-by-word match for full names
+          const searchWords = searchLower.split(/\s+/);
+          const contactWords = contactLower.split(/\s+/);
+          
+          // If all search words are in contact name = very high score
+          const allWordsMatch = searchWords.every((sw: string) => 
+            contactWords.some((cw: string) => cw.includes(sw) || sw.includes(cw))
+          );
+          if (allWordsMatch && searchWords.length >= 2) {
+            score += 7; // Full name match (e.g., "RYAN SKOLNICK" matches "Ryan Skolnick")
           }
         }
         
-        // Cap at 1.0
-        score = Math.min(score, 1.0);
+        // High priority: Company name match
+        if (companyLower && searchLower) {
+          if (companyLower === searchLower) {
+            score += 5;
+          } else if (companyLower.includes(searchLower) || searchLower.includes(companyLower)) {
+            score += 3;
+          }
+        }
+        
+        // Check against all OCR name lines for additional scoring
+        for (const nameLine of nameLines) {
+          const nameLineLower = nameLine.toLowerCase();
+          
+          if (contactLower && contactLower.includes(nameLineLower)) {
+            score += 2;
+          }
+          if (companyLower && companyLower.includes(nameLineLower)) {
+            score += 1;
+          }
+        }
         
         return {
           id: dealer.id,
@@ -266,11 +325,15 @@ const CaptureLead = () => {
         };
       });
       
-      // Sort by score descending
+      // Sort by score descending (highest first)
       matches.sort((a, b) => b.score - a.score);
       
-      console.log('Found dealers:', matches);
-      return matches;
+      console.log('Scored matches:', matches.map(m => ({ 
+        name: m.contactName || m.companyName, 
+        score: m.score 
+      })));
+      
+      return matches.slice(0, 10); // Top 10 matches
     } catch (error) {
       console.error('Search error:', error);
       return [];
