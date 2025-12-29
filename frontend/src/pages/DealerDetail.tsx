@@ -2051,12 +2051,28 @@ const DealerDetail = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {dealer.photos.filter(p => p.type.includes('business_card')).map((photo) => (
-                  <div key={photo.id} className="bg-gray-100 rounded-lg p-4 text-center relative">
-                    <p className="text-sm text-gray-600">{photo.originalName}</p>
-                    <p className="text-xs text-gray-500 mt-1">{photo.type}</p>
+                  <div key={photo.id} className="bg-gray-100 rounded-lg p-2 text-center relative">
+                    <img 
+                      src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
+                      alt={photo.originalName}
+                      className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('[BUSINESS CARD] Photo clicked:', photo.id, photo.originalName);
+                        setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <p className="text-xs text-gray-600 truncate">{photo.originalName}</p>
+                    <p className="text-xs text-blue-600 truncate mt-1">{photo.type}</p>
                     <button
-                      onClick={() => handleDeletePhoto(photo.id)}
-                      className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePhoto(photo.id);
+                      }}
+                      className="absolute top-2 right-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 shadow"
                     >
                       ×
                     </button>
@@ -2096,8 +2112,9 @@ const DealerDetail = () => {
                         src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
                         alt={photo.originalName}
                         className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
-                        onClick={() => {
-                          console.log('Badge photo clicked:', photo.id, photo.originalName);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('[BADGE PHOTO] Photo clicked:', photo.id, photo.originalName);
                           setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
                         }}
                         onError={(e) => {
@@ -2111,8 +2128,11 @@ const DealerDetail = () => {
                       )}
                       <p className="text-xs text-gray-500 mt-1">{formatDate(photo.createdAt)}</p>
                       <button
-                        onClick={() => handleDeletePhoto(photo.id)}
-                        className="absolute top-2 right-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 shadow"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePhoto(photo.id);
+                        }}
+                        className="absolute top-2 right-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 shadow z-10"
                       >
                         ×
                       </button>
@@ -3051,32 +3071,41 @@ const DealerDetail = () => {
         </div>
       )}
 
-      {/* Photo Modal */}
+      {/* Photo Modal - FIXED: Increased z-index to ensure always on top */}
       {selectedPhoto && (() => {
-        console.log('Rendering photo modal for:', selectedPhoto);
+        console.log('[PHOTO MODAL] Rendering modal for:', selectedPhoto);
         return (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => {
-            console.log('Modal overlay clicked - closing');
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4"
+          onClick={(e) => {
+            console.log('[PHOTO MODAL] Overlay clicked - closing');
+            e.stopPropagation();
             setSelectedPhoto(null);
           }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
-          <div className="relative max-w-4xl max-h-full">
+          <div 
+            className="relative max-w-4xl max-h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute top-2 right-2 bg-white rounded-full w-10 h-10 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('[PHOTO MODAL] Close button clicked');
+                setSelectedPhoto(null);
+              }}
+              className="absolute -top-4 -right-4 bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg z-10 text-2xl font-bold"
             >
               ×
             </button>
             <img 
               src={`${import.meta.env.VITE_API_URL}/uploads/photo/${selectedPhoto.id}`}
               alt={selectedPhoto.originalName}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
-            <div className="mt-4 text-center text-white bg-black bg-opacity-50 rounded p-2">
-              <p className="font-semibold">{selectedPhoto.originalName}</p>
+            <div className="mt-4 text-center text-white bg-black bg-opacity-70 rounded-lg p-3">
+              <p className="font-semibold text-lg">{selectedPhoto.originalName}</p>
               {selectedPhoto.tradeshowName && (
                 <p className="text-sm mt-1">📍 {selectedPhoto.tradeshowName}</p>
               )}
