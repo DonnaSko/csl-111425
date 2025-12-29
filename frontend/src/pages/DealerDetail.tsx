@@ -2096,7 +2096,10 @@ const DealerDetail = () => {
                         src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
                         alt={photo.originalName}
                         className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
-                        onClick={() => setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName })}
+                        onClick={() => {
+                          console.log('Badge photo clicked:', photo.id, photo.originalName);
+                          setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                        }}
                         onError={(e) => {
                           // Fallback if image fails to load
                           e.currentTarget.style.display = 'none';
@@ -3049,10 +3052,15 @@ const DealerDetail = () => {
       )}
 
       {/* Photo Modal */}
-      {selectedPhoto && (
+      {selectedPhoto && (() => {
+        console.log('Rendering photo modal for:', selectedPhoto);
+        return (
         <div 
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedPhoto(null)}
+          onClick={() => {
+            console.log('Modal overlay clicked - closing');
+            setSelectedPhoto(null);
+          }}
         >
           <div className="relative max-w-4xl max-h-full">
             <button
@@ -3075,7 +3083,8 @@ const DealerDetail = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
     </Layout>
   );
