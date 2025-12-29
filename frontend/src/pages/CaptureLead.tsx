@@ -208,21 +208,66 @@ const CaptureLead = () => {
       
       console.log('Searching dealers with:', searchTerms);
       
-      // Search dealers using the fuzzy search endpoint
-      const response = await api.get('/dealers/search', {
-        params: { q: searchTerms, limit: 10 }
+      // Use the CORRECT endpoint: /dealers with search parameter
+      const response = await api.get('/dealers', {
+        params: { 
+          search: searchTerms,
+          limit: 10 
+        }
       });
       
-      const matches = response.data.map((dealer: any) => ({
-        id: dealer.id,
-        companyName: dealer.companyName,
-        contactName: dealer.contactName,
-        email: dealer.email,
-        phone: dealer.phone,
-        city: dealer.city,
-        state: dealer.state,
-        score: dealer.score || 0
-      }));
+      // The response is { dealers: [...], total: N }
+      const dealersArray = response.data.dealers || response.data;
+      
+      if (!Array.isArray(dealersArray)) {
+        console.error('Unexpected response format:', response.data);
+        return [];
+      }
+      
+      // Calculate match scores based on how well the search terms match
+      const matches = dealersArray.map((dealer: any) => {
+        let score = 0;
+        const searchLower = searchTerms.toLowerCase();
+        
+        // Higher score for company name matches
+        if (dealer.companyName && dealer.companyName.toLowerCase().includes(searchLower)) {
+          score += 0.5;
+        }
+        
+        // Higher score for contact name matches  
+        if (dealer.contactName && dealer.contactName.toLowerCase().includes(searchLower)) {
+          score += 0.5;
+        }
+        
+        // Check individual words
+        const searchWords = searchLower.split(/\s+/);
+        for (const word of searchWords) {
+          if (word.length < 3) continue;
+          if (dealer.companyName && dealer.companyName.toLowerCase().includes(word)) {
+            score += 0.2;
+          }
+          if (dealer.contactName && dealer.contactName.toLowerCase().includes(word)) {
+            score += 0.2;
+          }
+        }
+        
+        // Cap at 1.0
+        score = Math.min(score, 1.0);
+        
+        return {
+          id: dealer.id,
+          companyName: dealer.companyName,
+          contactName: dealer.contactName,
+          email: dealer.email,
+          phone: dealer.phone,
+          city: dealer.city,
+          state: dealer.state,
+          score: score
+        };
+      });
+      
+      // Sort by score descending
+      matches.sort((a, b) => b.score - a.score);
       
       console.log('Found dealers:', matches);
       return matches;

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR Test - Badge Scanning</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #preview { max-width: 400px; border: 2px solid #ccc; margin: 10px 0; }
+        #processed { max-width: 400px; border: 2px solid #4CAF50; margin: 10px 0; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Badge OCR Test</h1>
+    <p>This tests the EXACT image preprocessing and text extraction logic used in the app.</p>
+    
+    <input type="file" id="fileInput" accept="image/*">
+    <br><br>
+    
+    <h3>Original Image:</h3>
+    <img id="preview" style="display:none;">
+    
+    <h3>Processed Image (What OCR Sees):</h3>
+    <canvas id="processed" style="display:none;"></canvas>
+    
+    <div id="results"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const canvas = document.getElementById('processed');
+        const results = document.getElementById('results');
+        
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            results.innerHTML = '<p>Processing...</p>';
+            
+            // Show original
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            // Process image (EXACT SAME CODE AS APP)
+            const processedUrl = await preprocessImage(file);
+            
+            // Show processed image
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                canvas.style.display = 'block';
+            };
+            img.src = processedUrl;
+            
+            // Run OCR
+            const text = await performOCR(file);
+            
+            // Display results
+            displayResults(text);
+        });
+        
+        // EXACT SAME CODE FROM APP
+        function preprocessImage(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                img.onload = () => {
+                    try {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        if (!ctx) {
+                            resolve(URL.createObjectURL(file));
+                            return;
+                        }
+                        
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        
+                        // Convert to grayscale and increase contrast
+                        for (let i = 0; i < data.length; i += 4) {
+                            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                            const contrast = gray > 128 ? 255 : 0;
+                            data[i] = contrast;
+                            data[i + 1] = contrast;
+                            data[i + 2] = contrast;
+                        }
+                        
+                        ctx.putImageData(imageData, 0, 0);
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(URL.createObjectURL(blob));
+                            } else {
+                                resolve(URL.createObjectURL(file));
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Preprocessing error:', error);
+                        resolve(URL.createObjectURL(file));
+                    }
+                };
+                
+                img.onerror = () => resolve(URL.createObjectURL(file));
+                img.src = URL.createObjectURL(file);
+            });
+        }
+        
+        async function performOCR(file) {
+            try {
+                const processedImageUrl = await preprocessImage(file);
+                
+                const { data: { text } } = await Tesseract.recognize(processedImageUrl, 'eng', {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            results.innerHTML = `<p>OCR Progress: ${Math.round(m.progress * 100)}%</p>`;
+                        }
+                    }
+                });
+                
+                URL.revokeObjectURL(processedImageUrl);
+                
+                // Clean up text (EXACT SAME FILTERING)
+                const lines = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => {
+                        if (line.length < 2 || line.length > 100) return false;
+                        const goodChars = line.replace(/[^a-zA-Z0-9\s]/g, '').length;
+                        const total = line.length;
+                        return goodChars / total >= 0.6;
+                    });
+                
+                return lines.join('\n');
+            } catch (error) {
+                console.error('OCR error:', error);
+                return '';
+            }
+        }
+        
+        function displayResults(text) {
+            const lines = text.split('\n').filter(l => l.trim().length > 2);
+            
+            // Extract names (EXACT SAME LOGIC)
+            const nameLines = lines.filter(line => {
+                const lettersOnly = line.replace(/[^a-zA-Z\s]/g, '');
+                const hasMultipleWords = line.trim().split(/\s+/).length >= 2;
+                return lettersOnly.length >= 5 && 
+                       lettersOnly.length / line.length > 0.75 &&
+                       line.length <= 60 &&
+                       hasMultipleWords;
+            });
+            
+            let companyName = '';
+            let contactName = '';
+            
+            if (nameLines.length >= 2) {
+                const sorted = [...nameLines].sort((a, b) => b.length - a.length);
+                companyName = sorted[0];
+                contactName = sorted[sorted.length - 1];
+            } else if (nameLines.length === 1) {
+                contactName = nameLines[0];
+                const otherLines = lines.filter(l => l.length > 5 && l.length <= 60);
+                if (otherLines.length > 0) {
+                    companyName = otherLines[0];
+                }
+            } else if (lines.length >= 2) {
+                contactName = lines[0];
+                companyName = lines[1];
+            }
+            
+            results.innerHTML = `
+                <div class="result">
+                    <h3>✅ Extracted Text (After Filtering):</h3>
+                    <pre>${text}</pre>
+                </div>
+                <div class="result">
+                    <h3>📝 All Lines:</h3>
+                    <ol>${lines.map(l => `<li>${l}</li>`).join('')}</ol>
+                </div>
+                <div class="result">
+                    <h3>👤 Name-Like Lines:</h3>
+                    <ol>${nameLines.map(l => `<li>${l}</li>`).join('')}</ol>
+                </div>
+                <div class="result">
+                    <h3>🎯 What Would Be Filled Into Form:</h3>
+                    <p><strong>Contact Name:</strong> ${contactName || '(empty)'}</p>
+                    <p><strong>Company Name:</strong> ${companyName || '(empty)'}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+
