@@ -277,34 +277,34 @@ const Dealers = () => {
 
   return (
     <Layout>
-      <div>
-        <div className="flex justify-between items-center mb-8">
+      <div className="px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dealers</h1>
-            <p className="text-gray-600 mt-1">Manage your dealer database</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dealers</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your dealer database</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={() => setShowGroupsModal(true)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
             >
               👥 Manage Groups
             </button>
             <button
               onClick={() => setShowBuyingGroupsModal(true)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
             >
               🏢 Manage Buying Groups
             </button>
             <button
               onClick={handleBulkUpload}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
             >
               📤 Upload Files
             </button>
             <button
               onClick={() => navigate('/capture-lead')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap"
             >
               ➕ Add New Dealer
             </button>
@@ -312,21 +312,21 @@ const Dealers = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
           <div className="mb-4">
             <input
               type="text"
               placeholder="Search by company name, contact name, email, phone, buying group, or group..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+              className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option>All Statuses</option>
               <option>Prospect</option>
@@ -336,7 +336,7 @@ const Dealers = () => {
             <select
               value={buyingGroupFilter}
               onChange={(e) => setBuyingGroupFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option>All Buying Groups</option>
               {buyingGroups.map((bg) => (
@@ -348,7 +348,7 @@ const Dealers = () => {
             <select
               value={groupFilter}
               onChange={(e) => setGroupFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option>All Groups</option>
               {groups.map((group) => (
@@ -362,15 +362,15 @@ const Dealers = () => {
 
         {/* Dealers List */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold">Dealer List ({dealers.length} total)</h2>
-            <p className="text-sm text-gray-600 mt-1">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold">Dealer List ({dealers.length} total)</h2>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Click on any company or contact name to view details and add notes.
             </p>
           </div>
           <div className="divide-y divide-gray-200">
             {dealers.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-6 sm:p-8 text-center text-gray-500 text-sm sm:text-base">
                 No dealers found. Add your first dealer to get started.
               </div>
             ) : (
@@ -383,18 +383,18 @@ const Dealers = () => {
                     key={dealer.id}
                     to={`/dealers/${dealer.id}`}
                     onClick={() => console.log(`[DEALERS PAGE] Navigating to dealer: id="${dealer.id}", name="${dealer.companyName}"`)}
-                    className="block p-6 hover:bg-gray-50 transition-colors"
+                    className="block p-4 sm:p-6 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                           {dealer.companyName}
                         </h3>
                         {dealer.contactName && (
-                          <p className="text-gray-600 mt-1">{dealer.contactName}</p>
+                          <p className="text-sm sm:text-base text-gray-600 mt-1 break-words">{dealer.contactName}</p>
                         )}
                         {dealer.email && (
-                          <p className="text-sm text-gray-500 mt-1">{dealer.email}</p>
+                          <p className="text-xs sm:text-sm text-gray-500 mt-1 break-all">{dealer.email}</p>
                         )}
                         <div className="flex flex-wrap gap-2 mt-2">
                           {dealer.buyingGroup && (
@@ -416,10 +416,10 @@ const Dealers = () => {
                           )}
                         </div>
                       </div>
-                      <div className="ml-4 text-right flex items-start gap-3">
-                        <div>
+                      <div className="flex sm:flex-col items-start gap-2 sm:gap-3 sm:text-right">
+                        <div className="flex-1 sm:flex-none">
                           <span
-                            className={`inline-block px-3 py-1 text-sm rounded-full ${
+                            className={`inline-block px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full whitespace-nowrap ${
                               dealer.status === 'Active'
                                 ? 'bg-green-100 text-green-800'
                                 : dealer.status === 'Prospect'
@@ -429,7 +429,7 @@ const Dealers = () => {
                           >
                             {dealer.status}
                           </span>
-                          <div className="mt-2 text-xs text-gray-500">
+                          <div className="mt-2 text-xs text-gray-500 whitespace-nowrap">
                             {dealer._count.dealerNotes} notes • {dealer._count.photos} photos •{' '}
                             {dealer._count.voiceRecordings} recordings
                           </div>
@@ -437,7 +437,7 @@ const Dealers = () => {
                         <button
                           onClick={(e) => handleDelete(dealer.id, e)}
                           disabled={deletingId === dealer.id}
-                          className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
+                          className="px-2 sm:px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50 flex-shrink-0"
                           title="Delete dealer"
                         >
                           {deletingId === dealer.id ? '...' : '🗑️'}

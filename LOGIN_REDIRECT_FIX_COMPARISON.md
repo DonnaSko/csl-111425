@@ -114,3 +114,6 @@ if (subStatus.isActive) {
 
 Log in with your paid account and you'll go straight to Dashboard!
 
+
+
+

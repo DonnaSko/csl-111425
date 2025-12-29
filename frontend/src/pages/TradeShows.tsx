@@ -161,27 +161,27 @@ const TradeShows = () => {
 
   return (
     <Layout>
-      <div>
-        <div className="flex justify-between items-center mb-8">
+      <div className="px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Trade Shows</h1>
-            <p className="text-gray-600 mt-1">Manage your trade show events and export captured leads</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Trade Shows</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your trade show events and export captured leads</p>
           </div>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap"
           >
             ➕ Create Trade Show
           </button>
         </div>
 
         {showCreateForm && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Create New Trade Show</h2>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4">Create New Trade Show</h2>
             <form onSubmit={handleCreate}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Name *
                   </label>
                   <input
@@ -189,58 +189,58 @@ const TradeShows = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Location
                   </label>
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Start Date
                   </label>
                   <input
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     End Date
                   </label>
                   <input
                     type="date"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
                   Create Trade Show
                 </button>
@@ -250,7 +250,7 @@ const TradeShows = () => {
                     setShowCreateForm(false);
                     setFormData({ name: '', location: '', startDate: '', endDate: '', description: '' });
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -261,14 +261,14 @@ const TradeShows = () => {
 
         {/* Current & Upcoming Trade Shows */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold">
               Current &amp; Upcoming Trade Shows ({activeShows.length})
             </h2>
           </div>
           <div className="divide-y divide-gray-200">
             {activeShows.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-6 sm:p-8 text-center text-gray-500 text-sm sm:text-base">
                 No current or upcoming trade shows. Create your first trade show to get started.
               </div>
             ) : (
@@ -279,17 +279,17 @@ const TradeShows = () => {
                 return (
                   <div
                     key={tradeShow.id}
-                    className="p-6 hover:bg-gray-50 transition-colors"
+                    className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                           {tradeShow.name}
                         </h3>
                         {tradeShow.location && (
-                          <p className="text-gray-600 mt-1">📍 {tradeShow.location}</p>
+                          <p className="text-sm sm:text-base text-gray-600 mt-1 break-words">📍 {tradeShow.location}</p>
                         )}
-                        <div className="flex gap-4 mt-2 text-sm text-gray-500">
+                        <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
                           {tradeShow.startDate && (
                             <span>Start: {formatDate(tradeShow.startDate)}</span>
                           )}
@@ -299,26 +299,26 @@ const TradeShows = () => {
                           <span>{tradeShow._count.dealers} dealers</span>
                         </div>
                         {tradeShow.description && (
-                          <p className="text-gray-600 mt-2 text-sm">{tradeShow.description}</p>
+                          <p className="text-gray-600 mt-2 text-xs sm:text-sm break-words">{tradeShow.description}</p>
                         )}
 
                         {/* Inline list of associated dealers (when expanded) */}
                         {isExpanded && (
                           <div className="mt-4 border-t border-gray-200 pt-3">
                             {loadingDealersId === tradeShow.id ? (
-                              <p className="text-sm text-gray-500">Loading dealers...</p>
+                              <p className="text-xs sm:text-sm text-gray-500">Loading dealers...</p>
                             ) : dealers.length === 0 ? (
-                              <p className="text-sm text-gray-500">
+                              <p className="text-xs sm:text-sm text-gray-500">
                                 No dealers associated with this trade show yet.
                               </p>
                             ) : (
                               <div>
-                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                   Dealers associated with this trade show:
                                 </p>
-                                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                <ul className="list-disc list-inside text-xs sm:text-sm text-gray-700 space-y-1">
                                   {dealers.map((dealer) => (
-                                    <li key={dealer.id}>
+                                    <li key={dealer.id} className="break-words">
                                       <button
                                         type="button"
                                         onClick={() => navigate(`/dealers/${dealer.id}`)}
@@ -340,24 +340,24 @@ const TradeShows = () => {
                           </div>
                         )}
                       </div>
-                      <div className="ml-4 flex flex-col gap-2 items-end">
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:min-w-[200px]">
                         <button
                           onClick={() => navigate(`/trade-shows/${tradeShow.id}`)}
-                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 w-full"
+                          className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
                         >
                           View Details
                         </button>
                         <button
                           onClick={() => handleExport(tradeShow.id, tradeShow.name)}
                           disabled={exportingId === tradeShow.id || tradeShow._count.dealers === 0}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed w-full"
+                          className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           title="Export captured leads to CSV"
                         >
                           {exportingId === tradeShow.id ? 'Exporting...' : '📥 Export Leads'}
                         </button>
                         <button
                           onClick={() => handleToggleDealers(tradeShow.id)}
-                          className="px-4 py-1 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 w-full"
+                          className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 whitespace-nowrap"
                           disabled={loadingDealersId === tradeShow.id}
                         >
                           {isExpanded
@@ -381,15 +381,15 @@ const TradeShows = () => {
             <button
               type="button"
               onClick={() => setShowHistory((prev) => !prev)}
-              className="w-full flex items-center justify-between p-6 border-b border-gray-200 hover:bg-gray-50"
+              className="w-full flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 hover:bg-gray-50"
             >
-              <div>
-                <h2 className="text-lg font-semibold">Trade Show History ({pastShows.length})</h2>
-                <p className="text-sm text-gray-500">
+              <div className="text-left">
+                <h2 className="text-base sm:text-lg font-semibold">Trade Show History ({pastShows.length})</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
                   Completed trade shows with associated dealers.
                 </p>
               </div>
-              <span className="text-gray-500 text-xl">
+              <span className="text-gray-500 text-lg sm:text-xl ml-4 flex-shrink-0">
                 {showHistory ? '▴' : '▾'}
               </span>
             </button>

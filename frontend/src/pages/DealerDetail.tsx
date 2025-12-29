@@ -1319,10 +1319,10 @@ const DealerDetail = () => {
     return (
       <button
         onClick={() => toggleSection(section.id)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+        className="w-full flex items-center justify-between p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
       >
-        <span className="font-semibold text-gray-900">{section.title}</span>
-        <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+        <span className="font-semibold text-gray-900 text-sm sm:text-base text-left">{section.title}</span>
+        <span className={`transform transition-transform ml-2 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
           ▼
         </span>
       </button>
@@ -1332,33 +1332,33 @@ const DealerDetail = () => {
   return (
     <Layout>
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm mb-6">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm mb-4 sm:mb-6">
+        <div className="px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button
                 onClick={() => navigate('/dealers')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base whitespace-nowrap flex-shrink-0"
               >
                 ← Back
               </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{dealer.companyName}</h1>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{dealer.companyName}</h1>
                 {dealer.contactName && (
-                  <p className="text-gray-600">{dealer.contactName}</p>
+                  <p className="text-sm sm:text-base text-gray-600 break-words">{dealer.contactName}</p>
                 )}
               </div>
             </div>
             
             {/* Quick Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
               {/* Rating */}
-              <div className="flex gap-1">
+              <div className="flex gap-0.5 sm:gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     onClick={() => handleRatingChange(star)}
-                    className="text-2xl focus:outline-none"
+                    className="text-lg sm:text-2xl focus:outline-none"
                   >
                     {star <= rating ? '⭐' : '☆'}
                   </button>
@@ -1367,7 +1367,7 @@ const DealerDetail = () => {
               
               {/* Status Badge */}
               <span
-                className={`px-3 py-1 text-sm rounded-full ${
+                className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full whitespace-nowrap ${
                   dealer.status === 'Active'
                     ? 'bg-green-100 text-green-800'
                     : dealer.status === 'Prospect'
@@ -1383,28 +1383,28 @@ const DealerDetail = () => {
       </div>
 
       {/* Consent Permissions Accordion - Immediately under dealer name/rating */}
-      <div className="max-w-6xl mx-auto px-6 mb-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mb-4">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
           <button
             onClick={handleConsentAccordionToggle}
-            className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-yellow-100 transition-colors"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center text-left hover:bg-yellow-100 transition-colors"
           >
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⚠️</span>
-              <span className="font-semibold text-gray-900">Booth Visitor Consent Permissions</span>
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Required</span>
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span className="text-base sm:text-lg flex-shrink-0">⚠️</span>
+              <span className="text-sm sm:text-base font-semibold text-gray-900">Booth Visitor Consent Permissions</span>
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded whitespace-nowrap">Required</span>
               {(consentPermissions.photos || consentPermissions.badgeScan || consentPermissions.audioRecording) && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded whitespace-nowrap">
                   ✓ {[consentPermissions.photos, consentPermissions.badgeScan, consentPermissions.audioRecording].filter(Boolean).length}/3 set
                 </span>
               )}
             </div>
-            <span className="text-gray-500 text-lg">{consentExpanded ? '▼' : '▶'}</span>
+            <span className="text-gray-500 text-base sm:text-lg ml-2 flex-shrink-0">{consentExpanded ? '▼' : '▶'}</span>
           </button>
           
           {consentExpanded && (
-            <div className="px-4 pb-4 border-t border-yellow-200">
-              <p className="text-sm text-gray-700 mt-3 mb-4 bg-white p-3 rounded border-l-4 border-red-500">
+            <div className="px-3 sm:px-4 pb-3 sm:pb-4 border-t border-yellow-200">
+              <p className="text-xs sm:text-sm text-gray-700 mt-3 mb-4 bg-white p-2 sm:p-3 rounded border-l-4 border-red-500">
                 <strong>You are solely responsible</strong> for obtaining permission from this dealer/customer before capturing their information. 
                 Check each box below to confirm you have received their consent.
               </p>
@@ -1557,7 +1557,7 @@ const DealerDetail = () => {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
         {/* Dealer Information Section */}
         <div className="mb-4">
           <AccordionSection section={sections[0]} />
@@ -1695,7 +1695,7 @@ const DealerDetail = () => {
                 />
                 <button
                   onClick={handleAddProduct}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Add Product
                 </button>
@@ -1972,7 +1972,7 @@ const DealerDetail = () => {
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   placeholder="Add a note..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
                 <button
@@ -2959,7 +2959,7 @@ const DealerDetail = () => {
                     value={newBuyingGroupName}
                     onChange={(e) => setNewBuyingGroupName(e.target.value)}
                     placeholder="Enter new buying group name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         handleCreateBuyingGroup();
@@ -2978,7 +2978,7 @@ const DealerDetail = () => {
                 <select
                   value={selectedBuyingGroupId}
                   onChange={(e) => setSelectedBuyingGroupId(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">-- Select a buying group --</option>
                   {buyingGroups.map((bg) => (
