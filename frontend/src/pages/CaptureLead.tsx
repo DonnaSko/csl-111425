@@ -86,14 +86,35 @@ const CaptureLead = () => {
 
   const performOCR = async (file: File): Promise<string> => {
     try {
-      const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+      // Preprocess image for better OCR
+      const imageUrl = URL.createObjectURL(file);
+      
+      const { data: { text } } = await Tesseract.recognize(imageUrl, 'eng', {
         logger: (m) => {
           if (m.status === 'recognizing text') {
             console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
           }
         }
       });
-      return text;
+      
+      URL.revokeObjectURL(imageUrl);
+      
+      // Clean up the text - remove lines with too many special characters
+      const lines = text.split('\n')
+        .map(line => line.trim())
+        .filter(line => {
+          // Remove lines that are too short or too long
+          if (line.length < 2 || line.length > 100) return false;
+          
+          // Count alphanumeric characters
+          const alphaNum = line.replace(/[^a-zA-Z0-9]/g, '').length;
+          const total = line.length;
+          
+          // Keep lines that are at least 50% alphanumeric
+          return alphaNum / total >= 0.5;
+        });
+      
+      return lines.join('\n');
     } catch (error) {
       console.error('OCR error:', error);
       return '';
@@ -104,11 +125,32 @@ const CaptureLead = () => {
     try {
       // Extract potential company and contact names from OCR text
       const lines = searchText.split('\n').filter(line => line.trim().length > 2);
-      const searchTerms = lines.slice(0, 5).join(' '); // Use first 5 lines
+      
+      if (lines.length === 0) return [];
+      
+      // Look for name patterns - usually names are in ALL CAPS or Title Case on badges
+      const nameLines = lines.filter(line => {
+        // Check if line looks like a name (mostly letters, some spaces)
+        const hasLetters = /[A-Za-z]/.test(line);
+        const hasNumbers = /\d/.test(line);
+        // Prefer lines without numbers (names usually don't have numbers)
+        return hasLetters && !hasNumbers && line.length >= 3 && line.length <= 50;
+      });
+      
+      // Use the first few name-like lines for search
+      const searchTerms = nameLines.slice(0, 5).join(' ');
+      
+      if (!searchTerms.trim()) {
+        // Fallback to all lines if no name-like lines found
+        const fallbackTerms = lines.slice(0, 3).join(' ');
+        if (!fallbackTerms.trim()) return [];
+      }
+      
+      console.log('Searching with terms:', searchTerms || lines.slice(0, 3).join(' '));
       
       // Search dealers using the fuzzy search endpoint
       const response = await api.get('/dealers/search', {
-        params: { q: searchTerms, limit: 10 }
+        params: { q: searchTerms || lines.slice(0, 3).join(' '), limit: 10 }
       });
       
       return response.data.map((dealer: any) => ({
@@ -162,26 +204,40 @@ const CaptureLead = () => {
           // Multiple matches or weak match - show options
           setMatchingDealers(matches);
           setShowMatches(true);
-          
-          // Auto-fill form with extracted text if no strong matches
-          const lines = text.split('\n').filter(l => l.trim().length > 2);
-          if (lines.length > 0 && matches[0].score < 0.8) {
-            setFormData(prev => ({
-              ...prev,
-              companyName: lines[0]?.trim() || prev.companyName,
-              contactName: lines[1]?.trim() || prev.contactName,
-            }));
-          }
         } else {
-          // No matches - auto-fill form with OCR data
+          // No matches - auto-fill form with extracted text
           const lines = text.split('\n').filter(l => l.trim().length > 2);
-          if (lines.length > 0) {
-            setFormData(prev => ({
-              ...prev,
-              companyName: lines[0]?.trim() || '',
-              contactName: lines[1]?.trim() || '',
-            }));
+          
+          // Try to intelligently extract company and contact name
+          let companyName = '';
+          let contactName = '';
+          
+          // Look for lines that look like names (mostly letters, proper length)
+          const nameLines = lines.filter(line => {
+            const lettersOnly = line.replace(/[^a-zA-Z\s]/g, '');
+            return lettersOnly.length >= 3 && 
+                   lettersOnly.length / line.length > 0.7 && // Mostly letters
+                   line.length <= 50; // Not too long
+          });
+          
+          // First name-like line is usually the person's name
+          if (nameLines.length > 0) {
+            contactName = nameLines[0].trim();
           }
+          
+          // Second name-like line or longest line might be company
+          if (nameLines.length > 1) {
+            companyName = nameLines[1].trim();
+          } else if (lines.length > 0) {
+            // Use the longest line as company name
+            companyName = lines.reduce((a, b) => a.length > b.length ? a : b).trim();
+          }
+          
+          setFormData(prev => ({
+            ...prev,
+            companyName: companyName || prev.companyName,
+            contactName: contactName || prev.contactName,
+          }));
         }
       }
       
