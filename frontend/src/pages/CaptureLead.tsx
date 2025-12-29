@@ -209,7 +209,7 @@ const CaptureLead = () => {
         if (nameLine.trim().length < 3) continue;
         
         try {
-          console.log('Searching for:', nameLine);
+          console.log('🔍 SEARCHING FOR:', nameLine);
           const response = await api.get('/dealers', {
             params: { 
               search: nameLine,
@@ -217,9 +217,15 @@ const CaptureLead = () => {
             }
           });
           
+          console.log('📦 RESPONSE:', response.data);
+          
           const dealersArray = response.data.dealers || response.data;
+          console.log('👥 DEALERS ARRAY:', dealersArray);
+          
           if (Array.isArray(dealersArray)) {
-            dealersArray.forEach(dealer => {
+            console.log(`✅ Found ${dealersArray.length} dealers for "${nameLine}"`);
+            dealersArray.forEach((dealer, idx) => {
+              console.log(`  ${idx + 1}. ${dealer.contactName || dealer.companyName} (ID: ${dealer.id})`);
               if (!allMatches.has(dealer.id)) {
                 allMatches.set(dealer.id, {
                   ...dealer,
@@ -229,7 +235,7 @@ const CaptureLead = () => {
             });
           }
         } catch (error) {
-          console.error(`Search error for "${nameLine}":`, error);
+          console.error(`❌ Search error for "${nameLine}":`, error);
         }
       }
       
@@ -328,10 +334,10 @@ const CaptureLead = () => {
       // Sort by score descending (highest first)
       matches.sort((a, b) => b.score - a.score);
       
-      console.log('Scored matches:', matches.map(m => ({ 
-        name: m.contactName || m.companyName, 
-        score: m.score 
-      })));
+      console.log('🏆 FINAL SCORED MATCHES:');
+      matches.forEach((m, idx) => {
+        console.log(`  ${idx + 1}. [Score: ${m.score}] ${m.contactName || m.companyName}`);
+      });
       
       return matches.slice(0, 10); // Top 10 matches
     } catch (error) {

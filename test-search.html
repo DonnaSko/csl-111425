@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dealer Search Tester</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        input { padding: 10px; font-size: 16px; width: 400px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        .result { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .match { background: white; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+        .score { color: blue; font-weight: bold; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Dealer Search Tester</h1>
+    <p>Test if "Ryan Skolnick" can be found in your database</p>
+    
+    <h3>Your API URL:</h3>
+    <input type="text" id="apiUrl" value="https://csl-bjg7z.ondigitalocean.app/api" style="width: 500px;">
+    
+    <h3>Your Auth Token:</h3>
+    <input type="text" id="authToken" placeholder="Paste your token here (from browser dev tools)" style="width: 500px;">
+    <p style="font-size: 12px; color: #666;">
+        To get your token: Open app → F12 (dev tools) → Application tab → Local Storage → Find "token"
+    </p>
+    
+    <h3>Search Term:</h3>
+    <input type="text" id="searchTerm" value="Ryan Skolnick" placeholder="Enter search term">
+    <button onclick="testSearch()">🔍 Search</button>
+    <button onclick="testMultiple()">🧪 Test Multiple Terms</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testSearch() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const token = document.getElementById('authToken').value;
+            const searchTerm = document.getElementById('searchTerm').value;
+            const results = document.getElementById('results');
+            
+            if (!token) {
+                results.innerHTML = '<div class="error">⚠️ Please enter your auth token first!</div>';
+                return;
+            }
+            
+            results.innerHTML = '<p>Searching...</p>';
+            
+            try {
+                const url = `${apiUrl}/dealers?search=${encodeURIComponent(searchTerm)}&limit=20`;
+                console.log('Calling:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response:', data);
+                
+                const dealers = data.dealers || data;
+                
+                if (!Array.isArray(dealers)) {
+                    results.innerHTML = `<div class="error">Unexpected response format</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    return;
+                }
+                
+                if (dealers.length === 0) {
+                    results.innerHTML = `
+                        <div class="result">
+                            <h3>❌ No matches found for "${searchTerm}"</h3>
+                            <p>This means either:</p>
+                            <ul>
+                                <li>Ryan Skolnick doesn't exist in your database</li>
+                                <li>The search algorithm isn't working</li>
+                                <li>There's a typo in the name</li>
+                            </ul>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = `
+                    <div class="result">
+                        <h3>✅ Found ${dealers.length} match(es) for "${searchTerm}"</h3>
+                    </div>
+                `;
+                
+                dealers.forEach((dealer, index) => {
+                    html += `
+                        <div class="match">
+                            <strong>#${index + 1}: ${dealer.companyName || '(No company)'}</strong><br>
+                            Contact: ${dealer.contactName || '(None)'}<br>
+                            Phone: ${dealer.phone || '(None)'}<br>
+                            Email: ${dealer.email || '(None)'}<br>
+                            ID: ${dealer.id}
+                        </div>
+                    `;
+                });
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error:</h3>
+                        <p>${error.message}</p>
+                        <p>Check console for details</p>
+                    </div>
+                `;
+                console.error('Search error:', error);
+            }
+        }
+        
+        async function testMultiple() {
+            const terms = [
+                'Ryan Skolnick',
+                'RYAN SKOLNICK',
+                'ryan skolnick',
+                'Skolnick',
+                'Ryan',
+                'RYAN'
+            ];
+            
+            for (const term of terms) {
+                document.getElementById('searchTerm').value = term;
+                await testSearch();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    </script>
+    
+    <hr style="margin-top: 50px;">
+    <h2>📋 Instructions:</h2>
+    <ol>
+        <li>Open your app in browser</li>
+        <li>Press F12 to open developer tools</li>
+        <li>Go to "Application" tab → "Local Storage"</li>
+        <li>Find the "token" entry and copy its value</li>
+        <li>Paste it in "Your Auth Token" field above</li>
+        <li>Click "Search" button</li>
+    </ol>
+    
+    <h3>Expected Results:</h3>
+    <ul>
+        <li>✅ If Ryan Skolnick exists: You'll see his name in results</li>
+        <li>❌ If not found: The dealer doesn't exist OR search is broken</li>
+    </ul>
+</body>
+</html>
+
