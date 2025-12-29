@@ -108,11 +108,47 @@ const audioUpload = multer({
   }
 });
 
+// Image file filter for photos (badges, business cards, etc.)
+const imageFileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+  const allowedImageMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'application/octet-stream' // Some browsers send this for images
+  ];
+  
+  if (allowedImageExtensions.includes(fileExt)) {
+    if (file.mimetype && 
+        !allowedImageMimeTypes.includes(file.mimetype) && 
+        file.mimetype !== 'application/octet-stream') {
+      console.warn(`Warning: Image file ${file.originalname} has unexpected MIME type: ${file.mimetype}, but extension is valid: ${fileExt}`);
+    }
+    cb(null, true);
+  } else {
+    cb(new Error(`Image file type not supported. Allowed types: ${allowedImageExtensions.join(', ').toUpperCase()}. Received: ${fileExt || 'unknown'}`));
+  }
+};
+
+// Multer instance for image files (photos)
+const photoUpload = multer({
+  storage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB for photos
+  }
+});
+
 router.use(authenticate);
 router.use(requireActiveSubscription);
 
 // Upload photo
-router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest, res) => {
+router.post('/photo/:dealerId', photoUpload.single('photo'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

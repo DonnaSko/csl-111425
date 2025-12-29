@@ -2081,20 +2081,38 @@ const DealerDetail = () => {
                   className="px-4 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {dealer.photos.filter(p => p.type === 'badge').map((photo) => (
-                  <div key={photo.id} className="bg-gray-100 rounded-lg p-4 text-center relative">
-                    <p className="text-sm text-gray-600">{photo.originalName}</p>
-                    <p className="text-xs text-gray-500 mt-1">{formatDate(photo.createdAt)}</p>
-                    <button
-                      onClick={() => handleDeletePhoto(photo.id)}
-                      className="absolute top-2 right-2 text-red-600 hover:text-red-800"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {dealer.photos.filter(p => p.type === 'badge').length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No badge photos yet. Scan a badge from the Capture Lead page or upload one here.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {dealer.photos.filter(p => p.type === 'badge').map((photo) => (
+                    <div key={photo.id} className="bg-gray-100 rounded-lg p-2 text-center relative">
+                      <img 
+                        src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
+                        alt={photo.originalName}
+                        className="w-full h-32 object-cover rounded mb-2"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <p className="text-xs text-gray-600 truncate">{photo.originalName}</p>
+                      {photo.tradeshowName && (
+                        <p className="text-xs text-blue-600 truncate mt-1">📍 {photo.tradeshowName}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">{formatDate(photo.createdAt)}</p>
+                      <button
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="absolute top-2 right-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 shadow"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
