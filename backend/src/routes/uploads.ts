@@ -136,6 +136,9 @@ router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest,
     const tradeshowName = req.body.tradeshowName || null;
     const tradeshowId = req.body.tradeshowId || null;
 
+    // Read file content into buffer for database storage
+    const fileContent = fs.readFileSync(req.file.path);
+
     const photo = await prisma.photo.create({
       data: {
         dealerId: req.params.dealerId,
@@ -143,12 +146,16 @@ router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest,
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,
-        path: req.file.path,
+        path: null, // Don't store path - using content instead
+        content: fileContent, // Store in database
         type: photoType,
         tradeshowName: tradeshowName,
         tradeshowId: tradeshowId
       }
     });
+
+    // Clean up the temporary file
+    fs.unlinkSync(req.file.path);
 
     // Log badge scans to change history
     if (photoType === 'badge') {
@@ -166,7 +173,7 @@ router.post('/photo/:dealerId', upload.single('photo'), async (req: AuthRequest,
     res.status(201).json(photo);
   } catch (error) {
     console.error('Upload photo error:', error);
-    if (req.file) {
+    if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ error: 'Failed to upload photo' });
@@ -189,7 +196,30 @@ router.get('/photo/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    res.sendFile(path.resolve(photo.path));
+    // Try to get content from database first (new method)
+    if (photo.content) {
+      const buffer = Buffer.from(photo.content);
+      const mimeType = photo.mimeType || 'image/jpeg';
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(photo.originalName)}"`);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      
+      return res.send(buffer);
+    }
+
+    // Fallback to file system (for old photos uploaded before this fix)
+    if (photo.path) {
+      const filePath = path.resolve(photo.path);
+      if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+      }
+    }
+
+    // If we get here, photo exists in database but file content is not available
+    console.error(`Photo ${req.params.id} has no content in database or disk`);
+    return res.status(404).json({ error: 'Photo file content not available' });
   } catch (error) {
     console.error('Get photo error:', error);
     res.status(500).json({ error: 'Failed to get photo' });
@@ -212,8 +242,8 @@ router.delete('/photo/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    // Delete file
-    if (fs.existsSync(photo.path)) {
+    // Delete file from disk if it exists (for old photos)
+    if (photo.path && fs.existsSync(photo.path)) {
       fs.unlinkSync(photo.path);
     }
 

@@ -135,7 +135,8 @@ model Photo {
   originalName  String
   mimeType      String
   size          Int
-  path          String
+  path          String?   // Made optional - now using content instead
+  content       Bytes?    // Store image file in database
   type          String    @default("business_card") // business_card, badge, other
   tradeshowName String?   // Name of the tradeshow where badge was scanned
   tradeshowId   String?   // Optional link to TradeShow
