@@ -186,138 +186,99 @@ const CaptureLead = () => {
 
   const searchDealers = async (searchText: string): Promise<DealerMatch[]> => {
     try {
-      // Extract potential company and contact names from OCR text
       const lines = searchText.split('\n').filter(line => line.trim().length > 2);
       
-      if (lines.length === 0) return [];
-      
-      // Look for name patterns - usually names are in ALL CAPS or Title Case on badges
-      const nameLines = lines.filter(line => {
-        // Check if line looks like a name (mostly letters, some spaces)
-        const lettersAndSpaces = line.replace(/[^a-zA-Z\s]/g, '');
-        const ratio = lettersAndSpaces.length / line.length;
-        return ratio > 0.75 && line.length >= 3 && line.length <= 60;
-      });
-      
-      console.log('Name lines from OCR:', nameLines);
-      
-      // Search strategy: Try individual name lines first for better matches
-      const allMatches = new Map(); // Use Map to deduplicate by dealer ID
-      
-      // Search each name line individually (better matches)
-      for (const nameLine of nameLines) {
-        if (nameLine.trim().length < 3) continue;
-        
-        try {
-          console.log('🔍 SEARCHING FOR:', nameLine);
-          const response = await api.get('/dealers', {
-            params: { 
-              search: nameLine,
-              limit: 20
-            }
-          });
-          
-          console.log('📦 RESPONSE:', response.data);
-          
-          const dealersArray = response.data.dealers || response.data;
-          console.log('👥 DEALERS ARRAY:', dealersArray);
-          
-          if (Array.isArray(dealersArray)) {
-            console.log(`✅ Found ${dealersArray.length} dealers for "${nameLine}"`);
-            dealersArray.forEach((dealer, idx) => {
-              console.log(`  ${idx + 1}. ${dealer.contactName || dealer.companyName} (ID: ${dealer.id})`);
-              if (!allMatches.has(dealer.id)) {
-                allMatches.set(dealer.id, {
-                  ...dealer,
-                  searchTerm: nameLine // Track which term found this dealer
-                });
-              }
-            });
-          }
-        } catch (error) {
-          console.error(`❌ Search error for "${nameLine}":`, error);
-        }
+      if (lines.length === 0) {
+        console.log('❌ No text lines from OCR');
+        return [];
       }
       
-      // If no matches from individual lines, try combined search
-      if (allMatches.size === 0 && nameLines.length > 0) {
-        const combinedSearch = nameLines.join(' ');
-        console.log('Trying combined search:', combinedSearch);
-        
+      console.log('📝 OCR LINES:', lines);
+      
+      // Extract individual words (3+ characters, mostly letters)
+      const allWords = new Set<string>();
+      lines.forEach(line => {
+        const words = line.split(/\s+/);
+        words.forEach(word => {
+          const cleaned = word.replace(/[^a-zA-Z]/g, '');
+          if (cleaned.length >= 3) {
+            allWords.add(cleaned);
+          }
+        });
+      });
+      
+      const searchWords = Array.from(allWords).slice(0, 10); // Max 10 words
+      console.log('🔤 WORDS TO SEARCH:', searchWords);
+      
+      if (searchWords.length === 0) {
+        console.log('❌ No valid search words extracted');
+        return [];
+      }
+      
+      // Search for each word individually
+      const allMatches = new Map();
+      
+      for (const word of searchWords) {
         try {
+          console.log(`🔍 Searching for word: "${word}"`);
+          
           const response = await api.get('/dealers', {
             params: { 
-              search: combinedSearch,
-              limit: 20
+              search: word,
+              limit: 50 // Get more results
             }
           });
           
           const dealersArray = response.data.dealers || response.data;
-          if (Array.isArray(dealersArray)) {
+          
+          if (Array.isArray(dealersArray) && dealersArray.length > 0) {
+            console.log(`  ✅ Found ${dealersArray.length} dealers matching "${word}"`);
+            
             dealersArray.forEach(dealer => {
               if (!allMatches.has(dealer.id)) {
                 allMatches.set(dealer.id, {
                   ...dealer,
-                  searchTerm: combinedSearch
+                  matchedWord: word,
+                  matchCount: 1
                 });
+              } else {
+                // Increment match count if found by multiple words
+                const existing = allMatches.get(dealer.id);
+                existing.matchCount++;
               }
             });
+          } else {
+            console.log(`  ❌ No dealers found for "${word}"`);
           }
         } catch (error) {
-          console.error('Combined search error:', error);
+          console.error(`❌ Search failed for "${word}":`, error);
         }
       }
       
-      if (allMatches.size === 0) return [];
+      if (allMatches.size === 0) {
+        console.log('❌ NO DEALERS FOUND AT ALL');
+        return [];
+      }
       
-      // Calculate match scores with MUCH higher priority for full name matches
+      console.log(`✅ TOTAL UNIQUE DEALERS FOUND: ${allMatches.size}`);
+      
+      // Score based on match count and name similarity
       const matches = Array.from(allMatches.values()).map(dealer => {
-        let score = 0;
-        const searchLower = (dealer.searchTerm || '').toLowerCase();
-        const companyLower = (dealer.companyName || '').toLowerCase();
+        let score = dealer.matchCount * 3; // 3 points per matching word
+        
         const contactLower = (dealer.contactName || '').toLowerCase();
+        const companyLower = (dealer.companyName || '').toLowerCase();
         
-        // HIGHEST PRIORITY: Exact or very close contact name match
-        if (contactLower && searchLower) {
-          if (contactLower === searchLower) {
-            score += 10; // Exact match = top priority
-          } else if (contactLower.includes(searchLower) || searchLower.includes(contactLower)) {
-            score += 8; // Contains match
-          }
-          
-          // Check word-by-word match for full names
-          const searchWords = searchLower.split(/\s+/);
-          const contactWords = contactLower.split(/\s+/);
-          
-          // If all search words are in contact name = very high score
-          const allWordsMatch = searchWords.every((sw: string) => 
-            contactWords.some((cw: string) => cw.includes(sw) || sw.includes(cw))
-          );
-          if (allWordsMatch && searchWords.length >= 2) {
-            score += 7; // Full name match (e.g., "RYAN SKOLNICK" matches "Ryan Skolnick")
-          }
-        }
-        
-        // High priority: Company name match
-        if (companyLower && searchLower) {
-          if (companyLower === searchLower) {
+        // Bonus points for multiple word matches
+        searchWords.forEach(word => {
+          const wordLower = word.toLowerCase();
+          if (contactLower.includes(wordLower)) {
             score += 5;
-          } else if (companyLower.includes(searchLower) || searchLower.includes(companyLower)) {
+          }
+          if (companyLower.includes(wordLower)) {
             score += 3;
           }
-        }
-        
-        // Check against all OCR name lines for additional scoring
-        for (const nameLine of nameLines) {
-          const nameLineLower = nameLine.toLowerCase();
-          
-          if (contactLower && contactLower.includes(nameLineLower)) {
-            score += 2;
-          }
-          if (companyLower && companyLower.includes(nameLineLower)) {
-            score += 1;
-          }
-        }
+        });
         
         return {
           id: dealer.id,
@@ -331,17 +292,18 @@ const CaptureLead = () => {
         };
       });
       
-      // Sort by score descending (highest first)
+      // Sort by score
       matches.sort((a, b) => b.score - a.score);
       
-      console.log('🏆 FINAL SCORED MATCHES:');
-      matches.forEach((m, idx) => {
-        console.log(`  ${idx + 1}. [Score: ${m.score}] ${m.contactName || m.companyName}`);
+      console.log('🏆 TOP MATCHES:');
+      matches.slice(0, 10).forEach((m, i) => {
+        console.log(`  ${i + 1}. [${m.score}] ${m.contactName || m.companyName}`);
       });
       
-      return matches.slice(0, 10); // Top 10 matches
+      return matches.slice(0, 10);
+      
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('❌ SEARCH ERROR:', error);
       return [];
     }
   };
@@ -769,4 +731,5 @@ const CaptureLead = () => {
 };
 
 export default CaptureLead;
+
 
