@@ -386,7 +386,8 @@ router.delete('/recording/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Recording not found' });
     }
 
-    if (fs.existsSync(recording.path)) {
+    // Delete file from disk if it exists (for old recordings)
+    if (recording.path && fs.existsSync(recording.path)) {
       fs.unlinkSync(recording.path);
     }
 
