@@ -2057,8 +2057,15 @@ const DealerDetail = () => {
                       alt={photo.originalName}
                       className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         console.log('[BUSINESS CARD] Photo clicked:', photo.id, photo.originalName);
+                        setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[BUSINESS CARD] Photo touched:', photo.id, photo.originalName);
                         setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
                       }}
                       onError={(e) => {
@@ -2113,8 +2120,15 @@ const DealerDetail = () => {
                         alt={photo.originalName}
                         className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           console.log('[BADGE PHOTO] Photo clicked:', photo.id, photo.originalName);
+                          setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('[BADGE PHOTO] Photo touched:', photo.id, photo.originalName);
                           setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
                         }}
                         onError={(e) => {
