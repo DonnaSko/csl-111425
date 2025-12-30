@@ -3085,22 +3085,31 @@ const DealerDetail = () => {
         </div>
       )}
 
-      {/* Photo Modal - FIXED: Increased z-index to ensure always on top */}
-      {selectedPhoto && (() => {
-        console.log('[PHOTO MODAL] Rendering modal for:', selectedPhoto);
-        return (
+      {/* Photo Modal - Simplified rendering for better compatibility */}
+      {selectedPhoto && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4"
-          onClick={(e) => {
-            console.log('[PHOTO MODAL] Overlay clicked - closing');
-            e.stopPropagation();
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            zIndex: 9999 
+          }}
+          onClick={() => {
+            console.log('[PHOTO MODAL] Overlay clicked - closing modal');
             setSelectedPhoto(null);
           }}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          onTouchEnd={() => {
+            console.log('[PHOTO MODAL] Overlay touched - closing modal');
+            setSelectedPhoto(null);
+          }}
         >
           <div 
             className="relative max-w-4xl max-h-full"
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
             <button
               onClick={(e) => {
@@ -3108,7 +3117,13 @@ const DealerDetail = () => {
                 console.log('[PHOTO MODAL] Close button clicked');
                 setSelectedPhoto(null);
               }}
-              className="absolute -top-4 -right-4 bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg z-10 text-2xl font-bold"
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                console.log('[PHOTO MODAL] Close button touched');
+                setSelectedPhoto(null);
+              }}
+              className="absolute -top-4 -right-4 bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg text-2xl font-bold"
+              style={{ zIndex: 10 }}
             >
               ×
             </button>
@@ -3117,6 +3132,13 @@ const DealerDetail = () => {
               alt={selectedPhoto.originalName}
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onLoad={() => console.log('[PHOTO MODAL] Image loaded successfully')}
+              onError={(e) => {
+                console.error('[PHOTO MODAL] Image failed to load:', selectedPhoto.id);
+                // Show error message but keep modal open
+                e.currentTarget.alt = 'Failed to load image';
+              }}
             />
             <div className="mt-4 text-center text-white bg-black bg-opacity-70 rounded-lg p-3">
               <p className="font-semibold text-lg">{selectedPhoto.originalName}</p>
@@ -3126,8 +3148,7 @@ const DealerDetail = () => {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
     </Layout>
   );
