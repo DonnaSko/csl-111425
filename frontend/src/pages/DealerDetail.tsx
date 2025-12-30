@@ -1334,6 +1334,27 @@ const DealerDetail = () => {
 
   return (
     <Layout>
+      {/* DEBUG INDICATOR - Remove after testing */}
+      {selectedPhoto && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: '#ff0000',
+            color: 'white',
+            padding: '10px',
+            textAlign: 'center',
+            zIndex: 10000,
+            fontWeight: 'bold',
+            fontSize: '16px'
+          }}
+        >
+          🔴 DEBUG: selectedPhoto is SET! ID: {selectedPhoto.id} - Modal should be visible below this message
+        </div>
+      )}
+      
       {/* Sticky Header */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm mb-4 sm:mb-6">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
@@ -2122,18 +2143,33 @@ const DealerDetail = () => {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          console.log('[BADGE PHOTO] Photo clicked:', photo.id, photo.originalName);
-                          setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                          console.log('[BADGE PHOTO CLICK] Photo ID:', photo.id);
+                          console.log('[BADGE PHOTO CLICK] Photo name:', photo.originalName);
+                          console.log('[BADGE PHOTO CLICK] Setting selectedPhoto state...');
+                          const photoData = { id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName };
+                          console.log('[BADGE PHOTO CLICK] Photo data:', photoData);
+                          setSelectedPhoto(photoData);
+                          console.log('[BADGE PHOTO CLICK] State set complete');
+                          // Add visible feedback
+                          alert(`CLICK DETECTED!\nPhoto: ${photo.originalName}\nID: ${photo.id}\n\nIf modal doesn't open, there's a rendering issue.`);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          console.log('[BADGE PHOTO] Photo touched:', photo.id, photo.originalName);
-                          setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                          console.log('[BADGE PHOTO TOUCH] Photo ID:', photo.id);
+                          console.log('[BADGE PHOTO TOUCH] Photo name:', photo.originalName);
+                          console.log('[BADGE PHOTO TOUCH] Setting selectedPhoto state...');
+                          const photoData = { id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName };
+                          console.log('[BADGE PHOTO TOUCH] Photo data:', photoData);
+                          setSelectedPhoto(photoData);
+                          console.log('[BADGE PHOTO TOUCH] State set complete');
                         }}
                         onError={(e) => {
-                          // Fallback if image fails to load
+                          console.error('[BADGE PHOTO] Image failed to load:', photo.id);
                           e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('[BADGE PHOTO] Image loaded successfully:', photo.id);
                         }}
                       />
                       <p className="text-xs text-gray-600 truncate">{photo.originalName}</p>
@@ -3085,8 +3121,11 @@ const DealerDetail = () => {
         </div>
       )}
 
-      {/* Photo Modal - Simplified rendering for better compatibility */}
-      {selectedPhoto && (
+      {/* Photo Modal - With aggressive debugging */}
+      {selectedPhoto && (() => {
+        console.log('[PHOTO MODAL RENDER] Modal is rendering!');
+        console.log('[PHOTO MODAL RENDER] Selected photo:', selectedPhoto);
+        return (
         <div 
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4"
           style={{ 
@@ -3095,7 +3134,8 @@ const DealerDetail = () => {
             left: 0, 
             right: 0, 
             bottom: 0, 
-            zIndex: 9999 
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)' // More opaque for visibility
           }}
           onClick={() => {
             console.log('[PHOTO MODAL] Overlay clicked - closing modal');
@@ -3148,7 +3188,8 @@ const DealerDetail = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
     </Layout>
   );
