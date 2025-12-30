@@ -1334,27 +1334,6 @@ const DealerDetail = () => {
 
   return (
     <Layout>
-      {/* DEBUG INDICATOR - Remove after testing */}
-      {selectedPhoto && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: '#ff0000',
-            color: 'white',
-            padding: '10px',
-            textAlign: 'center',
-            zIndex: 10000,
-            fontWeight: 'bold',
-            fontSize: '16px'
-          }}
-        >
-          🔴 DEBUG: selectedPhoto is SET! ID: {selectedPhoto.id} - Modal should be visible below this message
-        </div>
-      )}
-      
       {/* Sticky Header */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm mb-4 sm:mb-6">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
@@ -2116,78 +2095,108 @@ const DealerDetail = () => {
           <AccordionSection section={sections[5]} />
           {sections[5].expanded && (
             <div className="mt-2 bg-white rounded-lg shadow p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Badge Photo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handlePhotoUpload(file, 'badge');
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg"
-                />
+              
+              {/* Button Controls */}
+              <div className="mb-6 flex flex-wrap gap-3">
+                <button
+                  onClick={() => document.getElementById('badge-file-input')?.click()}
+                  className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-lg">📷</span>
+                  <span>Scan Badge</span>
+                </button>
+                <button
+                  onClick={() => document.getElementById('badge-file-input')?.click()}
+                  className="flex-1 sm:flex-none px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-lg">📸</span>
+                  <span>Retake Photo</span>
+                </button>
               </div>
+
+              {/* Hidden file input */}
+              <input
+                id="badge-file-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handlePhotoUpload(file, 'badge');
+                    // Keep the photo visible after upload by ensuring section stays expanded
+                    // The photo will appear in the grid below automatically
+                  }
+                  // Reset input so same file can be selected again
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+              
               {dealer.photos.filter(p => p.type === 'badge').length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No badge photos yet. Scan a badge from the Capture Lead page or upload one here.
-                </p>
+                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <span className="text-4xl mb-3 block">📋</span>
+                  <p className="text-gray-600 font-medium mb-2">No badge scans yet</p>
+                  <p className="text-gray-500 text-sm">Click "Scan Badge" above to capture a tradeshow badge photo</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {dealer.photos.filter(p => p.type === 'badge').map((photo) => (
-                    <div key={photo.id} className="bg-gray-100 rounded-lg p-2 text-center relative">
-                      <img 
-                        src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
-                        alt={photo.originalName}
-                        className="w-full h-32 object-cover rounded mb-2 cursor-pointer hover:opacity-75 transition-opacity"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('[BADGE PHOTO CLICK] Photo ID:', photo.id);
-                          console.log('[BADGE PHOTO CLICK] Photo name:', photo.originalName);
-                          console.log('[BADGE PHOTO CLICK] Setting selectedPhoto state...');
-                          const photoData = { id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName };
-                          console.log('[BADGE PHOTO CLICK] Photo data:', photoData);
-                          setSelectedPhoto(photoData);
-                          console.log('[BADGE PHOTO CLICK] State set complete');
-                          // Add visible feedback
-                          alert(`CLICK DETECTED!\nPhoto: ${photo.originalName}\nID: ${photo.id}\n\nIf modal doesn't open, there's a rendering issue.`);
-                        }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('[BADGE PHOTO TOUCH] Photo ID:', photo.id);
-                          console.log('[BADGE PHOTO TOUCH] Photo name:', photo.originalName);
-                          console.log('[BADGE PHOTO TOUCH] Setting selectedPhoto state...');
-                          const photoData = { id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName };
-                          console.log('[BADGE PHOTO TOUCH] Photo data:', photoData);
-                          setSelectedPhoto(photoData);
-                          console.log('[BADGE PHOTO TOUCH] State set complete');
-                        }}
-                        onError={(e) => {
-                          console.error('[BADGE PHOTO] Image failed to load:', photo.id);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log('[BADGE PHOTO] Image loaded successfully:', photo.id);
-                        }}
-                      />
-                      <p className="text-xs text-gray-600 truncate">{photo.originalName}</p>
-                      {photo.tradeshowName && (
-                        <p className="text-xs text-blue-600 truncate mt-1">📍 {photo.tradeshowName}</p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">{formatDate(photo.createdAt)}</p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePhoto(photo.id);
-                        }}
-                        className="absolute top-2 right-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 shadow z-10"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <span>📸</span>
+                    <span>Scanned Badge Photos ({dealer.photos.filter(p => p.type === 'badge').length})</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {dealer.photos.filter(p => p.type === 'badge').map((photo) => (
+                      <div key={photo.id} className="bg-white border-2 border-gray-200 rounded-lg p-4 relative hover:border-blue-300 transition-colors">
+                        {/* Delete Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this badge scan?')) {
+                              handleDeletePhoto(photo.id);
+                            }
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 text-white rounded-lg px-3 py-1 text-sm font-medium hover:bg-red-700 shadow-md z-10 flex items-center gap-1"
+                          title="Delete badge scan"
+                        >
+                          <span>🗑️</span>
+                          <span>Delete</span>
+                        </button>
+                        
+                        {/* Badge Photo - Click to Enlarge */}
+                        <div 
+                          onClick={() => {
+                            console.log('[BADGE PHOTO] Clicked:', photo.id);
+                            setSelectedPhoto({ id: photo.id, originalName: photo.originalName, tradeshowName: photo.tradeshowName });
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`}
+                            alt={photo.originalName}
+                            className="w-full h-64 object-contain bg-gray-50 rounded mb-3 hover:opacity-90 transition-opacity border border-gray-200"
+                            onError={(e) => {
+                              console.error('[BADGE PHOTO] Failed to load:', photo.id);
+                              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">Failed to load</text></svg>';
+                            }}
+                          />
+                          <p className="text-center text-xs text-blue-600 font-medium">Click to enlarge</p>
+                        </div>
+                        
+                        {/* Photo Info */}
+                        <div className="mt-3 space-y-1">
+                          <p className="text-sm text-gray-700 font-medium truncate">{photo.originalName}</p>
+                          {photo.tradeshowName && (
+                            <p className="text-sm text-blue-600 truncate flex items-center gap-1">
+                              <span>📍</span>
+                              <span>{photo.tradeshowName}</span>
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">{formatDate(photo.createdAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -3121,30 +3130,20 @@ const DealerDetail = () => {
         </div>
       )}
 
-      {/* Photo Modal - With aggressive debugging */}
-      {selectedPhoto && (() => {
-        console.log('[PHOTO MODAL RENDER] Modal is rendering!');
-        console.log('[PHOTO MODAL RENDER] Selected photo:', selectedPhoto);
-        return (
+      {/* Photo Modal - Enlarged View */}
+      {selectedPhoto && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
           style={{ 
             position: 'fixed', 
             top: 0, 
             left: 0, 
             right: 0, 
             bottom: 0, 
-            zIndex: 9999,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)' // More opaque for visibility
+            zIndex: 9999
           }}
-          onClick={() => {
-            console.log('[PHOTO MODAL] Overlay clicked - closing modal');
-            setSelectedPhoto(null);
-          }}
-          onTouchEnd={() => {
-            console.log('[PHOTO MODAL] Overlay touched - closing modal');
-            setSelectedPhoto(null);
-          }}
+          onClick={() => setSelectedPhoto(null)}
+          onTouchEnd={() => setSelectedPhoto(null)}
         >
           <div 
             className="relative max-w-4xl max-h-full"
@@ -3154,12 +3153,10 @@ const DealerDetail = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('[PHOTO MODAL] Close button clicked');
                 setSelectedPhoto(null);
               }}
               onTouchEnd={(e) => {
                 e.stopPropagation();
-                console.log('[PHOTO MODAL] Close button touched');
                 setSelectedPhoto(null);
               }}
               className="absolute -top-4 -right-4 bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 hover:bg-gray-200 shadow-lg text-2xl font-bold"
@@ -3173,10 +3170,8 @@ const DealerDetail = () => {
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               onTouchEnd={(e) => e.stopPropagation()}
-              onLoad={() => console.log('[PHOTO MODAL] Image loaded successfully')}
               onError={(e) => {
                 console.error('[PHOTO MODAL] Image failed to load:', selectedPhoto.id);
-                // Show error message but keep modal open
                 e.currentTarget.alt = 'Failed to load image';
               }}
             />
@@ -3188,8 +3183,7 @@ const DealerDetail = () => {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
     </Layout>
   );

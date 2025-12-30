@@ -498,6 +498,106 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* 1. SEARCH FOR DEALER - Top Priority */}
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <span className="text-3xl mr-3">🔍</span>
+            <h2 className="text-xl font-bold text-gray-900">Search for Dealer</h2>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">Search by first name, last name, company name, city, or state</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Search by name, company, city, or state..."
+              value={searchTerms['dashboard-search'] || ''}
+              onChange={(e) => setSearchTerms(prev => ({ ...prev, 'dashboard-search': e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const term = searchTerms['dashboard-search'];
+                  if (term) {
+                    navigate(`/dealers?search=${encodeURIComponent(term)}`);
+                  }
+                }
+              }}
+              className="flex-1 px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+            />
+            <button
+              onClick={() => {
+                const term = searchTerms['dashboard-search'];
+                if (term) {
+                  navigate(`/dealers?search=${encodeURIComponent(term)}`);
+                } else {
+                  alert('Please enter a search term');
+                }
+              }}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-base whitespace-nowrap"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
+        {/* 2. CAPTURE LEAD - Second Priority */}
+        <div className="mb-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <span className="text-3xl mr-3">📷</span>
+            <h2 className="text-xl font-bold text-gray-900">Capture Lead</h2>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">Scan a tradeshow badge or search for an existing dealer</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Scan Badge Button */}
+            <button
+              onClick={() => navigate('/capture-lead')}
+              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md"
+            >
+              <span className="text-2xl">📸</span>
+              <span>Scan Tradeshow Badge</span>
+            </button>
+            
+            {/* Or divider */}
+            <div className="flex items-center justify-center text-gray-500 font-medium md:hidden">
+              <span>— OR —</span>
+            </div>
+            
+            {/* Search Dealer */}
+            <div className="hidden md:flex items-center justify-center text-gray-500 font-medium absolute left-1/2 transform -translate-x-1/2">
+              <span>OR</span>
+            </div>
+            
+            <div>
+              <input
+                type="text"
+                placeholder="Search for existing dealer..."
+                value={searchTerms['capture-lead-search'] || ''}
+                onChange={(e) => setSearchTerms(prev => ({ ...prev, 'capture-lead-search': e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const term = searchTerms['capture-lead-search'];
+                    if (term) {
+                      navigate(`/dealers?search=${encodeURIComponent(term)}`);
+                    }
+                  }
+                }}
+                className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base mb-2"
+              />
+              <button
+                onClick={() => {
+                  const term = searchTerms['capture-lead-search'];
+                  if (term) {
+                    navigate(`/dealers?search=${encodeURIComponent(term)}`);
+                  } else {
+                    alert('Please enter a dealer name to search');
+                  }
+                }}
+                className="w-full px-4 py-2 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium"
+              >
+                Search Dealer
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {/* Total Dealers */}
