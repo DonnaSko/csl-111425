@@ -144,6 +144,59 @@ const photoUpload = multer({
   }
 });
 
+// Public route for getting photos (must be BEFORE authentication middleware)
+// This allows <img src="..."> tags to load images without auth headers
+router.get('/photo/:id', async (req, res) => {
+  try {
+    const photo = await prisma.photo.findUnique({
+      where: {
+        id: req.params.id
+      }
+    });
+
+    if (!photo) {
+      console.error(`[GET PHOTO] Photo not found: ${req.params.id}`);
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+
+    // Try to get content from database first (new method)
+    if (photo.content) {
+      const buffer = Buffer.from(photo.content);
+      const mimeType = photo.mimeType || 'image/jpeg';
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(photo.originalName)}"`);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*'); // Allow CORS for images
+      
+      return res.send(buffer);
+    }
+
+    // Fallback to file system (for old photos uploaded before this fix)
+    if (photo.path) {
+      const filePath = path.resolve(photo.path);
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        const mimeType = photo.mimeType || 'image/jpeg';
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', stats.size);
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(photo.originalName)}"`);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.sendFile(filePath);
+      }
+    }
+
+    // If we get here, photo exists in database but file content is not available
+    console.error(`[GET PHOTO] Photo ${req.params.id} has no content in database or disk`);
+    return res.status(404).json({ error: 'Photo file content not available' });
+  } catch (error) {
+    console.error('[GET PHOTO] Error:', error);
+    res.status(500).json({ error: 'Failed to get photo' });
+  }
+});
+
 router.use(authenticate);
 router.use(requireActiveSubscription);
 
@@ -213,52 +266,6 @@ router.post('/photo/:dealerId', photoUpload.single('photo'), async (req: AuthReq
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ error: 'Failed to upload photo' });
-  }
-});
-
-// Get photo
-router.get('/photo/:id', async (req: AuthRequest, res) => {
-  try {
-    const photo = await prisma.photo.findFirst({
-      where: {
-        id: req.params.id,
-        dealer: {
-          companyId: req.companyId!
-        }
-      }
-    });
-
-    if (!photo) {
-      return res.status(404).json({ error: 'Photo not found' });
-    }
-
-    // Try to get content from database first (new method)
-    if (photo.content) {
-      const buffer = Buffer.from(photo.content);
-      const mimeType = photo.mimeType || 'image/jpeg';
-      
-      res.setHeader('Content-Type', mimeType);
-      res.setHeader('Content-Length', buffer.length);
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(photo.originalName)}"`);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
-      
-      return res.send(buffer);
-    }
-
-    // Fallback to file system (for old photos uploaded before this fix)
-    if (photo.path) {
-      const filePath = path.resolve(photo.path);
-      if (fs.existsSync(filePath)) {
-        return res.sendFile(filePath);
-      }
-    }
-
-    // If we get here, photo exists in database but file content is not available
-    console.error(`Photo ${req.params.id} has no content in database or disk`);
-    return res.status(404).json({ error: 'Photo file content not available' });
-  } catch (error) {
-    console.error('Get photo error:', error);
-    res.status(500).json({ error: 'Failed to get photo' });
   }
 });
 

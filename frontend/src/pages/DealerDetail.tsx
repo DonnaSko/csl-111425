@@ -2176,8 +2176,18 @@ const DealerDetail = () => {
                             alt={photo.originalName}
                             className="w-full h-64 object-contain bg-gray-50 rounded mb-3 hover:opacity-90 transition-opacity border border-gray-200"
                             onError={(e) => {
-                              console.error('[BADGE PHOTO] Failed to load:', photo.id);
-                              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">Failed to load</text></svg>';
+                              console.error('[BADGE PHOTO] Failed to load photo:', {
+                                id: photo.id,
+                                apiUrl: import.meta.env.VITE_API_URL,
+                                fullUrl: `${import.meta.env.VITE_API_URL}/uploads/photo/${photo.id}`
+                              });
+                              const target = e.currentTarget;
+                              target.style.backgroundColor = '#fee';
+                              target.style.border = '2px dashed #f00';
+                              target.alt = `❌ Failed to load photo. ID: ${photo.id}`;
+                            }}
+                            onLoad={() => {
+                              console.log('[BADGE PHOTO] Successfully loaded:', photo.id);
                             }}
                           />
                           <p className="text-center text-xs text-blue-600 font-medium">Click to enlarge</p>
