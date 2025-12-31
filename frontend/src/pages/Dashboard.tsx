@@ -151,7 +151,7 @@ const EmailFilesSection = () => {
                   value={fileDescription}
                   onChange={(e) => setFileDescription(e.target.value)}
                   placeholder="e.g., 2025 Catalog, Product Sheet A"
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-yellow-100"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 bg-yellow-50"
                 />
               </div>
               <div>
@@ -502,10 +502,10 @@ const Dashboard = () => {
         {/* 1. SEARCH FOR DEALER - Top Priority */}
         <div className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg shadow-md p-6">
           <div className="flex items-center mb-4">
-            <span className="text-3xl mr-3">🔍</span>
-            <h2 className="text-xl font-bold text-gray-900">Search for Dealer</h2>
+            <span className="text-4xl mr-3">🔍</span>
+            <h2 className="text-3xl font-bold text-gray-900">Search for Dealer</h2>
           </div>
-          <p className="text-sm text-gray-600 mb-4">Search by first name, last name, company name, city, or state</p>
+          <p className="text-lg text-gray-700 mb-4 font-medium">Search by first name, last name, company name, city, or state</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -520,7 +520,7 @@ const Dashboard = () => {
                   }
                 }
               }}
-              className="flex-1 px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="flex-1 px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base"
             />
             <button
               onClick={() => {
@@ -541,16 +541,16 @@ const Dashboard = () => {
         {/* 2. CAPTURE LEAD - Second Priority */}
         <div className="mb-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-md p-6">
           <div className="flex items-center mb-4">
-            <span className="text-3xl mr-3">📷</span>
-            <h2 className="text-xl font-bold text-gray-900">Capture Lead</h2>
+            <span className="text-4xl mr-3">📷</span>
+            <h2 className="text-3xl font-bold text-gray-900">Scan Tradeshow Badge or Enter New Dealer</h2>
           </div>
-          <p className="text-sm text-gray-600 mb-4">Scan a tradeshow badge or search for an existing dealer</p>
+          <p className="text-lg text-gray-700 mb-4 font-medium">Scan a tradeshow badge or search for an existing dealer</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Scan Badge Button */}
             <button
               onClick={() => navigate('/capture-lead')}
-              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md"
+              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md text-lg"
             >
               <span className="text-2xl">📸</span>
               <span>Scan Tradeshow Badge</span>
@@ -580,7 +580,7 @@ const Dashboard = () => {
                     }
                   }
                 }}
-                className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base mb-2"
+                className="w-full px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base mb-2"
               />
               <button
                 onClick={() => {
@@ -607,10 +607,10 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">📊</span>
+                <span className="text-4xl">📊</span>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Dealer Stats</h2>
-                  <p className="text-base text-gray-700">View detailed dealer metrics</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Dealer Stats</h2>
+                  <p className="text-lg text-gray-700 font-medium">View detailed dealer metrics</p>
                 </div>
               </div>
               <span className="text-gray-600 text-2xl font-bold">
@@ -664,7 +664,7 @@ const Dashboard = () => {
                         handleSearch('all-dealers');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('all-dealers')}
@@ -720,7 +720,7 @@ const Dashboard = () => {
                         handleSearch('with-notes');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-notes')}
@@ -776,7 +776,7 @@ const Dashboard = () => {
                         handleSearch('with-photos');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-photos')}
@@ -832,7 +832,7 @@ const Dashboard = () => {
                         handleSearch('with-recordings');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-recordings')}
@@ -960,69 +960,109 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+
+          {/* Dealers by Status - Nested Accordion */}
+          {stats?.dealersByStatus && stats.dealersByStatus.length > 0 && (
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+              <div className="bg-indigo-50 rounded-lg shadow-md border-2 border-indigo-100">
+                <div 
+                  className="p-5 cursor-pointer hover:bg-indigo-100 transition-colors"
+                  onClick={() => {
+                    setExpandedStatCard(expandedStatCard === 'dealers-by-status' ? null : 'dealers-by-status');
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <div className="p-3 bg-indigo-200 rounded-lg flex-shrink-0">
+                        <span className="text-3xl">📋</span>
+                      </div>
+                      <div className="ml-4 min-w-0">
+                        <p className="text-base font-semibold text-gray-700 truncate">Dealers by Status</p>
+                        <p className="text-sm text-gray-600">View dealers grouped by status</p>
+                      </div>
+                    </div>
+                    <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
+                      {expandedStatCard === 'dealers-by-status' ? '▼' : '▶'}
+                    </span>
+                  </div>
+                </div>
+                
+                {expandedStatCard === 'dealers-by-status' && (
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {stats.dealersByStatus.map((statusGroup, index) => {
+                        // Assign complementary pale colors
+                        const statusColors = [
+                          { bg: 'bg-rose-50', border: 'border-rose-100', hover: 'hover:bg-rose-100', icon: 'bg-rose-200' },
+                          { bg: 'bg-cyan-50', border: 'border-cyan-100', hover: 'hover:bg-cyan-100', icon: 'bg-cyan-200' },
+                          { bg: 'bg-amber-50', border: 'border-amber-100', hover: 'hover:bg-amber-100', icon: 'bg-amber-200' },
+                          { bg: 'bg-emerald-50', border: 'border-emerald-100', hover: 'hover:bg-emerald-100', icon: 'bg-emerald-200' },
+                          { bg: 'bg-violet-50', border: 'border-violet-100', hover: 'hover:bg-violet-100', icon: 'bg-violet-200' },
+                          { bg: 'bg-lime-50', border: 'border-lime-100', hover: 'hover:bg-lime-100', icon: 'bg-lime-200' },
+                        ];
+                        const colorSet = statusColors[index % statusColors.length];
+                        
+                        return (
+                          <div key={statusGroup.status} className={`${colorSet.bg} rounded-lg shadow border-2 ${colorSet.border}`}>
+                            <div 
+                              className={`p-4 cursor-pointer ${colorSet.hover} transition-colors`}
+                              onClick={() => handleSectionClick('by-status', statusGroup.status)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-gray-700 truncate">{statusGroup.status}</p>
+                                  <p className="text-2xl font-bold text-gray-900">{statusGroup._count}</p>
+                                </div>
+                                <span className="text-gray-400 text-lg ml-2 flex-shrink-0">
+                                  {expandedSection === `by-status-${statusGroup.status}` ? '▼' : '▶'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {expandedSection === `by-status-${statusGroup.status}` && (
+                              <div className="px-4 pb-4">
+                                <div className="mb-4">
+                                  <input
+                                    type="text"
+                                    placeholder="Search dealers..."
+                                    value={searchTerms[`by-status-${statusGroup.status}`] || ''}
+                                    onChange={(e) => {
+                                      setSearchTerms(prev => ({ ...prev, [`by-status-${statusGroup.status}`]: e.target.value }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSearch('by-status', statusGroup.status);
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                                  />
+                                  <button
+                                    onClick={() => handleSearch('by-status', statusGroup.status)}
+                                    className="mt-2 w-full px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                  >
+                                    Search
+                                  </button>
+                                </div>
+                                {renderDealerList(
+                                  dealersByStatus[statusGroup.status] || [],
+                                  `by-status-${statusGroup.status}`
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         )}
 
         {/* Email Files Management Section */}
         <EmailFilesSection />
-
-        {/* Dealers by Status */}
-        {stats?.dealersByStatus && stats.dealersByStatus.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Dealers by Status</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {stats.dealersByStatus.map((statusGroup) => (
-                <div key={statusGroup.status} className="bg-white rounded-lg shadow">
-                  <div 
-                    className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => handleSectionClick('by-status', statusGroup.status)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{statusGroup.status}</p>
-                        <p className="text-xl sm:text-2xl font-bold text-gray-900">{statusGroup._count}</p>
-                      </div>
-                      <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
-                        {expandedSection === `by-status-${statusGroup.status}` ? '▼' : '▶'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {expandedSection === `by-status-${statusGroup.status}` && (
-                    <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                      <div className="mb-4">
-                        <input
-                          type="text"
-                          placeholder="Search dealers..."
-                          value={searchTerms[`by-status-${statusGroup.status}`] || ''}
-                          onChange={(e) => {
-                            setSearchTerms(prev => ({ ...prev, [`by-status-${statusGroup.status}`]: e.target.value }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSearch('by-status', statusGroup.status);
-                            }
-                          }}
-                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
-                        />
-                        <button
-                          onClick={() => handleSearch('by-status', statusGroup.status)}
-                          className="mt-2 w-full px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                        >
-                          Search
-                        </button>
-                      </div>
-                      {renderDealerList(
-                        dealersByStatus[statusGroup.status] || [],
-                        `by-status-${statusGroup.status}`
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Dealers by Rating */}
         {stats?.dealersByRating && stats.dealersByRating.length > 0 && (
@@ -1063,7 +1103,7 @@ const Dashboard = () => {
                               handleSearch('by-rating', ratingGroup.rating);
                             }
                           }}
-                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-100"
+                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                         />
                         <button
                           onClick={() => handleSearch('by-rating', ratingGroup.rating)}
