@@ -235,7 +235,6 @@ router.post('/photo/:dealerId', photoUpload.single('photo'), async (req: AuthReq
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,
-        path: null, // Don't store path - using content instead
         content: fileContent, // Store in database
         type: photoType,
         tradeshowName: tradeshowName,
