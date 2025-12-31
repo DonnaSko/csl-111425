@@ -1679,18 +1679,7 @@ ${callToAction}`;
         <EmailFilesSection />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Link
-            to="/capture-lead"
-            className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-shadow"
-          >
-            <div className="flex items-center mb-3 sm:mb-4">
-              <span className="text-2xl sm:text-3xl mr-3 sm:mr-4 flex-shrink-0">📷</span>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Capture Lead</h2>
-            </div>
-            <p className="text-lg sm:text-xl text-gray-600">Scan a badge or add a new dealer</p>
-          </Link>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <Link
             to="/dealers"
             className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-shadow"
