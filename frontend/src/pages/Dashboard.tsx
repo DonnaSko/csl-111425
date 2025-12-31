@@ -1573,71 +1573,110 @@ ${callToAction}`;
               </div>
             </div>
           )}
+
+          {/* Dealers by Rating - Nested Accordion */}
+          {stats?.dealersByRating && stats.dealersByRating.length > 0 && (
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+              <div className="bg-teal-50 rounded-lg shadow-md border-2 border-teal-100">
+                <div 
+                  className="p-5 cursor-pointer hover:bg-teal-100 transition-colors"
+                  onClick={() => {
+                    setExpandedStatCard(expandedStatCard === 'dealers-by-rating' ? null : 'dealers-by-rating');
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <div className="p-3 bg-teal-200 rounded-lg flex-shrink-0">
+                        <span className="text-3xl">⭐</span>
+                      </div>
+                      <div className="ml-4 min-w-0">
+                        <p className="text-base font-semibold text-gray-700 truncate">Dealers by Rating</p>
+                        <p className="text-sm text-gray-600">View dealers grouped by star rating</p>
+                      </div>
+                    </div>
+                    <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
+                      {expandedStatCard === 'dealers-by-rating' ? '▼' : '▶'}
+                    </span>
+                  </div>
+                </div>
+                
+                {expandedStatCard === 'dealers-by-rating' && (
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {stats.dealersByRating.map((ratingGroup, index) => {
+                        // Assign complementary pale colors for ratings
+                        const ratingColors = [
+                          { bg: 'bg-yellow-50', border: 'border-yellow-100', hover: 'hover:bg-yellow-100', icon: 'bg-yellow-200' },
+                          { bg: 'bg-orange-50', border: 'border-orange-100', hover: 'hover:bg-orange-100', icon: 'bg-orange-200' },
+                          { bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', icon: 'bg-red-200' },
+                          { bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', icon: 'bg-blue-200' },
+                          { bg: 'bg-green-50', border: 'border-green-100', hover: 'hover:bg-green-100', icon: 'bg-green-200' },
+                        ];
+                        const colorSet = ratingColors[index % ratingColors.length];
+                        
+                        return (
+                          <div key={ratingGroup.rating} className={`${colorSet.bg} rounded-lg shadow border-2 ${colorSet.border}`}>
+                            <div 
+                              className={`p-3 cursor-pointer ${colorSet.hover} transition-colors`}
+                              onClick={() => handleSectionClick('by-rating', ratingGroup.rating)}
+                            >
+                              <div className="flex flex-col gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-gray-700 truncate">
+                                    {ratingGroup.rating} {ratingGroup.rating === 1 ? 'Star' : 'Stars'}
+                                  </p>
+                                  <p className="text-2xl font-bold text-gray-900">{ratingGroup._count}</p>
+                                </div>
+                                <span className="text-gray-400 text-lg self-end">
+                                  {expandedSection === `by-rating-${ratingGroup.rating}` ? '▼' : '▶'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {expandedSection === `by-rating-${ratingGroup.rating}` && (
+                              <div className="px-3 pb-3">
+                                <div className="mb-4">
+                                  <input
+                                    type="text"
+                                    placeholder="Search dealers..."
+                                    value={searchTerms[`by-rating-${ratingGroup.rating}`] || ''}
+                                    onChange={(e) => {
+                                      setSearchTerms(prev => ({ ...prev, [`by-rating-${ratingGroup.rating}`]: e.target.value }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSearch('by-rating', ratingGroup.rating);
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                                  />
+                                  <button
+                                    onClick={() => handleSearch('by-rating', ratingGroup.rating)}
+                                    className="mt-2 w-full px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                  >
+                                    Search
+                                  </button>
+                                </div>
+                                {renderDealerList(
+                                  dealersByRating[ratingGroup.rating] || [],
+                                  `by-rating-${ratingGroup.rating}`
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         )}
 
         {/* Email Files Management Section */}
         <EmailFilesSection />
-
-        {/* Dealers by Rating */}
-        {stats?.dealersByRating && stats.dealersByRating.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Dealers by Rating</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
-              {stats.dealersByRating.map((ratingGroup) => (
-                <div key={ratingGroup.rating} className="bg-white rounded-lg shadow">
-                  <div 
-                    className="p-3 sm:p-4 lg:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => handleSectionClick('by-rating', ratingGroup.rating)}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                          {ratingGroup.rating} {ratingGroup.rating === 1 ? 'Star' : 'Stars'}
-                        </p>
-                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{ratingGroup._count}</p>
-                      </div>
-                      <span className="text-gray-400 text-sm sm:text-base lg:text-lg self-end sm:self-auto">
-                        {expandedSection === `by-rating-${ratingGroup.rating}` ? '▼' : '▶'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {expandedSection === `by-rating-${ratingGroup.rating}` && (
-                    <div className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4 lg:pb-6">
-                      <div className="mb-4">
-                        <input
-                          type="text"
-                          placeholder="Search dealers..."
-                          value={searchTerms[`by-rating-${ratingGroup.rating}`] || ''}
-                          onChange={(e) => {
-                            setSearchTerms(prev => ({ ...prev, [`by-rating-${ratingGroup.rating}`]: e.target.value }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSearch('by-rating', ratingGroup.rating);
-                            }
-                          }}
-                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
-                        />
-                        <button
-                          onClick={() => handleSearch('by-rating', ratingGroup.rating)}
-                          className="mt-2 w-full px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                        >
-                          Search
-                        </button>
-                      </div>
-                      {renderDealerList(
-                        dealersByRating[ratingGroup.rating] || [],
-                        `by-rating-${ratingGroup.rating}`
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
