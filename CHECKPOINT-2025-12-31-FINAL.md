@@ -1,6 +1,51 @@
 # Checkpoint - December 31, 2025 - FINAL
 
-## 🎯 LATEST UPDATE - Removed Redundant Capture Lead Section (Evening Session)
+## 🎯 LATEST UPDATE - Added Coupon Code Functionality (Evening Session)
+
+### Discount Code Support on Subscription Page
+**Problem:** No way to offer promotional discounts or special pricing to customers.
+
+**Solution - Full Coupon Code Integration:**
+
+**Frontend Changes (`frontend/src/pages/Subscription.tsx`):**
+- Added prominent coupon code input field with attractive gradient design (green/blue)
+- Input automatically converts to uppercase for consistency
+- Shows confirmation message when code is entered
+- Clear button (✕) to remove the code
+- Passes coupon code to backend API
+- Displays user-friendly error messages for invalid/expired coupons
+
+**Backend Changes (`backend/src/routes/subscriptions.ts`):**
+- Accepts `couponCode` parameter in checkout session request
+- Validates coupon code with Stripe API before applying
+- Pre-applies valid coupon codes using `discounts` parameter
+- Enables `allow_promotion_codes: true` so customers can also enter codes during Stripe checkout
+- Returns specific error codes for invalid/expired coupons (`INVALID_COUPON`, `COUPON_NOT_FOUND`)
+- Logs coupon application for tracking
+
+**How to Use:**
+1. Create coupon codes in your Stripe Dashboard (e.g., "LAUNCH50" for 50% off)
+2. Share the code with customers
+3. Customers enter the code on the subscription page before clicking subscribe
+4. Discount is automatically applied at checkout
+
+**Files Changed:**
+- `frontend/src/pages/Subscription.tsx`
+- `backend/src/routes/subscriptions.ts`
+
+**Status:** ✅ DEPLOYED  
+**Commit:** `8d6b030`
+
+**Result:**
+- ✅ Beautiful coupon code input with emoji and gradient design
+- ✅ Validates coupons before checkout
+- ✅ Dual entry options: pre-apply on page OR enter during Stripe checkout
+- ✅ Clear error messages for invalid codes
+- ✅ Easy to track coupon usage via Stripe dashboard
+
+---
+
+## 🎯 PREVIOUS UPDATE - Removed Redundant Capture Lead Section (Evening Session)
 
 ### Cleaned Up Dashboard UI
 **Problem:** The "Capture Lead" quick action at the bottom of the Dashboard was redundant with the "Scan Tradeshow Badge or Enter New Dealer" section at the top.
