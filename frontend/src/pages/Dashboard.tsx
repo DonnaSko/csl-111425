@@ -745,153 +745,348 @@ const Dashboard = () => {
         {expandedSection === 'business-card' && userInfo && (
           <div className="mb-6 bg-white rounded-lg shadow-lg p-6 border-2 border-purple-100">
             <div className="max-w-3xl mx-auto">
-              {/* Business Card Display */}
-              <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-1 shadow-2xl">
-                <div className="bg-white rounded-xl p-8">
-                  {/* Header Section */}
-                  <div className="text-center border-b-2 border-gray-200 pb-6 mb-6">
-                    <div className="mb-4">
-                      <div className="w-28 h-28 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-lg">
-                        {userInfo.firstName.charAt(0)}{userInfo.lastName.charAt(0)}
-                      </div>
-                    </div>
-                    <h3 className="text-4xl font-bold text-gray-900 mb-3">
-                      {userInfo.firstName} {userInfo.lastName}
-                    </h3>
-                    <div className="mb-4">
-                      <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
-                        {userInfo.company.name}
-                      </p>
-                      <p className="text-lg text-gray-700 font-semibold italic">Designer Focus</p>
-                    </div>
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mt-4">
-                      <p className="text-base text-gray-800 font-medium">
-                        Outdoor Kitchen Cabinetry (Made in USA)
-                      </p>
-                      <p className="text-sm text-indigo-700 mt-1">
-                        Designer Colors • Slab/Flat Panel • Premium Outdoor Living
-                      </p>
-                    </div>
+              
+              {/* Edit/View Toggle */}
+              <div className="flex justify-end mb-4">
+                {!isEditingCard ? (
+                  <button
+                    onClick={() => {
+                      setIsEditingCard(true);
+                      fetchCardHistory();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+                  >
+                    <span>✏️</span>
+                    <span>Edit Business Card</span>
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveBusinessCard}
+                      disabled={savingCard}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors disabled:opacity-50"
+                    >
+                      <span>💾</span>
+                      <span>{savingCard ? 'Saving...' : 'Save Changes'}</span>
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={savingCard}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-semibold transition-colors disabled:opacity-50"
+                    >
+                      <span>❌</span>
+                      <span>Cancel</span>
+                    </button>
                   </div>
-                  
-                  {/* Contact Information */}
-                  <div className="space-y-4 mb-6">
-                    {/* Email */}
-                    <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                      <span className="text-3xl">📧</span>
-                      <div className="text-left flex-1">
-                        <p className="text-xs text-gray-600 font-semibold uppercase">Email</p>
-                        <a href={`mailto:${userInfo.email}`} className="text-lg text-blue-600 hover:underline font-semibold">
-                          {userInfo.email}
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                      <span className="text-3xl">📞</span>
-                      <div className="text-left flex-1">
-                        <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
-                        <a href="tel:973-520-7114" className="text-lg text-green-600 hover:underline font-semibold">
-                          973-520-7114
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Website */}
-                    <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                      <span className="text-3xl">🌐</span>
-                      <div className="text-left flex-1">
-                        <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
-                        <a href="https://www.CasaBellaOutdoor.com" target="_blank" rel="noopener noreferrer" className="text-lg text-purple-600 hover:underline font-semibold">
-                          www.CasaBellaOutdoor.com
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Instagram */}
-                    <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
-                      <span className="text-3xl">📸</span>
-                      <div className="text-left flex-1">
-                        <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
-                        <a href="https://www.instagram.com/CasaBella_Outdoor" target="_blank" rel="noopener noreferrer" className="text-lg text-pink-600 hover:underline font-semibold">
-                          @CasaBella_Outdoor
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Call to Action */}
-                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-center shadow-lg">
-                    <p className="text-2xl font-bold text-white mb-2">
-                      Want to become a Dealer?
-                    </p>
-                    <p className="text-xl text-white font-semibold">
-                      Call today! 📞
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    const vCard = `BEGIN:VCARD
+              {/* Business Card Display/Edit */}
+              {!isEditingCard ? (
+                <>
+                  {/* Business Card Display */}
+                  <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-1 shadow-2xl">
+                    <div className="bg-white rounded-xl p-8">
+                      {/* Header Section */}
+                      <div className="text-center border-b-2 border-gray-200 pb-6 mb-6">
+                        <div className="mb-4">
+                          <div className="w-28 h-28 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-lg">
+                            {userInfo.firstName.charAt(0)}{userInfo.lastName.charAt(0)}
+                          </div>
+                        </div>
+                        <h3 className="text-4xl font-bold text-gray-900 mb-3">
+                          {userInfo.firstName} {userInfo.lastName}
+                        </h3>
+                        <div className="mb-4">
+                          <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+                            {userInfo.company.name}
+                          </p>
+                          <p className="text-lg text-gray-700 font-semibold italic">{userInfo.jobTitle || 'Designer Focus'}</p>
+                        </div>
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mt-4">
+                          <p className="text-base text-gray-800 font-medium">
+                            {userInfo.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)'}
+                          </p>
+                          <p className="text-sm text-indigo-700 mt-1">
+                            {userInfo.tagline || 'Designer Colors • Slab/Flat Panel • Premium Outdoor Living'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Contact Information */}
+                      <div className="space-y-4 mb-6">
+                        {/* Email */}
+                        <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                          <span className="text-3xl">📧</span>
+                          <div className="text-left flex-1">
+                            <p className="text-xs text-gray-600 font-semibold uppercase">Email</p>
+                            <a href={`mailto:${userInfo.email}`} className="text-lg text-blue-600 hover:underline font-semibold">
+                              {userInfo.email}
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Phone */}
+                        {userInfo.businessPhone && (
+                          <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                            <span className="text-3xl">📞</span>
+                            <div className="text-left flex-1">
+                              <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
+                              <a href={`tel:${userInfo.businessPhone}`} className="text-lg text-green-600 hover:underline font-semibold">
+                                {userInfo.businessPhone}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Website */}
+                        {userInfo.website && (
+                          <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                            <span className="text-3xl">🌐</span>
+                            <div className="text-left flex-1">
+                              <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
+                              <a href={userInfo.website.startsWith('http') ? userInfo.website : `https://${userInfo.website}`} target="_blank" rel="noopener noreferrer" className="text-lg text-purple-600 hover:underline font-semibold">
+                                {userInfo.website}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Instagram */}
+                        {userInfo.instagram && (
+                          <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
+                            <span className="text-3xl">📸</span>
+                            <div className="text-left flex-1">
+                              <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
+                              <a href={`https://www.instagram.com/${userInfo.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-lg text-pink-600 hover:underline font-semibold">
+                                {userInfo.instagram}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Call to Action */}
+                      {userInfo.callToAction && (
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-center shadow-lg">
+                          <p className="text-2xl font-bold text-white">
+                            {userInfo.callToAction}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => {
+                        const vCard = `BEGIN:VCARD
 VERSION:3.0
 FN:${userInfo.firstName} ${userInfo.lastName}
 N:${userInfo.lastName};${userInfo.firstName};;;
 ORG:${userInfo.company.name}
-TITLE:Designer Focus
-NOTE:Outdoor Kitchen Cabinetry (Made in USA) - Designer Colors • Slab/Flat Panel • Premium Outdoor Living
+${userInfo.jobTitle ? `TITLE:${userInfo.jobTitle}` : ''}
+${userInfo.businessDescription ? `NOTE:${userInfo.businessDescription}${userInfo.tagline ? ` - ${userInfo.tagline}` : ''}` : ''}
 EMAIL:${userInfo.email}
-TEL;TYPE=WORK,VOICE:973-520-7114
-URL:https://www.CasaBellaOutdoor.com
-X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/CasaBella_Outdoor
+${userInfo.businessPhone ? `TEL;TYPE=WORK,VOICE:${userInfo.businessPhone}` : ''}
+${userInfo.website ? `URL:${userInfo.website}` : ''}
+${userInfo.instagram ? `X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/${userInfo.instagram.replace('@', '')}` : ''}
 END:VCARD`;
-                    const blob = new Blob([vCard], { type: 'text/vcard' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${userInfo.firstName}_${userInfo.lastName}.vcf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-semibold text-lg transition-colors shadow-lg"
-                >
-                  <span>📥</span>
-                  <span>Download vCard</span>
-                </button>
-                <button
-                  onClick={() => {
-                    const shareText = `${userInfo.firstName} ${userInfo.lastName}
-${userInfo.company.name} — Designer Focus
-Outdoor Kitchen Cabinetry (Made in USA)
+                        const blob = new Blob([vCard], { type: 'text/vcard' });
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${userInfo.firstName}_${userInfo.lastName}.vcf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                      }}
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-semibold text-lg transition-colors shadow-lg"
+                    >
+                      <span>📥</span>
+                      <span>Download vCard</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const shareText = `${userInfo.firstName} ${userInfo.lastName}
+${userInfo.company.name}${userInfo.jobTitle ? ` — ${userInfo.jobTitle}` : ''}
+${userInfo.businessDescription || ''}
 
-📞 973-520-7114
+${userInfo.businessPhone ? `📞 ${userInfo.businessPhone}` : ''}
 📧 ${userInfo.email}
-🌐 www.CasaBellaOutdoor.com
-📸 Instagram: @CasaBella_Outdoor
+${userInfo.website ? `🌐 ${userInfo.website}` : ''}
+${userInfo.instagram ? `📸 Instagram: ${userInfo.instagram}` : ''}
 
-Want to become a Dealer? Call today!`;
-                    if (navigator.share) {
-                      navigator.share({
-                        title: 'Business Card',
-                        text: shareText
-                      }).catch(err => console.log('Share failed:', err));
-                    } else {
-                      navigator.clipboard.writeText(shareText);
-                      alert('Business card info copied to clipboard!');
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 text-white rounded-lg hover:from-indigo-700 hover:to-pink-700 font-semibold text-lg transition-colors shadow-lg"
-                >
-                  <span>📤</span>
-                  <span>Share Card</span>
-                </button>
-              </div>
+${userInfo.callToAction || ''}`;
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'Business Card',
+                            text: shareText
+                          }).catch(err => console.log('Share failed:', err));
+                        } else {
+                          navigator.clipboard.writeText(shareText);
+                          alert('Business card info copied to clipboard!');
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 text-white rounded-lg hover:from-indigo-700 hover:to-pink-700 font-semibold text-lg transition-colors shadow-lg"
+                    >
+                      <span>📤</span>
+                      <span>Share Card</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit Business Card Information</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Job Title</label>
+                      <input
+                        type="text"
+                        value={cardFormData.jobTitle}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, jobTitle: e.target.value }))}
+                        placeholder="e.g., Designer Focus"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Business Phone</label>
+                      <input
+                        type="tel"
+                        value={cardFormData.businessPhone}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, businessPhone: e.target.value }))}
+                        placeholder="e.g., 973-520-7114"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Website</label>
+                      <input
+                        type="url"
+                        value={cardFormData.website}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, website: e.target.value }))}
+                        placeholder="e.g., www.CasaBellaOutdoor.com"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Instagram</label>
+                      <input
+                        type="text"
+                        value={cardFormData.instagram}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, instagram: e.target.value }))}
+                        placeholder="e.g., @CasaBella_Outdoor"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Business Description</label>
+                      <input
+                        type="text"
+                        value={cardFormData.businessDescription}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, businessDescription: e.target.value }))}
+                        placeholder="e.g., Outdoor Kitchen Cabinetry (Made in USA)"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Tagline</label>
+                      <input
+                        type="text"
+                        value={cardFormData.tagline}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, tagline: e.target.value }))}
+                        placeholder="e.g., Designer Colors • Slab/Flat Panel • Premium Outdoor Living"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Call to Action</label>
+                      <input
+                        type="text"
+                        value={cardFormData.callToAction}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, callToAction: e.target.value }))}
+                        placeholder="e.g., Want to become a Dealer? Call today!"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Change (Optional)</label>
+                      <input
+                        type="text"
+                        value={cardFormData.changeReason}
+                        onChange={(e) => setCardFormData(prev => ({ ...prev, changeReason: e.target.value }))}
+                        placeholder="e.g., Changed companies, Updated phone number"
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Business Card History */}
+              {!isEditingCard && cardHistory.length > 0 && (
+                <div className="mt-8">
+                  <div 
+                    className="bg-gray-50 rounded-lg shadow-md cursor-pointer hover:bg-gray-100 transition-colors p-4"
+                    onClick={() => setExpandedStatCard(expandedStatCard === 'card-history' ? null : 'card-history')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">📜</span>
+                        <h3 className="text-xl font-bold text-gray-900">Business Card History</h3>
+                        <span className="text-sm text-gray-600">({cardHistory.length} changes)</span>
+                      </div>
+                      <span className="text-gray-600 text-xl font-bold">
+                        {expandedStatCard === 'card-history' ? '▼' : '▶'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {expandedStatCard === 'card-history' && (
+                    <div className="mt-4 space-y-4">
+                      {cardHistory.map((record) => (
+                        <div key={record.id} className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{record.companyName}</p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(record.changedAt).toLocaleString()}
+                              </p>
+                            </div>
+                            {record.changeReason && (
+                              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-semibold">
+                                {record.changeReason}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            {record.jobTitle && (
+                              <div><span className="font-semibold">Title:</span> {record.jobTitle}</div>
+                            )}
+                            {record.businessPhone && (
+                              <div><span className="font-semibold">Phone:</span> {record.businessPhone}</div>
+                            )}
+                            {record.website && (
+                              <div><span className="font-semibold">Website:</span> {record.website}</div>
+                            )}
+                            {record.instagram && (
+                              <div><span className="font-semibold">Instagram:</span> {record.instagram}</div>
+                            )}
+                            {record.businessDescription && (
+                              <div className="md:col-span-2"><span className="font-semibold">Description:</span> {record.businessDescription}</div>
+                            )}
+                            {record.tagline && (
+                              <div className="md:col-span-2"><span className="font-semibold">Tagline:</span> {record.tagline}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
