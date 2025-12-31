@@ -628,18 +628,20 @@ const Dashboard = () => {
         {userInfo && (
           <div className="mb-6">
             <div 
-              className="bg-purple-50 rounded-lg shadow-md cursor-pointer hover:bg-purple-100 transition-colors p-5"
+              className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all p-5 border-2 border-purple-200 hover:border-purple-300"
               onClick={() => setExpandedSection(expandedSection === 'business-card' ? null : 'business-card')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">💼</span>
+                  <span className="text-5xl">💼</span>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">Electronic Business Card</h2>
-                    <p className="text-lg text-gray-700 font-medium">View and share your digital business card</p>
+                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                      Electronic Business Card
+                    </h2>
+                    <p className="text-lg text-gray-700 font-semibold">Share your digital business card instantly</p>
                   </div>
                 </div>
-                <span className="text-gray-600 text-2xl font-bold">
+                <span className="text-purple-600 text-2xl font-bold">
                   {expandedSection === 'business-card' ? '▼' : '▶'}
                 </span>
               </div>
@@ -649,27 +651,91 @@ const Dashboard = () => {
 
         {expandedSection === 'business-card' && userInfo && (
           <div className="mb-6 bg-white rounded-lg shadow-lg p-6 border-2 border-purple-100">
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-3xl mx-auto">
               {/* Business Card Display */}
-              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-8 shadow-inner border border-purple-200">
-                <div className="text-center">
-                  <div className="mb-4">
-                    <div className="w-24 h-24 mx-auto bg-purple-200 rounded-full flex items-center justify-center text-4xl font-bold text-purple-700">
-                      {userInfo.firstName.charAt(0)}{userInfo.lastName.charAt(0)}
+              <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-1 shadow-2xl">
+                <div className="bg-white rounded-xl p-8">
+                  {/* Header Section */}
+                  <div className="text-center border-b-2 border-gray-200 pb-6 mb-6">
+                    <div className="mb-4">
+                      <div className="w-28 h-28 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-lg">
+                        {userInfo.firstName.charAt(0)}{userInfo.lastName.charAt(0)}
+                      </div>
+                    </div>
+                    <h3 className="text-4xl font-bold text-gray-900 mb-3">
+                      {userInfo.firstName} {userInfo.lastName}
+                    </h3>
+                    <div className="mb-4">
+                      <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+                        {userInfo.company.name}
+                      </p>
+                      <p className="text-lg text-gray-700 font-semibold italic">Designer Focus</p>
+                    </div>
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mt-4">
+                      <p className="text-base text-gray-800 font-medium">
+                        Outdoor Kitchen Cabinetry (Made in USA)
+                      </p>
+                      <p className="text-sm text-indigo-700 mt-1">
+                        Designer Colors • Slab/Flat Panel • Premium Outdoor Living
+                      </p>
                     </div>
                   </div>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-2">
-                    {userInfo.firstName} {userInfo.lastName}
-                  </h3>
-                  <p className="text-xl text-purple-700 font-semibold mb-6">{userInfo.company.name}</p>
                   
-                  <div className="space-y-3 text-lg">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">📧</span>
-                      <a href={`mailto:${userInfo.email}`} className="text-blue-600 hover:underline">
-                        {userInfo.email}
-                      </a>
+                  {/* Contact Information */}
+                  <div className="space-y-4 mb-6">
+                    {/* Email */}
+                    <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                      <span className="text-3xl">📧</span>
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Email</p>
+                        <a href={`mailto:${userInfo.email}`} className="text-lg text-blue-600 hover:underline font-semibold">
+                          {userInfo.email}
+                        </a>
+                      </div>
                     </div>
+
+                    {/* Phone */}
+                    <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                      <span className="text-3xl">📞</span>
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
+                        <a href="tel:973-520-7114" className="text-lg text-green-600 hover:underline font-semibold">
+                          973-520-7114
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Website */}
+                    <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                      <span className="text-3xl">🌐</span>
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
+                        <a href="https://www.CasaBellaOutdoor.com" target="_blank" rel="noopener noreferrer" className="text-lg text-purple-600 hover:underline font-semibold">
+                          www.CasaBellaOutdoor.com
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Instagram */}
+                    <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
+                      <span className="text-3xl">📸</span>
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
+                        <a href="https://www.instagram.com/CasaBella_Outdoor" target="_blank" rel="noopener noreferrer" className="text-lg text-pink-600 hover:underline font-semibold">
+                          @CasaBella_Outdoor
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Call to Action */}
+                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-center shadow-lg">
+                    <p className="text-2xl font-bold text-white mb-2">
+                      Want to become a Dealer?
+                    </p>
+                    <p className="text-xl text-white font-semibold">
+                      Call today! 📞
+                    </p>
                   </div>
                 </div>
               </div>
@@ -683,7 +749,12 @@ VERSION:3.0
 FN:${userInfo.firstName} ${userInfo.lastName}
 N:${userInfo.lastName};${userInfo.firstName};;;
 ORG:${userInfo.company.name}
+TITLE:Designer Focus
+NOTE:Outdoor Kitchen Cabinetry (Made in USA) - Designer Colors • Slab/Flat Panel • Premium Outdoor Living
 EMAIL:${userInfo.email}
+TEL;TYPE=WORK,VOICE:973-520-7114
+URL:https://www.CasaBellaOutdoor.com
+X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/CasaBella_Outdoor
 END:VCARD`;
                     const blob = new Blob([vCard], { type: 'text/vcard' });
                     const url = window.URL.createObjectURL(blob);
@@ -695,7 +766,7 @@ END:VCARD`;
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
                   }}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-lg transition-colors shadow-md"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-semibold text-lg transition-colors shadow-lg"
                 >
                   <span>📥</span>
                   <span>Download vCard</span>
@@ -703,8 +774,15 @@ END:VCARD`;
                 <button
                   onClick={() => {
                     const shareText = `${userInfo.firstName} ${userInfo.lastName}
-${userInfo.company.name}
-📧 ${userInfo.email}`;
+${userInfo.company.name} — Designer Focus
+Outdoor Kitchen Cabinetry (Made in USA)
+
+📞 973-520-7114
+📧 ${userInfo.email}
+🌐 www.CasaBellaOutdoor.com
+📸 Instagram: @CasaBella_Outdoor
+
+Want to become a Dealer? Call today!`;
                     if (navigator.share) {
                       navigator.share({
                         title: 'Business Card',
@@ -715,7 +793,7 @@ ${userInfo.company.name}
                       alert('Business card info copied to clipboard!');
                     }
                   }}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-lg transition-colors shadow-md"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 text-white rounded-lg hover:from-indigo-700 hover:to-pink-700 font-semibold text-lg transition-colors shadow-lg"
                 >
                   <span>📤</span>
                   <span>Share Card</span>
