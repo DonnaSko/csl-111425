@@ -289,16 +289,16 @@ const Dashboard = () => {
       try {
         const response = await api.get('/auth/me');
         setUserInfo(response.data.user);
-        // Initialize form data with current values
+        // Initialize form data with current values or defaults
         const user = response.data.user;
         setCardFormData({
-          jobTitle: user.jobTitle || '',
-          businessPhone: user.businessPhone || '',
-          website: user.website || '',
-          instagram: user.instagram || '',
-          businessDescription: user.businessDescription || '',
-          tagline: user.tagline || '',
-          callToAction: user.callToAction || '',
+          jobTitle: user.jobTitle || 'Designer Focus',
+          businessPhone: user.businessPhone || '973-520-7114',
+          website: user.website || 'www.CasaBellaOutdoor.com',
+          instagram: user.instagram || '@CasaBella_Outdoor',
+          businessDescription: user.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)',
+          tagline: user.tagline || 'Designer Colors • Slab/Flat Panel • Premium Outdoor Living',
+          callToAction: user.callToAction || 'Want to become a Dealer? Call today!',
           changeReason: ''
         });
       } catch (error) {
@@ -338,16 +338,16 @@ const Dashboard = () => {
   };
 
   const handleCancelEdit = () => {
-    // Reset form to current user info
+    // Reset form to current user info or defaults
     if (userInfo) {
       setCardFormData({
-        jobTitle: userInfo.jobTitle || '',
-        businessPhone: userInfo.businessPhone || '',
-        website: userInfo.website || '',
-        instagram: userInfo.instagram || '',
-        businessDescription: userInfo.businessDescription || '',
-        tagline: userInfo.tagline || '',
-        callToAction: userInfo.callToAction || '',
+        jobTitle: userInfo.jobTitle || 'Designer Focus',
+        businessPhone: userInfo.businessPhone || '973-520-7114',
+        website: userInfo.website || 'www.CasaBellaOutdoor.com',
+        instagram: userInfo.instagram || '@CasaBella_Outdoor',
+        businessDescription: userInfo.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)',
+        tagline: userInfo.tagline || 'Designer Colors • Slab/Flat Panel • Premium Outdoor Living',
+        callToAction: userInfo.callToAction || 'Want to become a Dealer? Call today!',
         changeReason: ''
       });
     }
@@ -826,54 +826,63 @@ const Dashboard = () => {
                           </div>
                         </div>
 
-                        {/* Phone */}
-                        {userInfo.businessPhone && (
-                          <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                            <span className="text-3xl">📞</span>
-                            <div className="text-left flex-1">
-                              <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
-                              <a href={`tel:${userInfo.businessPhone}`} className="text-lg text-green-600 hover:underline font-semibold">
-                                {userInfo.businessPhone}
-                              </a>
-                            </div>
+                        {/* Phone - Always show with default */}
+                        <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                          <span className="text-3xl">📞</span>
+                          <div className="text-left flex-1">
+                            <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
+                            <a href={`tel:${userInfo.businessPhone || '973-520-7114'}`} className="text-lg text-green-600 hover:underline font-semibold">
+                              {userInfo.businessPhone || '973-520-7114'}
+                            </a>
                           </div>
-                        )}
+                        </div>
 
-                        {/* Website */}
-                        {userInfo.website && (
-                          <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                            <span className="text-3xl">🌐</span>
-                            <div className="text-left flex-1">
-                              <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
-                              <a href={userInfo.website.startsWith('http') ? userInfo.website : `https://${userInfo.website}`} target="_blank" rel="noopener noreferrer" className="text-lg text-purple-600 hover:underline font-semibold">
-                                {userInfo.website}
-                              </a>
-                            </div>
+                        {/* Website - Always show with default */}
+                        <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                          <span className="text-3xl">🌐</span>
+                          <div className="text-left flex-1">
+                            <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
+                            <a 
+                              href={
+                                userInfo.website 
+                                  ? (userInfo.website.startsWith('http') ? userInfo.website : `https://${userInfo.website}`)
+                                  : 'https://www.CasaBellaOutdoor.com'
+                              } 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-lg text-purple-600 hover:underline font-semibold"
+                            >
+                              {userInfo.website || 'www.CasaBellaOutdoor.com'}
+                            </a>
                           </div>
-                        )}
+                        </div>
 
-                        {/* Instagram */}
-                        {userInfo.instagram && (
-                          <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
-                            <span className="text-3xl">📸</span>
-                            <div className="text-left flex-1">
-                              <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
-                              <a href={`https://www.instagram.com/${userInfo.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-lg text-pink-600 hover:underline font-semibold">
-                                {userInfo.instagram}
-                              </a>
-                            </div>
+                        {/* Instagram - Always show with default */}
+                        <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
+                          <span className="text-3xl">📸</span>
+                          <div className="text-left flex-1">
+                            <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
+                            <a 
+                              href={`https://www.instagram.com/${(userInfo.instagram || '@CasaBella_Outdoor').replace('@', '')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-lg text-pink-600 hover:underline font-semibold"
+                            >
+                              {userInfo.instagram || '@CasaBella_Outdoor'}
+                            </a>
                           </div>
-                        )}
+                        </div>
                       </div>
 
-                      {/* Call to Action */}
-                      {userInfo.callToAction && (
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-center shadow-lg">
-                          <p className="text-2xl font-bold text-white">
-                            {userInfo.callToAction}
-                          </p>
-                        </div>
-                      )}
+                      {/* Call to Action - Always show with default */}
+                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-center shadow-lg">
+                        <p className="text-2xl font-bold text-white mb-2">
+                          {userInfo.callToAction || 'Want to become a Dealer?'}
+                        </p>
+                        <p className="text-xl text-white font-semibold">
+                          Call today! 📞
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -881,17 +890,24 @@ const Dashboard = () => {
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       onClick={() => {
+                        const phone = userInfo.businessPhone || '973-520-7114';
+                        const website = userInfo.website || 'www.CasaBellaOutdoor.com';
+                        const instagram = userInfo.instagram || '@CasaBella_Outdoor';
+                        const jobTitle = userInfo.jobTitle || 'Designer Focus';
+                        const description = userInfo.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)';
+                        const tagline = userInfo.tagline || 'Designer Colors • Slab/Flat Panel • Premium Outdoor Living';
+                        
                         const vCard = `BEGIN:VCARD
 VERSION:3.0
 FN:${userInfo.firstName} ${userInfo.lastName}
 N:${userInfo.lastName};${userInfo.firstName};;;
 ORG:${userInfo.company.name}
-${userInfo.jobTitle ? `TITLE:${userInfo.jobTitle}` : ''}
-${userInfo.businessDescription ? `NOTE:${userInfo.businessDescription}${userInfo.tagline ? ` - ${userInfo.tagline}` : ''}` : ''}
+TITLE:${jobTitle}
+NOTE:${description} - ${tagline}
 EMAIL:${userInfo.email}
-${userInfo.businessPhone ? `TEL;TYPE=WORK,VOICE:${userInfo.businessPhone}` : ''}
-${userInfo.website ? `URL:${userInfo.website}` : ''}
-${userInfo.instagram ? `X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/${userInfo.instagram.replace('@', '')}` : ''}
+TEL;TYPE=WORK,VOICE:${phone}
+URL:${website.startsWith('http') ? website : `https://${website}`}
+X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/${instagram.replace('@', '')}
 END:VCARD`;
                         const blob = new Blob([vCard], { type: 'text/vcard' });
                         const url = window.URL.createObjectURL(blob);
@@ -910,16 +926,23 @@ END:VCARD`;
                     </button>
                     <button
                       onClick={() => {
+                        const phone = userInfo.businessPhone || '973-520-7114';
+                        const website = userInfo.website || 'www.CasaBellaOutdoor.com';
+                        const instagram = userInfo.instagram || '@CasaBella_Outdoor';
+                        const jobTitle = userInfo.jobTitle || 'Designer Focus';
+                        const description = userInfo.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)';
+                        const callToAction = userInfo.callToAction || 'Want to become a Dealer? Call today!';
+                        
                         const shareText = `${userInfo.firstName} ${userInfo.lastName}
-${userInfo.company.name}${userInfo.jobTitle ? ` — ${userInfo.jobTitle}` : ''}
-${userInfo.businessDescription || ''}
+${userInfo.company.name} — ${jobTitle}
+${description}
 
-${userInfo.businessPhone ? `📞 ${userInfo.businessPhone}` : ''}
+📞 ${phone}
 📧 ${userInfo.email}
-${userInfo.website ? `🌐 ${userInfo.website}` : ''}
-${userInfo.instagram ? `📸 Instagram: ${userInfo.instagram}` : ''}
+🌐 ${website}
+📸 Instagram: ${instagram}
 
-${userInfo.callToAction || ''}`;
+${callToAction}`;
                         if (navigator.share) {
                           navigator.share({
                             title: 'Business Card',
