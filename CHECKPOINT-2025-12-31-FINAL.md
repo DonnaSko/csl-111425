@@ -1,6 +1,29 @@
 # Checkpoint - December 31, 2025 - FINAL
 
-## 🎯 LATEST UPDATE - Fixed Font Size Consistency (Evening Session)
+## 🎯 LATEST UPDATE - Removed Redundant Capture Lead Section (Evening Session)
+
+### Cleaned Up Dashboard UI
+**Problem:** The "Capture Lead" quick action at the bottom of the Dashboard was redundant with the "Scan Tradeshow Badge or Enter New Dealer" section at the top.
+
+**Solution:**
+- Removed the redundant "Capture Lead" quick action from the bottom Quick Actions area
+- Updated Quick Actions grid from 3 columns to 2 columns (now only "View Dealers" and "Reports")
+- Cleaner, less redundant UI
+
+**Files Changed:**
+- `frontend/src/pages/Dashboard.tsx`
+
+**Status:** ✅ DEPLOYED  
+**Commit:** `6f3541f`
+
+**Result:**
+- ✅ No more duplicate functionality
+- ✅ Cleaner dashboard layout
+- ✅ All lead capture features still available at top of page
+
+---
+
+## 🎯 PREVIOUS UPDATE - Fixed Font Size Consistency (Evening Session)
 
 ### Standardized All Text Sizes for Professional Appearance
 **Problem:** After increasing font sizes, they became inconsistent - some headers were huge, buttons varied, text was all different sizes.
