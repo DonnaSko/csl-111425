@@ -211,11 +211,23 @@ const EmailFilesSection = () => {
   );
 };
 
+interface UserInfo {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  company: {
+    id: string;
+    name: string;
+  };
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   
   // Track expanded sections
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -235,6 +247,19 @@ const Dashboard = () => {
   
   // Track loading states for each section
   const [loadingDealers, setLoadingDealers] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        setUserInfo(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -598,6 +623,107 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Electronic Business Card */}
+        {userInfo && (
+          <div className="mb-6">
+            <div 
+              className="bg-purple-50 rounded-lg shadow-md cursor-pointer hover:bg-purple-100 transition-colors p-5"
+              onClick={() => setExpandedSection(expandedSection === 'business-card' ? null : 'business-card')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">💼</span>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900">Electronic Business Card</h2>
+                    <p className="text-lg text-gray-700 font-medium">View and share your digital business card</p>
+                  </div>
+                </div>
+                <span className="text-gray-600 text-2xl font-bold">
+                  {expandedSection === 'business-card' ? '▼' : '▶'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {expandedSection === 'business-card' && userInfo && (
+          <div className="mb-6 bg-white rounded-lg shadow-lg p-6 border-2 border-purple-100">
+            <div className="max-w-2xl mx-auto">
+              {/* Business Card Display */}
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-8 shadow-inner border border-purple-200">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <div className="w-24 h-24 mx-auto bg-purple-200 rounded-full flex items-center justify-center text-4xl font-bold text-purple-700">
+                      {userInfo.firstName.charAt(0)}{userInfo.lastName.charAt(0)}
+                    </div>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                    {userInfo.firstName} {userInfo.lastName}
+                  </h3>
+                  <p className="text-xl text-purple-700 font-semibold mb-6">{userInfo.company.name}</p>
+                  
+                  <div className="space-y-3 text-lg">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl">📧</span>
+                      <a href={`mailto:${userInfo.email}`} className="text-blue-600 hover:underline">
+                        {userInfo.email}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    const vCard = `BEGIN:VCARD
+VERSION:3.0
+FN:${userInfo.firstName} ${userInfo.lastName}
+N:${userInfo.lastName};${userInfo.firstName};;;
+ORG:${userInfo.company.name}
+EMAIL:${userInfo.email}
+END:VCARD`;
+                    const blob = new Blob([vCard], { type: 'text/vcard' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${userInfo.firstName}_${userInfo.lastName}.vcf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-lg transition-colors shadow-md"
+                >
+                  <span>📥</span>
+                  <span>Download vCard</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const shareText = `${userInfo.firstName} ${userInfo.lastName}
+${userInfo.company.name}
+📧 ${userInfo.email}`;
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'Business Card',
+                        text: shareText
+                      }).catch(err => console.log('Share failed:', err));
+                    } else {
+                      navigator.clipboard.writeText(shareText);
+                      alert('Business card info copied to clipboard!');
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-lg transition-colors shadow-md"
+                >
+                  <span>📤</span>
+                  <span>Share Card</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid - Collapsible Accordion */}
         <div className="mb-6">
