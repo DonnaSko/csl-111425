@@ -219,6 +219,7 @@ const Dashboard = () => {
   
   // Track expanded sections
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedStatCard, setExpandedStatCard] = useState<string | null>(null);
   
   // Track dealer data for each section
   const [allDealers, setAllDealers] = useState<Dealer[]>([]);
@@ -625,7 +626,12 @@ const Dashboard = () => {
           <div className="bg-green-50 rounded-lg shadow-md border-2 border-green-100">
             <div 
               className="p-5 cursor-pointer hover:bg-green-100 transition-colors"
-              onClick={() => handleSectionClick('all-dealers')}
+              onClick={() => {
+                setExpandedStatCard(expandedStatCard === 'all-dealers' ? null : 'all-dealers');
+                if (expandedStatCard !== 'all-dealers') {
+                  fetchDealersForSection('all-dealers');
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
@@ -638,12 +644,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
-                  {expandedSection === 'all-dealers' ? '▼' : '▶'}
+                  {expandedStatCard === 'all-dealers' ? '▼' : '▶'}
                 </span>
               </div>
             </div>
             
-            {expandedSection === 'all-dealers' && (
+            {expandedStatCard === 'all-dealers' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="mb-4">
                   <input
@@ -676,7 +682,12 @@ const Dashboard = () => {
           <div className="bg-yellow-50 rounded-lg shadow-md border-2 border-yellow-100">
             <div 
               className="p-5 cursor-pointer hover:bg-yellow-100 transition-colors"
-              onClick={() => handleSectionClick('with-notes')}
+              onClick={() => {
+                setExpandedStatCard(expandedStatCard === 'with-notes' ? null : 'with-notes');
+                if (expandedStatCard !== 'with-notes') {
+                  fetchDealersForSection('with-notes');
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
@@ -689,12 +700,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
-                  {expandedSection === 'with-notes' ? '▼' : '▶'}
+                  {expandedStatCard === 'with-notes' ? '▼' : '▶'}
                 </span>
               </div>
             </div>
             
-            {expandedSection === 'with-notes' && (
+            {expandedStatCard === 'with-notes' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="mb-4">
                   <input
@@ -727,7 +738,12 @@ const Dashboard = () => {
           <div className="bg-orange-50 rounded-lg shadow-md border-2 border-orange-100">
             <div 
               className="p-5 cursor-pointer hover:bg-orange-100 transition-colors"
-              onClick={() => handleSectionClick('with-photos')}
+              onClick={() => {
+                setExpandedStatCard(expandedStatCard === 'with-photos' ? null : 'with-photos');
+                if (expandedStatCard !== 'with-photos') {
+                  fetchDealersForSection('with-photos');
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
@@ -740,12 +756,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
-                  {expandedSection === 'with-photos' ? '▼' : '▶'}
+                  {expandedStatCard === 'with-photos' ? '▼' : '▶'}
                 </span>
               </div>
             </div>
             
-            {expandedSection === 'with-photos' && (
+            {expandedStatCard === 'with-photos' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="mb-4">
                   <input
@@ -778,7 +794,12 @@ const Dashboard = () => {
           <div className="bg-purple-50 rounded-lg shadow-md border-2 border-purple-100">
             <div 
               className="p-5 cursor-pointer hover:bg-purple-100 transition-colors"
-              onClick={() => handleSectionClick('with-recordings')}
+              onClick={() => {
+                setExpandedStatCard(expandedStatCard === 'with-recordings' ? null : 'with-recordings');
+                if (expandedStatCard !== 'with-recordings') {
+                  fetchDealersForSection('with-recordings');
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
@@ -791,12 +812,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
-                  {expandedSection === 'with-recordings' ? '▼' : '▶'}
+                  {expandedStatCard === 'with-recordings' ? '▼' : '▶'}
                 </span>
               </div>
             </div>
             
-            {expandedSection === 'with-recordings' && (
+            {expandedStatCard === 'with-recordings' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="mb-4">
                   <input
@@ -829,7 +850,12 @@ const Dashboard = () => {
           <div className="bg-pink-50 rounded-lg shadow-md border-2 border-pink-100">
             <div 
               className="p-5 cursor-pointer hover:bg-pink-100 transition-colors"
-              onClick={() => handleSectionClick('todos')}
+              onClick={() => {
+                setExpandedStatCard(expandedStatCard === 'todos' ? null : 'todos');
+                if (expandedStatCard !== 'todos') {
+                  fetchDealersForSection('todos');
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
@@ -842,12 +868,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
-                  {expandedSection === 'todos' ? '▼' : '▶'}
+                  {expandedStatCard === 'todos' ? '▼' : '▶'}
                 </span>
               </div>
             </div>
             
-            {expandedSection === 'todos' && (
+            {expandedStatCard === 'todos' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {loadingDealers['todos-all'] ? (
                   <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
