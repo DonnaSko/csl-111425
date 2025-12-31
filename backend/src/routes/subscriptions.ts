@@ -17,7 +17,7 @@ const PRICE_ID_ANNUAL = process.env.STRIPE_PRICE_ID_ANNUAL!;
 // Create checkout session
 router.post('/create-checkout-session', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { plan } = req.body; // 'monthly' or 'annual'
+    const { plan, couponCode } = req.body; // 'monthly' or 'annual', optional couponCode
 
     if (!['monthly', 'annual'].includes(plan)) {
       return res.status(400).json({ error: 'Invalid plan type' });
@@ -76,8 +76,8 @@ router.post('/create-checkout-session', authenticate, async (req: AuthRequest, r
       customerId = customer.id;
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Prepare checkout session options
+    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
@@ -92,8 +92,44 @@ router.post('/create-checkout-session', authenticate, async (req: AuthRequest, r
       metadata: {
         userId: user.id,
         plan
+      },
+      // Allow customers to enter promotion codes during checkout as backup
+      allow_promotion_codes: true
+    };
+
+    // If a coupon code is provided, validate and pre-apply it
+    if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+      try {
+        // Validate the coupon exists in Stripe
+        const coupon = await stripe.coupons.retrieve(couponCode.trim());
+        
+        if (!coupon.valid) {
+          return res.status(400).json({ 
+            error: `The coupon code "${couponCode}" is not valid or has expired.`,
+            code: 'INVALID_COUPON'
+          });
+        }
+
+        // Pre-apply the coupon to the checkout session
+        sessionOptions.discounts = [{
+          coupon: couponCode.trim()
+        }];
+
+        console.log(`Applying coupon code "${couponCode}" to checkout session for user ${user.id}`);
+      } catch (error: any) {
+        // Coupon doesn't exist or is invalid
+        if (error.type === 'StripeInvalidRequestError') {
+          return res.status(400).json({ 
+            error: `The coupon code "${couponCode}" does not exist or is invalid.`,
+            code: 'COUPON_NOT_FOUND'
+          });
+        }
+        throw error; // Re-throw other errors
       }
-    });
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create(sessionOptions);
 
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {

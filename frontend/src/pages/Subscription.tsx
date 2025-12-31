@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Subscription = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
   const { refreshSubscription, hasActiveSubscription, loading: subscriptionLoading, subscription } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -46,15 +47,26 @@ const Subscription = () => {
 
     setLoadingPlan(plan);
     try {
-      const response = await api.post('/subscriptions/create-checkout-session', { plan });
+      const response = await api.post('/subscriptions/create-checkout-session', { 
+        plan,
+        couponCode: couponCode.trim() || undefined
+      });
       if (response.data.url) {
         window.location.href = response.data.url;
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
       const errorMessage = error.response?.data?.error || 'Failed to create checkout session';
+      const errorCode = error.response?.data?.code;
 
-      if (error.response?.data?.code === 'SUBSCRIPTION_EXISTS') {
+      // Handle coupon-specific errors
+      if (errorCode === 'INVALID_COUPON' || errorCode === 'COUPON_NOT_FOUND') {
+        alert(errorMessage);
+        setLoadingPlan(null);
+        return;
+      }
+
+      if (errorCode === 'SUBSCRIPTION_EXISTS') {
         const daysLeft = error.response?.data?.daysLeft;
         const currentPeriodEnd = error.response?.data?.currentPeriodEnd;
         const readableEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString() : null;
@@ -194,13 +206,50 @@ const Subscription = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Choose Your Plan
           </h1>
           <p className="text-lg text-gray-600">
             Select a subscription plan to start managing your trade show leads
           </p>
+        </div>
+
+        {/* Coupon Code Section */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-md p-6 border-2 border-green-200">
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">🎟️</span>
+              <h3 className="text-lg font-bold text-gray-900">Have a Coupon Code?</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Enter your discount code below to apply it to your subscription
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="Enter coupon code"
+                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-base font-semibold uppercase"
+                disabled={loadingPlan !== null || hasActiveSubscription}
+              />
+              {couponCode && (
+                <button
+                  onClick={() => setCouponCode('')}
+                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold text-sm"
+                  title="Clear coupon code"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {couponCode && (
+              <p className="text-sm text-green-700 mt-2 font-medium">
+                ✓ Coupon code "{couponCode}" will be applied at checkout
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
