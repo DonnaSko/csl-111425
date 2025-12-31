@@ -126,13 +126,13 @@ const EmailFilesSection = () => {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Email Files & Catalogs</h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              <p className="text-xl sm:text-lg text-gray-600 mt-1">
                 Upload PDFs, catalogs, and product sheets to send to dealers
               </p>
             </div>
             <button
               onClick={() => setShowUploadForm(!showUploadForm)}
-              className="px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap"
+              className="px-4 py-2.5 text-lg sm:text-xl bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap"
             >
               {showUploadForm ? 'Cancel' : '+ Upload File'}
             </button>
@@ -143,7 +143,7 @@ const EmailFilesSection = () => {
           <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xl sm:text-lg font-medium text-gray-700 mb-2">
                   File Description (Optional)
                 </label>
                 <input
@@ -151,11 +151,11 @@ const EmailFilesSection = () => {
                   value={fileDescription}
                   onChange={(e) => setFileDescription(e.target.value)}
                   placeholder="e.g., 2025 Catalog, Product Sheet A"
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 bg-yellow-50"
+                  className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 bg-yellow-50"
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xl sm:text-lg font-medium text-gray-700 mb-2">
                   Select File (PDF, Word, Excel, Images)
                 </label>
                 <input
@@ -163,9 +163,9 @@ const EmailFilesSection = () => {
                   onChange={handleFileUpload}
                   disabled={uploading}
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
-                {uploading && <p className="text-xs sm:text-sm text-gray-500 mt-2">Uploading...</p>}
+                {uploading && <p className="text-xl sm:text-lg text-gray-500 mt-2">Uploading...</p>}
               </div>
             </div>
           </div>
@@ -173,9 +173,9 @@ const EmailFilesSection = () => {
 
         <div className="p-4 sm:p-6">
           {loading ? (
-            <p className="text-gray-500 text-sm sm:text-base">Loading files...</p>
+            <p className="text-gray-500 text-lg sm:text-base">Loading files...</p>
           ) : files.length === 0 ? (
-            <p className="text-gray-500 text-center py-8 text-sm sm:text-base">
+            <p className="text-gray-500 text-center py-8 text-lg sm:text-base">
               No files uploaded yet. Click "Upload File" to add catalogs, PDFs, or product sheets.
             </p>
           ) : (
@@ -184,18 +184,18 @@ const EmailFilesSection = () => {
                 <div key={file.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm sm:text-base break-words">{file.originalName}</h4>
+                      <h4 className="font-semibold text-gray-900 text-lg sm:text-xl break-words">{file.originalName}</h4>
                       {file.description && (
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">{file.description}</p>
+                        <p className="text-xl sm:text-lg text-gray-600 mt-1 break-words">{file.description}</p>
                       )}
-                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 text-xl text-gray-500">
                         <span>{formatFileSize(file.size)}</span>
                         <span>{new Date(file.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <button
                       onClick={() => handleDeleteFile(file.id)}
-                      className="ml-2 text-red-600 hover:text-red-800 text-sm sm:text-base flex-shrink-0"
+                      className="ml-2 text-red-600 hover:text-red-800 text-lg sm:text-xl flex-shrink-0"
                       title="Delete file"
                     >
                       🗑️
@@ -547,7 +547,7 @@ const Dashboard = () => {
     
     if (loadingDealers[actualLoadingKey] || loadingDealers[sectionKey]) {
       return (
-        <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
+        <div className="p-4 text-center text-gray-500 text-lg sm:text-base">
           Loading dealers...
         </div>
       );
@@ -555,7 +555,7 @@ const Dashboard = () => {
 
     if (dealers.length === 0) {
       return (
-        <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
+        <div className="p-4 text-center text-gray-500 text-lg sm:text-base">
           No dealers found
         </div>
       );
@@ -570,12 +570,12 @@ const Dashboard = () => {
               onClick={() => handleDealerClick(dealer.id)}
               className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
             >
-              <div className="font-semibold text-gray-900 text-sm sm:text-base break-words">{dealer.companyName}</div>
+              <div className="font-semibold text-gray-900 text-lg sm:text-xl break-words">{dealer.companyName}</div>
               {dealer.contactName && (
-                <div className="text-xs sm:text-sm text-gray-600 break-words">{dealer.contactName}</div>
+                <div className="text-xl sm:text-lg text-gray-600 break-words">{dealer.contactName}</div>
               )}
               {dealer.email && (
-                <div className="text-xs text-gray-500 break-all">{dealer.email}</div>
+                <div className="text-xl text-gray-500 break-all">{dealer.email}</div>
               )}
             </div>
           ))}
@@ -597,7 +597,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="px-4 sm:px-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Dashboard</h1>
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6 sm:mb-8">Dashboard</h1>
         
         {/* Error Message */}
         {error && (
@@ -638,7 +638,7 @@ const Dashboard = () => {
                   }
                 }
               }}
-              className="flex-1 px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base"
+              className="flex-1 px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-xl"
             />
             <button
               onClick={() => {
@@ -649,7 +649,7 @@ const Dashboard = () => {
                   alert('Please enter a search term');
                 }
               }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-base whitespace-nowrap"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-xl whitespace-nowrap"
             >
               Search
             </button>
@@ -668,7 +668,7 @@ const Dashboard = () => {
             {/* Scan Badge Button */}
             <button
               onClick={() => navigate('/capture-lead')}
-              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md text-lg"
+              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md text-2xl"
             >
               <span className="text-2xl">📸</span>
               <span>Scan Tradeshow Badge</span>
@@ -698,7 +698,7 @@ const Dashboard = () => {
                     }
                   }
                 }}
-                className="w-full px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base mb-2"
+                className="w-full px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-xl mb-2"
               />
               <button
                 onClick={() => {
@@ -709,7 +709,7 @@ const Dashboard = () => {
                     alert('Please enter a dealer name to search');
                   }
                 }}
-                className="w-full px-4 py-2 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium"
+                className="w-full px-4 py-2 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium text-xl"
               >
                 Search Dealer
               </button>
@@ -804,10 +804,10 @@ const Dashboard = () => {
                           <p className="text-lg text-gray-700 font-semibold italic">{userInfo.jobTitle || 'Designer Focus'}</p>
                         </div>
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mt-4">
-                          <p className="text-base text-gray-800 font-medium">
+                          <p className="text-xl text-gray-800 font-medium">
                             {userInfo.businessDescription || 'Outdoor Kitchen Cabinetry (Made in USA)'}
                           </p>
-                          <p className="text-sm text-indigo-700 mt-1">
+                          <p className="text-lg text-indigo-700 mt-1">
                             {userInfo.tagline || 'Designer Colors • Slab/Flat Panel • Premium Outdoor Living'}
                           </p>
                         </div>
@@ -819,7 +819,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
                           <span className="text-3xl">📧</span>
                           <div className="text-left flex-1">
-                            <p className="text-xs text-gray-600 font-semibold uppercase">Email</p>
+                            <p className="text-xl text-gray-600 font-semibold uppercase">Email</p>
                             <a href={`mailto:${userInfo.email}`} className="text-lg text-blue-600 hover:underline font-semibold">
                               {userInfo.email}
                             </a>
@@ -830,7 +830,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
                           <span className="text-3xl">📞</span>
                           <div className="text-left flex-1">
-                            <p className="text-xs text-gray-600 font-semibold uppercase">Phone</p>
+                            <p className="text-xl text-gray-600 font-semibold uppercase">Phone</p>
                             <a href={`tel:${userInfo.businessPhone || '973-520-7114'}`} className="text-lg text-green-600 hover:underline font-semibold">
                               {userInfo.businessPhone || '973-520-7114'}
                             </a>
@@ -841,7 +841,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
                           <span className="text-3xl">🌐</span>
                           <div className="text-left flex-1">
-                            <p className="text-xs text-gray-600 font-semibold uppercase">Website</p>
+                            <p className="text-xl text-gray-600 font-semibold uppercase">Website</p>
                             <a 
                               href={
                                 userInfo.website 
@@ -861,7 +861,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors">
                           <span className="text-3xl">📸</span>
                           <div className="text-left flex-1">
-                            <p className="text-xs text-gray-600 font-semibold uppercase">Instagram</p>
+                            <p className="text-xl text-gray-600 font-semibold uppercase">Instagram</p>
                             <a 
                               href={`https://www.instagram.com/${(userInfo.instagram || '@CasaBella_Outdoor').replace('@', '')}`} 
                               target="_blank" 
@@ -965,7 +965,7 @@ ${callToAction}`;
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit Business Card Information</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Job Title</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Job Title</label>
                       <input
                         type="text"
                         value={cardFormData.jobTitle}
@@ -975,7 +975,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Business Phone</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Business Phone</label>
                       <input
                         type="tel"
                         value={cardFormData.businessPhone}
@@ -985,7 +985,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Website</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Website</label>
                       <input
                         type="url"
                         value={cardFormData.website}
@@ -995,7 +995,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Instagram</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Instagram</label>
                       <input
                         type="text"
                         value={cardFormData.instagram}
@@ -1005,7 +1005,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Business Description</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Business Description</label>
                       <input
                         type="text"
                         value={cardFormData.businessDescription}
@@ -1015,7 +1015,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Tagline</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Tagline</label>
                       <input
                         type="text"
                         value={cardFormData.tagline}
@@ -1025,7 +1025,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Call to Action</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Call to Action</label>
                       <input
                         type="text"
                         value={cardFormData.callToAction}
@@ -1035,7 +1035,7 @@ ${callToAction}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Change (Optional)</label>
+                      <label className="block text-lg font-semibold text-gray-700 mb-2">Reason for Change (Optional)</label>
                       <input
                         type="text"
                         value={cardFormData.changeReason}
@@ -1059,7 +1059,7 @@ ${callToAction}`;
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">📜</span>
                         <h3 className="text-xl font-bold text-gray-900">Business Card History</h3>
-                        <span className="text-sm text-gray-600">({cardHistory.length} changes)</span>
+                        <span className="text-lg text-gray-600">({cardHistory.length} changes)</span>
                       </div>
                       <span className="text-gray-600 text-xl font-bold">
                         {expandedStatCard === 'card-history' ? '▼' : '▶'}
@@ -1074,12 +1074,12 @@ ${callToAction}`;
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <p className="text-lg font-bold text-gray-900">{record.companyName}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-lg text-gray-600">
                                 {new Date(record.changedAt).toLocaleString()}
                               </p>
                             </div>
                             {record.changeReason && (
-                              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-semibold">
+                              <span className="text-xl bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-semibold">
                                 {record.changeReason}
                               </span>
                             )}
@@ -1154,7 +1154,7 @@ ${callToAction}`;
                     <span className="text-3xl">👥</span>
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-semibold text-gray-700 truncate">Total Dealers</p>
+                    <p className="text-xl font-semibold text-gray-700 truncate">Total Dealers</p>
                     <p className="text-3xl font-bold text-gray-900">{stats?.totalDealers || 0}</p>
                   </div>
                 </div>
@@ -1179,11 +1179,11 @@ ${callToAction}`;
                         handleSearch('all-dealers');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                    className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('all-dealers')}
-                    className="mt-2 w-full px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="mt-2 w-full px-4 py-2.5 text-lg sm:text-xl bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                   >
                     Search
                   </button>
@@ -1210,7 +1210,7 @@ ${callToAction}`;
                     <span className="text-3xl">📝</span>
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-semibold text-gray-700 truncate">Total Notes</p>
+                    <p className="text-xl font-semibold text-gray-700 truncate">Total Notes</p>
                     <p className="text-3xl font-bold text-gray-900">{stats?.totalNotes || 0}</p>
                   </div>
                 </div>
@@ -1235,11 +1235,11 @@ ${callToAction}`;
                         handleSearch('with-notes');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                    className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-notes')}
-                    className="mt-2 w-full px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="mt-2 w-full px-4 py-2.5 text-lg sm:text-xl bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                   >
                     Search
                   </button>
@@ -1266,7 +1266,7 @@ ${callToAction}`;
                     <span className="text-3xl">📷</span>
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-semibold text-gray-700 truncate">Photos</p>
+                    <p className="text-xl font-semibold text-gray-700 truncate">Photos</p>
                     <p className="text-3xl font-bold text-gray-900">{stats?.totalPhotos || 0}</p>
                   </div>
                 </div>
@@ -1291,11 +1291,11 @@ ${callToAction}`;
                         handleSearch('with-photos');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                    className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-photos')}
-                    className="mt-2 w-full px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="mt-2 w-full px-4 py-2.5 text-lg sm:text-xl bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                   >
                     Search
                   </button>
@@ -1322,7 +1322,7 @@ ${callToAction}`;
                     <span className="text-3xl">🎤</span>
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-semibold text-gray-700 truncate">Recordings</p>
+                    <p className="text-xl font-semibold text-gray-700 truncate">Recordings</p>
                     <p className="text-3xl font-bold text-gray-900">{stats?.totalRecordings || 0}</p>
                   </div>
                 </div>
@@ -1347,11 +1347,11 @@ ${callToAction}`;
                         handleSearch('with-recordings');
                       }
                     }}
-                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                    className="w-full px-3 sm:px-4 py-2 text-lg sm:text-xl border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                   />
                   <button
                     onClick={() => handleSearch('with-recordings')}
-                    className="mt-2 w-full px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="mt-2 w-full px-4 py-2.5 text-lg sm:text-xl bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                   >
                     Search
                   </button>
@@ -1378,7 +1378,7 @@ ${callToAction}`;
                     <span className="text-3xl">✅</span>
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-semibold text-gray-700">To Do's & Follow Up</p>
+                    <p className="text-xl font-semibold text-gray-700">To Do's & Follow Up</p>
                     <p className="text-3xl font-bold text-gray-900">{stats?.activeTodos || 0}</p>
                   </div>
                 </div>
@@ -1391,11 +1391,11 @@ ${callToAction}`;
             {expandedStatCard === 'todos' && (
               <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {loadingDealers['todos-all'] ? (
-                  <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
+                  <div className="p-4 text-center text-gray-500 text-lg sm:text-base">
                     Loading todos...
                   </div>
                 ) : todos.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
+                  <div className="p-4 text-center text-gray-500 text-lg sm:text-base">
                     No pending to-dos or follow-ups
                   </div>
                 ) : (
@@ -1417,8 +1417,8 @@ ${callToAction}`;
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start flex-wrap gap-2">
-                                  <span className="font-semibold text-gray-900 text-sm sm:text-base break-words">{todo.title}</span>
-                                  <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
+                                  <span className="font-semibold text-gray-900 text-lg sm:text-xl break-words">{todo.title}</span>
+                                  <span className={`text-xl px-2 py-1 rounded flex-shrink-0 ${
                                     todo.type === 'email' 
                                       ? 'bg-green-100 text-green-800' 
                                       : 'bg-blue-100 text-blue-800'
@@ -1426,21 +1426,21 @@ ${callToAction}`;
                                     {todo.type}
                                   </span>
                                   {isPastDue && (
-                                    <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-medium flex-shrink-0">
+                                    <span className="text-xl px-2 py-1 bg-red-100 text-red-800 rounded font-medium flex-shrink-0">
                                       PAST DUE
                                     </span>
                                   )}
                                 </div>
                                 {todo.description && (
-                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">{todo.description}</p>
+                                  <p className="text-xl sm:text-lg text-gray-600 mt-1 break-words">{todo.description}</p>
                                 )}
                                 {todo.dealer && (
-                                  <p className="text-xs sm:text-sm text-blue-600 mt-1 break-words">
+                                  <p className="text-xl sm:text-lg text-blue-600 mt-1 break-words">
                                     👤 {todo.dealer.companyName}
                                     {todo.dealer.contactName && ` (${todo.dealer.contactName})`}
                                   </p>
                                 )}
-                                <div className="flex flex-col sm:flex-row sm:gap-4 gap-1 mt-2 text-xs text-gray-500">
+                                <div className="flex flex-col sm:flex-row sm:gap-4 gap-1 mt-2 text-xl text-gray-500">
                                   {todo.dueDate && (
                                     <span className={isPastDue ? 'text-red-600 font-medium' : ''}>
                                       Due: {new Date(todo.dueDate).toLocaleDateString('en-US', {
@@ -1492,8 +1492,8 @@ ${callToAction}`;
                         <span className="text-3xl">📋</span>
                       </div>
                       <div className="ml-4 min-w-0">
-                        <p className="text-base font-semibold text-gray-700 truncate">Dealers by Status</p>
-                        <p className="text-sm text-gray-600">View dealers grouped by status</p>
+                        <p className="text-xl font-semibold text-gray-700 truncate">Dealers by Status</p>
+                        <p className="text-lg text-gray-600">View dealers grouped by status</p>
                       </div>
                     </div>
                     <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
@@ -1525,7 +1525,7 @@ ${callToAction}`;
                             >
                               <div className="flex items-center justify-between">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-gray-700 truncate">{statusGroup.status}</p>
+                                  <p className="text-lg font-semibold text-gray-700 truncate">{statusGroup.status}</p>
                                   <p className="text-2xl font-bold text-gray-900">{statusGroup._count}</p>
                                 </div>
                                 <span className="text-gray-400 text-lg ml-2 flex-shrink-0">
@@ -1549,11 +1549,11 @@ ${callToAction}`;
                                         handleSearch('by-status', statusGroup.status);
                                       }
                                     }}
-                                    className="w-full px-3 py-2 text-sm border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                                    className="w-full px-3 py-2 text-lg border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                                   />
                                   <button
                                     onClick={() => handleSearch('by-status', statusGroup.status)}
-                                    className="mt-2 w-full px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                    className="mt-2 w-full px-4 py-2.5 text-lg bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                                   >
                                     Search
                                   </button>
@@ -1590,8 +1590,8 @@ ${callToAction}`;
                         <span className="text-3xl">⭐</span>
                       </div>
                       <div className="ml-4 min-w-0">
-                        <p className="text-base font-semibold text-gray-700 truncate">Dealers by Rating</p>
-                        <p className="text-sm text-gray-600">View dealers grouped by star rating</p>
+                        <p className="text-xl font-semibold text-gray-700 truncate">Dealers by Rating</p>
+                        <p className="text-lg text-gray-600">View dealers grouped by star rating</p>
                       </div>
                     </div>
                     <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
@@ -1622,7 +1622,7 @@ ${callToAction}`;
                             >
                               <div className="flex flex-col gap-2">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-gray-700 truncate">
+                                  <p className="text-lg font-semibold text-gray-700 truncate">
                                     {ratingGroup.rating} {ratingGroup.rating === 1 ? 'Star' : 'Stars'}
                                   </p>
                                   <p className="text-2xl font-bold text-gray-900">{ratingGroup._count}</p>
@@ -1648,11 +1648,11 @@ ${callToAction}`;
                                         handleSearch('by-rating', ratingGroup.rating);
                                       }
                                     }}
-                                    className="w-full px-3 py-2 text-sm border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
+                                    className="w-full px-3 py-2 text-lg border border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 bg-yellow-50"
                                   />
                                   <button
                                     onClick={() => handleSearch('by-rating', ratingGroup.rating)}
-                                    className="mt-2 w-full px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                    className="mt-2 w-full px-4 py-2.5 text-lg bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                                   >
                                     Search
                                   </button>
@@ -1688,7 +1688,7 @@ ${callToAction}`;
               <span className="text-2xl sm:text-3xl mr-3 sm:mr-4 flex-shrink-0">📷</span>
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Capture Lead</h2>
             </div>
-            <p className="text-sm sm:text-base text-gray-600">Scan a badge or add a new dealer</p>
+            <p className="text-lg sm:text-xl text-gray-600">Scan a badge or add a new dealer</p>
           </Link>
 
           <Link
@@ -1699,7 +1699,7 @@ ${callToAction}`;
               <span className="text-2xl sm:text-3xl mr-3 sm:mr-4 flex-shrink-0">👥</span>
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">View Dealers</h2>
             </div>
-            <p className="text-sm sm:text-base text-gray-600">Manage your dealer database</p>
+            <p className="text-lg sm:text-xl text-gray-600">Manage your dealer database</p>
           </Link>
 
           <Link
@@ -1710,7 +1710,7 @@ ${callToAction}`;
               <span className="text-2xl sm:text-3xl mr-3 sm:mr-4 flex-shrink-0">📊</span>
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Reports</h2>
             </div>
-            <p className="text-sm sm:text-base text-gray-600">View analytics and export data</p>
+            <p className="text-lg sm:text-xl text-gray-600">View analytics and export data</p>
           </Link>
         </div>
       </div>
