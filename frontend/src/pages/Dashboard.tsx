@@ -601,18 +601,18 @@ const Dashboard = () => {
         {/* Stats Grid - Collapsible Accordion */}
         <div className="mb-6">
           <div 
-            className="bg-white rounded-lg shadow cursor-pointer hover:bg-gray-50 transition-colors p-4"
+            className="bg-blue-50 rounded-lg shadow-md cursor-pointer hover:bg-blue-100 transition-colors p-5"
             onClick={() => setExpandedSection(expandedSection === 'stats-grid' ? null : 'stats-grid')}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📊</span>
+                <span className="text-3xl">📊</span>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Dealer Statistics</h2>
-                  <p className="text-sm text-gray-600">View detailed dealer metrics and reports</p>
+                  <h2 className="text-xl font-bold text-gray-900">Dealer Stats</h2>
+                  <p className="text-base text-gray-700">View detailed dealer metrics</p>
                 </div>
               </div>
-              <span className="text-gray-400 text-xl">
+              <span className="text-gray-600 text-2xl font-bold">
                 {expandedSection === 'stats-grid' ? '▼' : '▶'}
               </span>
             </div>
@@ -620,24 +620,24 @@ const Dashboard = () => {
         </div>
 
         {expandedSection === 'stats-grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          {/* Total Dealers */}
-          <div className="bg-white rounded-lg shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Total Dealers - Pale Green */}
+          <div className="bg-green-50 rounded-lg shadow-md border-2 border-green-100">
             <div 
-              className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="p-5 cursor-pointer hover:bg-green-100 transition-colors"
               onClick={() => handleSectionClick('all-dealers')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">👥</span>
+                  <div className="p-3 bg-green-200 rounded-lg flex-shrink-0">
+                    <span className="text-3xl">👥</span>
                   </div>
-                  <div className="ml-3 sm:ml-4 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Dealers</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalDealers || 0}</p>
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-semibold text-gray-700 truncate">Total Dealers</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats?.totalDealers || 0}</p>
                   </div>
                 </div>
-                <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
+                <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
                   {expandedSection === 'all-dealers' ? '▼' : '▶'}
                 </span>
               </div>
@@ -672,23 +672,23 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Total Notes */}
-          <div className="bg-white rounded-lg shadow">
+          {/* Total Notes - Pale Yellow */}
+          <div className="bg-yellow-50 rounded-lg shadow-md border-2 border-yellow-100">
             <div 
-              className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="p-5 cursor-pointer hover:bg-yellow-100 transition-colors"
               onClick={() => handleSectionClick('with-notes')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">📝</span>
+                  <div className="p-3 bg-yellow-200 rounded-lg flex-shrink-0">
+                    <span className="text-3xl">📝</span>
                   </div>
-                  <div className="ml-3 sm:ml-4 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Notes</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalNotes || 0}</p>
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-semibold text-gray-700 truncate">Total Notes</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats?.totalNotes || 0}</p>
                   </div>
                 </div>
-                <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
+                <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
                   {expandedSection === 'with-notes' ? '▼' : '▶'}
                 </span>
               </div>
@@ -723,23 +723,23 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Photos */}
-          <div className="bg-white rounded-lg shadow">
+          {/* Photos - Pale Orange */}
+          <div className="bg-orange-50 rounded-lg shadow-md border-2 border-orange-100">
             <div 
-              className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="p-5 cursor-pointer hover:bg-orange-100 transition-colors"
               onClick={() => handleSectionClick('with-photos')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">📷</span>
+                  <div className="p-3 bg-orange-200 rounded-lg flex-shrink-0">
+                    <span className="text-3xl">📷</span>
                   </div>
-                  <div className="ml-3 sm:ml-4 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Photos</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalPhotos || 0}</p>
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-semibold text-gray-700 truncate">Photos</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats?.totalPhotos || 0}</p>
                   </div>
                 </div>
-                <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
+                <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
                   {expandedSection === 'with-photos' ? '▼' : '▶'}
                 </span>
               </div>
@@ -774,23 +774,23 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Recordings */}
-          <div className="bg-white rounded-lg shadow">
+          {/* Recordings - Pale Purple */}
+          <div className="bg-purple-50 rounded-lg shadow-md border-2 border-purple-100">
             <div 
-              className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="p-5 cursor-pointer hover:bg-purple-100 transition-colors"
               onClick={() => handleSectionClick('with-recordings')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">🎤</span>
+                  <div className="p-3 bg-purple-200 rounded-lg flex-shrink-0">
+                    <span className="text-3xl">🎤</span>
                   </div>
-                  <div className="ml-3 sm:ml-4 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Recordings</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalRecordings || 0}</p>
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-semibold text-gray-700 truncate">Recordings</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats?.totalRecordings || 0}</p>
                   </div>
                 </div>
-                <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
+                <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
                   {expandedSection === 'with-recordings' ? '▼' : '▶'}
                 </span>
               </div>
@@ -824,26 +824,24 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* To Do's and Follow Up Section */}
-        <div className="mb-8">
-          <div className="bg-white rounded-lg shadow">
+          {/* To Do's and Follow Up - Pale Pink */}
+          <div className="bg-pink-50 rounded-lg shadow-md border-2 border-pink-100">
             <div 
-              className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="p-5 cursor-pointer hover:bg-pink-100 transition-colors"
               onClick={() => handleSectionClick('todos')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">✅</span>
+                  <div className="p-3 bg-pink-200 rounded-lg flex-shrink-0">
+                    <span className="text-3xl">✅</span>
                   </div>
-                  <div className="ml-3 sm:ml-4 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600">To Do's and Follow Up</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.activeTodos || 0}</p>
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-semibold text-gray-700">To Do's & Follow Up</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats?.activeTodos || 0}</p>
                   </div>
                 </div>
-                <span className="text-gray-400 text-base sm:text-lg ml-2 flex-shrink-0">
+                <span className="text-gray-500 text-xl ml-2 flex-shrink-0">
                   {expandedSection === 'todos' ? '▼' : '▶'}
                 </span>
               </div>
