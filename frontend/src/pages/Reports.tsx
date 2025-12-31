@@ -56,6 +56,7 @@ const Reports = () => {
   const [attendanceShows, setAttendanceShows] = useState<AttendanceTradeShow[]>([]);
   const [todosShows, setTodosShows] = useState<TodosTradeShow[]>([]);
   const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -150,7 +151,7 @@ const Reports = () => {
     <Layout>
       <div className="px-4 sm:px-0">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Reports</h1>
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -160,10 +161,32 @@ const Reports = () => {
           </button>
         </div>
 
-        {/* Trade Shows Attended */}
+        {/* Trade Shows Attended - Accordion */}
+        <div className="mb-6">
+          <div 
+            className="bg-blue-50 rounded-lg shadow-md cursor-pointer hover:bg-blue-100 transition-colors p-5"
+            onClick={() => setExpandedSection(expandedSection === 'trade-shows' ? null : 'trade-shows')}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">🎪</span>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Trade Shows Attended</h2>
+                  <p className="text-base sm:text-lg text-gray-700 font-medium">
+                    Trade shows with associated dealers
+                  </p>
+                </div>
+              </div>
+              <span className="text-gray-600 text-2xl font-bold">
+                {expandedSection === 'trade-shows' ? '▼' : '▶'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {expandedSection === 'trade-shows' && (
         <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Trade Shows Attended</h2>
-          <p className="text-xs sm:text-sm text-gray-600 mb-4">
+          <p className="text-sm sm:text-base text-gray-600 mb-4">
             List of trade shows you attended, with dealers who stopped by your booth or were associated
             with that show. Most recent shows appear first.
           </p>
@@ -224,13 +247,34 @@ const Reports = () => {
             </div>
           )}
         </div>
+        )}
 
-        {/* To-Dos & Follow Ups by Tradeshow */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
-            To-Do&apos;s &amp; Follow Ups by Tradeshow
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-600 mb-4">
+        {/* To-Dos & Follow Ups by Tradeshow - Accordion */}
+        <div className="mb-6">
+          <div 
+            className="bg-green-50 rounded-lg shadow-md cursor-pointer hover:bg-green-100 transition-colors p-5"
+            onClick={() => setExpandedSection(expandedSection === 'todos' ? null : 'todos')}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">✅</span>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">To-Do&apos;s &amp; Follow Ups by Tradeshow</h2>
+                  <p className="text-base sm:text-lg text-gray-700 font-medium">
+                    Tasks and follow-ups by tradeshow
+                  </p>
+                </div>
+              </div>
+              <span className="text-gray-600 text-2xl font-bold">
+                {expandedSection === 'todos' ? '▼' : '▶'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {expandedSection === 'todos' && (
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+          <p className="text-sm sm:text-base text-gray-600 mb-4">
             Tasks and follow-ups grouped by tradeshow and dealer. Click a dealer name to open their record.
             Click &quot;Complete&quot; to mark a task done (text will be crossed out and completion date saved).
           </p>
@@ -344,6 +388,7 @@ const Reports = () => {
             </div>
           )}
         </div>
+        )}
       </div>
     </Layout>
   );
