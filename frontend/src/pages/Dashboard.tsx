@@ -597,7 +597,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="px-4 sm:px-0">
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6 sm:mb-8">Dashboard</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6 sm:mb-8">Dashboard</h1>
         
         {/* Error Message */}
         {error && (
@@ -621,9 +621,9 @@ const Dashboard = () => {
         <div className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg shadow-md p-6">
           <div className="flex items-center mb-4">
             <span className="text-4xl mr-3">🔍</span>
-            <h2 className="text-3xl font-bold text-gray-900">Search for Dealer</h2>
-          </div>
-          <p className="text-lg text-gray-700 mb-4 font-medium">Search by first name, last name, company name, city, or state</p>
+                    <h2 className="text-2xl font-bold text-gray-900">Search for Dealer</h2>
+                  </div>
+                  <p className="text-base text-gray-700 mb-4 font-medium">Search by first name, last name, company name, city, or state</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -638,7 +638,7 @@ const Dashboard = () => {
                   }
                 }
               }}
-              className="flex-1 px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-xl"
+              className="flex-1 px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base"
             />
             <button
               onClick={() => {
@@ -649,7 +649,7 @@ const Dashboard = () => {
                   alert('Please enter a search term');
                 }
               }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-xl whitespace-nowrap"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-base whitespace-nowrap"
             >
               Search
             </button>
@@ -660,15 +660,15 @@ const Dashboard = () => {
         <div className="mb-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-md p-6">
           <div className="flex items-center mb-4">
             <span className="text-4xl mr-3">📷</span>
-            <h2 className="text-3xl font-bold text-gray-900">Scan Tradeshow Badge or Enter New Dealer</h2>
-          </div>
-          <p className="text-lg text-gray-700 mb-4 font-medium">Scan a tradeshow badge or search for an existing dealer</p>
+                    <h2 className="text-2xl font-bold text-gray-900">Scan Tradeshow Badge or Enter New Dealer</h2>
+                  </div>
+                  <p className="text-base text-gray-700 mb-4 font-medium">Scan a tradeshow badge or search for an existing dealer</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Scan Badge Button */}
             <button
               onClick={() => navigate('/capture-lead')}
-              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md text-2xl"
+              className="flex items-center justify-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors shadow-md text-base"
             >
               <span className="text-2xl">📸</span>
               <span>Scan Tradeshow Badge</span>
@@ -698,7 +698,7 @@ const Dashboard = () => {
                     }
                   }
                 }}
-                className="w-full px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-xl mb-2"
+                className="w-full px-4 py-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-base mb-2"
               />
               <button
                 onClick={() => {
@@ -709,7 +709,7 @@ const Dashboard = () => {
                     alert('Please enter a dealer name to search');
                   }
                 }}
-                className="w-full px-4 py-2 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium text-xl"
+                className="w-full px-4 py-2 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium text-base"
               >
                 Search Dealer
               </button>
@@ -728,10 +728,10 @@ const Dashboard = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-5xl">💼</span>
                   <div>
-                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
                       Electronic Business Card
                     </h2>
-                    <p className="text-lg text-gray-700 font-semibold">Share your digital business card instantly</p>
+                    <p className="text-base text-gray-700 font-semibold">Share your digital business card instantly</p>
                   </div>
                 </div>
                 <span className="text-purple-600 text-2xl font-bold">
@@ -754,7 +754,7 @@ const Dashboard = () => {
                       setIsEditingCard(true);
                       fetchCardHistory();
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors text-base"
                   >
                     <span>✏️</span>
                     <span>Edit Business Card</span>
@@ -764,7 +764,7 @@ const Dashboard = () => {
                     <button
                       onClick={handleSaveBusinessCard}
                       disabled={savingCard}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors disabled:opacity-50 text-base"
                     >
                       <span>💾</span>
                       <span>{savingCard ? 'Saving...' : 'Save Changes'}</span>
@@ -772,7 +772,7 @@ const Dashboard = () => {
                     <button
                       onClick={handleCancelEdit}
                       disabled={savingCard}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-semibold transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-semibold transition-colors disabled:opacity-50 text-base"
                     >
                       <span>❌</span>
                       <span>Cancel</span>
@@ -1125,7 +1125,7 @@ ${callToAction}`;
                 <span className="text-4xl">📊</span>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Dealer Stats</h2>
-                  <p className="text-lg text-gray-700 font-medium">View detailed dealer metrics</p>
+                  <p className="text-base text-gray-700 font-medium">View detailed dealer metrics</p>
                 </div>
               </div>
               <span className="text-gray-600 text-2xl font-bold">
