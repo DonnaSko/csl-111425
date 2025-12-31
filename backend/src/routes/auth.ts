@@ -155,6 +155,13 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
         firstName: true,
         lastName: true,
         companyId: true,
+        jobTitle: true,
+        businessPhone: true,
+        website: true,
+        instagram: true,
+        businessDescription: true,
+        tagline: true,
+        callToAction: true,
         company: {
           select: {
             id: true,
@@ -285,6 +292,123 @@ router.post('/request-deletion', authenticate, async (req: AuthRequest, res) => 
   } catch (error) {
     console.error('Request deletion error:', error);
     res.status(500).json({ error: 'Failed to submit deletion request' });
+  }
+});
+
+// Update business card info
+router.put('/business-card', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { 
+      jobTitle, 
+      businessPhone, 
+      website, 
+      instagram, 
+      businessDescription, 
+      tagline, 
+      callToAction, 
+      changeReason 
+    } = req.body;
+
+    // Get current user data
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      select: {
+        jobTitle: true,
+        businessPhone: true,
+        website: true,
+        instagram: true,
+        businessDescription: true,
+        tagline: true,
+        callToAction: true,
+        company: {
+          select: { name: true }
+        }
+      }
+    });
+
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If there's existing business card data, save it to history
+    if (
+      currentUser.jobTitle || 
+      currentUser.businessPhone || 
+      currentUser.website || 
+      currentUser.instagram ||
+      currentUser.businessDescription ||
+      currentUser.tagline ||
+      currentUser.callToAction
+    ) {
+      await prisma.businessCardHistory.create({
+        data: {
+          userId: req.userId!,
+          companyName: currentUser.company.name,
+          jobTitle: currentUser.jobTitle,
+          businessPhone: currentUser.businessPhone,
+          website: currentUser.website,
+          instagram: currentUser.instagram,
+          businessDescription: currentUser.businessDescription,
+          tagline: currentUser.tagline,
+          callToAction: currentUser.callToAction,
+          changeReason: changeReason || 'Updated business card information'
+        }
+      });
+    }
+
+    // Update user with new business card info
+    const updatedUser = await prisma.user.update({
+      where: { id: req.userId! },
+      data: {
+        jobTitle,
+        businessPhone,
+        website,
+        instagram,
+        businessDescription,
+        tagline,
+        callToAction
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        companyId: true,
+        jobTitle: true,
+        businessPhone: true,
+        website: true,
+        instagram: true,
+        businessDescription: true,
+        tagline: true,
+        callToAction: true,
+        company: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    res.json({ user: updatedUser });
+  } catch (error) {
+    console.error('Update business card error:', error);
+    res.status(500).json({ error: 'Failed to update business card' });
+  }
+});
+
+// Get business card history
+router.get('/business-card/history', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const history = await prisma.businessCardHistory.findMany({
+      where: { userId: req.userId! },
+      orderBy: { changedAt: 'desc' }
+    });
+
+    res.json({ history });
+  } catch (error) {
+    console.error('Get business card history error:', error);
+    res.status(500).json({ error: 'Failed to get business card history' });
   }
 });
 

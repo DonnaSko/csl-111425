@@ -21,11 +21,20 @@ model User {
   companyId           String
   dailyEmailReminders Boolean  @default(true)
   marketingEmails     Boolean  @default(false)
+  // Business Card Fields
+  jobTitle            String?  // e.g., "Designer Focus"
+  businessPhone       String?  // e.g., "973-520-7114"
+  website             String?  // e.g., "www.CasaBellaOutdoor.com"
+  instagram           String?  // e.g., "@CasaBella_Outdoor"
+  businessDescription String?  // e.g., "Outdoor Kitchen Cabinetry (Made in USA)"
+  tagline             String?  // e.g., "Designer Colors • Slab/Flat Panel"
+  callToAction        String?  // e.g., "Want to become a Dealer? Call today."
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
+  company             Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscriptions       Subscription[]
+  businessCardHistory BusinessCardHistory[]
 
   @@index([email])
   @@index([companyId])
@@ -414,5 +423,28 @@ model EmailFile {
 
   @@index([companyId])
   @@index([createdAt])
+  @@schema("csl")
+}
+
+model BusinessCardHistory {
+  id                  String   @id @default(cuid())
+  userId              String
+  // Snapshot of business card fields at time of change
+  companyName         String
+  jobTitle            String?
+  businessPhone       String?
+  website             String?
+  instagram           String?
+  businessDescription String?
+  tagline             String?
+  callToAction        String?
+  // Metadata
+  changeReason        String?  // e.g., "Changed companies", "Updated contact info"
+  changedAt           DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([changedAt])
   @@schema("csl")
 }

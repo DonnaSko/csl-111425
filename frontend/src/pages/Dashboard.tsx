@@ -216,10 +216,31 @@ interface UserInfo {
   email: string;
   firstName: string;
   lastName: string;
+  jobTitle?: string | null;
+  businessPhone?: string | null;
+  website?: string | null;
+  instagram?: string | null;
+  businessDescription?: string | null;
+  tagline?: string | null;
+  callToAction?: string | null;
   company: {
     id: string;
     name: string;
   };
+}
+
+interface BusinessCardHistory {
+  id: string;
+  companyName: string;
+  jobTitle?: string | null;
+  businessPhone?: string | null;
+  website?: string | null;
+  instagram?: string | null;
+  businessDescription?: string | null;
+  tagline?: string | null;
+  callToAction?: string | null;
+  changeReason?: string | null;
+  changedAt: string;
 }
 
 const Dashboard = () => {
@@ -232,6 +253,21 @@ const Dashboard = () => {
   // Track expanded sections
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [expandedStatCard, setExpandedStatCard] = useState<string | null>(null);
+  
+  // Business card editing
+  const [isEditingCard, setIsEditingCard] = useState(false);
+  const [cardFormData, setCardFormData] = useState({
+    jobTitle: '',
+    businessPhone: '',
+    website: '',
+    instagram: '',
+    businessDescription: '',
+    tagline: '',
+    callToAction: '',
+    changeReason: ''
+  });
+  const [cardHistory, setCardHistory] = useState<BusinessCardHistory[]>([]);
+  const [savingCard, setSavingCard] = useState(false);
   
   // Track dealer data for each section
   const [allDealers, setAllDealers] = useState<Dealer[]>([]);
@@ -253,6 +289,18 @@ const Dashboard = () => {
       try {
         const response = await api.get('/auth/me');
         setUserInfo(response.data.user);
+        // Initialize form data with current values
+        const user = response.data.user;
+        setCardFormData({
+          jobTitle: user.jobTitle || '',
+          businessPhone: user.businessPhone || '',
+          website: user.website || '',
+          instagram: user.instagram || '',
+          businessDescription: user.businessDescription || '',
+          tagline: user.tagline || '',
+          callToAction: user.callToAction || '',
+          changeReason: ''
+        });
       } catch (error) {
         console.error('Failed to fetch user info:', error);
       }
@@ -260,6 +308,51 @@ const Dashboard = () => {
 
     fetchUserInfo();
   }, []);
+
+  const fetchCardHistory = async () => {
+    try {
+      const response = await api.get('/auth/business-card/history');
+      setCardHistory(response.data.history);
+    } catch (error) {
+      console.error('Failed to fetch card history:', error);
+    }
+  };
+
+  const handleSaveBusinessCard = async () => {
+    try {
+      setSavingCard(true);
+      const response = await api.put('/auth/business-card', cardFormData);
+      setUserInfo(response.data.user);
+      setIsEditingCard(false);
+      alert('Business card updated successfully!');
+      // Refresh history
+      fetchCardHistory();
+      // Reset change reason
+      setCardFormData(prev => ({ ...prev, changeReason: '' }));
+    } catch (error: any) {
+      console.error('Failed to update business card:', error);
+      alert(error.response?.data?.error || 'Failed to update business card');
+    } finally {
+      setSavingCard(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to current user info
+    if (userInfo) {
+      setCardFormData({
+        jobTitle: userInfo.jobTitle || '',
+        businessPhone: userInfo.businessPhone || '',
+        website: userInfo.website || '',
+        instagram: userInfo.instagram || '',
+        businessDescription: userInfo.businessDescription || '',
+        tagline: userInfo.tagline || '',
+        callToAction: userInfo.callToAction || '',
+        changeReason: ''
+      });
+    }
+    setIsEditingCard(false);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
