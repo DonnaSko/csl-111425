@@ -13,19 +13,33 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+  console.log('[WEBHOOK] Received Stripe webhook request');
+
+  // Validate webhook secret is configured
+  if (!webhookSecret) {
+    console.error('[WEBHOOK] ERROR: STRIPE_WEBHOOK_SECRET not configured');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
   let event: Stripe.Event;
 
+  // Verify webhook signature
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    console.log(`[WEBHOOK] ✓ Signature verified for event: ${event.type} (ID: ${event.id})`);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('[WEBHOOK] ✗ Signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // Process the webhook event
   try {
+    console.log(`[WEBHOOK] Processing event type: ${event.type}`);
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        console.log(`[WEBHOOK] Checkout session completed: ${session.id}`);
         
         if (session.mode === 'subscription' && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
@@ -34,8 +48,12 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
           
           const userId = session.metadata?.userId;
           if (!userId) {
-            console.error('No userId in session metadata');
-            break;
+            console.error('[WEBHOOK] No userId in session metadata - cannot create subscription');
+            // Still return 200 to acknowledge receipt
+            return res.status(200).json({ 
+              received: true, 
+              warning: 'No userId in metadata' 
+            });
           }
 
           // Find or create subscription record
@@ -44,6 +62,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
           });
 
           if (existing) {
+            console.log(`[WEBHOOK] Updating existing subscription: ${existing.id}`);
             await prisma.subscription.update({
               where: { id: existing.id },
               data: {
@@ -53,6 +72,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
               }
             });
           } else {
+            console.log(`[WEBHOOK] Creating new subscription for user: ${userId}`);
             await prisma.subscription.create({
               data: {
                 userId,
@@ -65,18 +85,21 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
               }
             });
           }
+          console.log('[WEBHOOK] ✓ Subscription processed successfully');
         }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
+        console.log(`[WEBHOOK] Subscription updated: ${subscription.id}`);
         
         const existing = await prisma.subscription.findUnique({
           where: { stripeSubscriptionId: subscription.id }
         });
 
         if (existing) {
+          console.log(`[WEBHOOK] Updating subscription record: ${existing.id}`);
           await prisma.subscription.update({
             where: { id: existing.id },
             data: {
@@ -88,12 +111,16 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
                 : null
             }
           });
+          console.log('[WEBHOOK] ✓ Subscription updated successfully');
+        } else {
+          console.warn(`[WEBHOOK] Subscription not found in database: ${subscription.id}`);
         }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
+        console.log(`[WEBHOOK] Subscription deleted: ${subscription.id}`);
         
         await prisma.subscription.updateMany({
           where: { stripeSubscriptionId: subscription.id },
@@ -102,11 +129,13 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
             canceledAt: new Date()
           }
         });
+        console.log('[WEBHOOK] ✓ Subscription marked as canceled');
         break;
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
+        console.log(`[WEBHOOK] Invoice payment succeeded: ${invoice.id}`);
         
         if (invoice.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
@@ -118,6 +147,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
           });
 
           if (existing) {
+            console.log(`[WEBHOOK] Updating subscription after successful payment: ${existing.id}`);
             await prisma.subscription.update({
               where: { id: existing.id },
               data: {
@@ -125,6 +155,9 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
                 currentPeriodEnd: new Date(subscription.current_period_end * 1000)
               }
             });
+            console.log('[WEBHOOK] ✓ Subscription updated after payment');
+          } else {
+            console.warn(`[WEBHOOK] Subscription not found for invoice: ${invoice.id}`);
           }
         }
         break;
@@ -132,6 +165,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
+        console.log(`[WEBHOOK] Invoice payment failed: ${invoice.id}`);
         
         if (invoice.subscription) {
           await prisma.subscription.updateMany({
@@ -140,18 +174,42 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
               status: 'past_due'
             }
           });
+          console.log('[WEBHOOK] ✓ Subscription marked as past_due');
         }
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`[WEBHOOK] Unhandled event type: ${event.type} - acknowledging receipt`);
     }
 
-    res.json({ received: true });
-  } catch (error) {
-    console.error('Webhook handler error:', error);
-    res.status(500).json({ error: 'Webhook handler failed' });
+    // Always return 200 OK to acknowledge receipt
+    console.log(`[WEBHOOK] ✓ Event ${event.id} processed successfully`);
+    return res.status(200).json({ received: true });
+
+  } catch (error: any) {
+    // Log the error but still return 200 to prevent Stripe from retrying
+    // Only critical infrastructure errors should return 500
+    console.error('[WEBHOOK] ✗ Error processing webhook:', {
+      error: error.message,
+      stack: error.stack,
+      eventType: event.type,
+      eventId: event.id
+    });
+
+    // For database errors, we should still acknowledge receipt
+    // Stripe will show the error in the dashboard but won't retry
+    if (error.code === 'P2002' || error.code?.startsWith('P')) {
+      // Prisma error - acknowledge but log
+      console.error('[WEBHOOK] Database error - acknowledging receipt anyway');
+      return res.status(200).json({ 
+        received: true, 
+        error: 'Database error logged' 
+      });
+    }
+
+    // For other errors, return 500 so Stripe retries
+    return res.status(500).json({ error: 'Webhook handler failed' });
   }
 });
 
