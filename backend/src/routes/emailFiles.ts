@@ -367,17 +367,17 @@ router.post('/send', uploadForEmail.array('files'), async (req: AuthRequest, res
     }, 'HYP_1');
     // #endregion
 
-    // Get form fields (to, cc, subject, body, fileIds)
+    // Get form fields (to, cc, subject, body, fileIds, dealerId)
     // For JSON requests, req.body is already parsed by express.json()
     // For FormData requests, multer parses the body fields
-    let to, cc, subject, body, fileIds;
+    let to, cc, subject, body, fileIds, dealerId;
     
     if (req.headers['content-type']?.includes('application/json')) {
       // JSON request - body already parsed by express.json()
-      ({ to, cc, subject, body, fileIds } = req.body);
+      ({ to, cc, subject, body, fileIds, dealerId } = req.body);
     } else {
       // FormData request - parsed by multer
-      ({ to, cc, subject, body } = req.body);
+      ({ to, cc, subject, body, dealerId } = req.body);
       fileIds = undefined; // FormData won't have fileIds
     }
     
@@ -837,6 +837,30 @@ router.post('/send', uploadForEmail.array('files'), async (req: AuthRequest, res
     const messageId = result && 'messageId' in result ? result.messageId : undefined;
     console.log(`[Email] Sent email to ${to}${ccArray ? `, CC: ${ccArray.join(', ')}` : ''} - Message ID: ${messageId || 'N/A'}`);
     console.log(`[Email] Email sent with ${attachments.length} attachment(s) out of ${uploadedFiles.length} file(s) received`);
+    
+    // Save email history to dealer change history if dealerId provided
+    if (dealerId) {
+      try {
+        const attachmentNames = attachments.map(a => a.filename).join(', ');
+        const historyValue = attachments.length > 0 
+          ? `Email sent: "${subject}" with ${attachments.length} attachment(s): ${attachmentNames}`
+          : `Email sent: "${subject}"`;
+        
+        await prisma.dealerChangeHistory.create({
+          data: {
+            dealerId,
+            fieldName: 'email_sent',
+            oldValue: null,
+            newValue: historyValue,
+            changeType: 'updated'
+          }
+        });
+        console.log(`[Email] Saved email history for dealer ${dealerId}`);
+      } catch (historyError) {
+        console.error('[Email] Failed to save email history:', historyError);
+        // Don't fail the email send if history save fails
+      }
+    }
     
     // No cleanup needed with memoryStorage - files are in memory only, not on disk
     

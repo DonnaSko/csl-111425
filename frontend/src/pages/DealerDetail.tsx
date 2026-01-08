@@ -329,7 +329,8 @@ const DealerDetail = () => {
           cc: emailCc || undefined,
           subject: emailSubject,
           body: emailBody || undefined,
-          fileIds: fileIdsToSend.length > 0 ? fileIdsToSend : undefined
+          fileIds: fileIdsToSend.length > 0 ? fileIdsToSend : undefined,
+          dealerId: id // Add dealer ID for email history
         })
       });
       
