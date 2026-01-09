@@ -314,12 +314,20 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
             </div>
             
             {/* Middle - Achievement */}
-            <div className="text-center">
-              <div className="text-5xl mb-2">{getEmoji()}</div>
-              <div className="text-lg font-bold leading-tight mb-1">
+            <div className="text-center flex-1 flex flex-col justify-center">
+              <div className="text-4xl mb-1">{getEmoji()}</div>
+              
+              {/* Metric Name - What this badge is for */}
+              {metric && (
+                <div className="text-xs font-bold uppercase tracking-wide opacity-90 mb-1">
+                  {metric}
+                </div>
+              )}
+              
+              <div className="text-base font-bold leading-tight mb-1">
                 {getRankText()}
               </div>
-              <div className="text-2xl font-black">
+              <div className="text-xl font-black">
                 TOP {100 - percentile}%
               </div>
             </div>

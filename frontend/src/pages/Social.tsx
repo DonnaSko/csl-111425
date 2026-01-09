@@ -530,73 +530,147 @@ const Social = () => {
             </div>
 
             <div className="flex flex-wrap justify-center items-center gap-8">
-              {/* Overall Performance Badge */}
-              {benchmarks.yourPercentiles && (
-                <div className="text-center">
-                  <TopPerformerBadge 
-                    percentile={benchmarks.yourPercentiles.quality}
-                    metric="Overall Performance"
-                    rank={
-                      benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
-                      benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
-                      benchmarks.yourPercentiles.quality >= 50 ? 'STRONG' :
-                      'TOP_PERFORMER'
-                    }
-                  />
-                  <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
-                </div>
-              )}
-
-              {/* Lead Quality Badge */}
-              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.quality > 0 && (
-                <div className="text-center">
-                  <TopPerformerBadge 
-                    percentile={benchmarks.yourPercentiles.quality}
-                    metric="Lead Quality"
-                    rank={
-                      benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
-                      benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
-                      benchmarks.yourPercentiles.quality >= 50 ? 'STRONG' :
-                      'TOP_PERFORMER'
-                    }
-                  />
-                  <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
-                </div>
-              )}
-
-              {/* Speed to Follow-Up Badge */}
-              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.speed > 0 && (
-                <div className="text-center">
-                  <TopPerformerBadge 
-                    percentile={benchmarks.yourPercentiles.speed}
-                    metric="Follow-Up Speed"
-                    rank={
-                      benchmarks.yourPercentiles.speed >= 90 ? 'ELITE' :
-                      benchmarks.yourPercentiles.speed >= 75 ? 'EXCELLENT' :
-                      benchmarks.yourPercentiles.speed >= 50 ? 'STRONG' :
-                      'TOP_PERFORMER'
-                    }
-                  />
-                  <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
-                </div>
-              )}
-
-              {/* Email Engagement Badge */}
-              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.emails > 0 && (
-                <div className="text-center">
-                  <TopPerformerBadge 
-                    percentile={benchmarks.yourPercentiles.emails}
-                    metric="Email Engagement"
-                    rank={
-                      benchmarks.yourPercentiles.emails >= 90 ? 'ELITE' :
-                      benchmarks.yourPercentiles.emails >= 75 ? 'EXCELLENT' :
-                      benchmarks.yourPercentiles.emails >= 50 ? 'STRONG' :
-                      'TOP_PERFORMER'
-                    }
-                  />
-                  <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
-                </div>
-              )}
+              {(() => {
+                if (!benchmarks.yourPercentiles) return null;
+                
+                // Calculate overall performance percentile
+                const avgPercentile = Math.round(
+                  (benchmarks.yourPercentiles.quality +
+                   benchmarks.yourPercentiles.taskCompletion +
+                   benchmarks.yourPercentiles.speed +
+                   benchmarks.yourPercentiles.emails +
+                   benchmarks.yourPercentiles.coverage) / 5
+                );
+                
+                const badges = [];
+                
+                // Only show Overall Performance badge if >= 50% (worth bragging about!)
+                if (avgPercentile >= 50) {
+                  badges.push(
+                    <div key="overall" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={avgPercentile}
+                        metric="Overall Performance"
+                        rank={
+                          avgPercentile >= 90 ? 'ELITE' :
+                          avgPercentile >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
+                    </div>
+                  );
+                }
+                
+                // Lead Quality Badge - only if >= 50%
+                if (benchmarks.yourPercentiles.quality >= 50) {
+                  badges.push(
+                    <div key="quality" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.quality}
+                        metric="Lead Quality"
+                        rank={
+                          benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
+                          benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
+                    </div>
+                  );
+                }
+                
+                // Speed to Follow-Up Badge - only if >= 50%
+                if (benchmarks.yourPercentiles.speed >= 50) {
+                  badges.push(
+                    <div key="speed" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.speed}
+                        metric="Follow-Up Speed"
+                        rank={
+                          benchmarks.yourPercentiles.speed >= 90 ? 'ELITE' :
+                          benchmarks.yourPercentiles.speed >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
+                    </div>
+                  );
+                }
+                
+                // Email Engagement Badge - only if >= 50%
+                if (benchmarks.yourPercentiles.emails >= 50) {
+                  badges.push(
+                    <div key="emails" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.emails}
+                        metric="Email Engagement"
+                        rank={
+                          benchmarks.yourPercentiles.emails >= 90 ? 'ELITE' :
+                          benchmarks.yourPercentiles.emails >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
+                    </div>
+                  );
+                }
+                
+                // Task Completion Badge - only if >= 50%
+                if (benchmarks.yourPercentiles.taskCompletion >= 50) {
+                  badges.push(
+                    <div key="tasks" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.taskCompletion}
+                        metric="Task Completion"
+                        rank={
+                          benchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' :
+                          benchmarks.yourPercentiles.taskCompletion >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Task Completion</p>
+                    </div>
+                  );
+                }
+                
+                // Lead Coverage Badge - only if >= 50%
+                if (benchmarks.yourPercentiles.coverage >= 50) {
+                  badges.push(
+                    <div key="coverage" className="text-center">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.coverage}
+                        metric="Lead Coverage"
+                        rank={
+                          benchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' :
+                          benchmarks.yourPercentiles.coverage >= 75 ? 'EXCELLENT' :
+                          'STRONG'
+                        }
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Lead Coverage</p>
+                    </div>
+                  );
+                }
+                
+                // If no badges earned, show encouragement message
+                if (badges.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <p className="text-xl font-semibold text-gray-700 mb-2">
+                        🚀 Keep Going!
+                      </p>
+                      <p className="text-gray-600">
+                        Earn badges by reaching the top 50% in any category.
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Check the Reports section to see your current rankings!
+                      </p>
+                    </div>
+                  );
+                }
+                
+                return badges;
+              })()}
             </div>
 
             <div className="mt-6 bg-white rounded-lg p-4 border border-purple-200">
