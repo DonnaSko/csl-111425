@@ -815,5 +815,200 @@ router.get('/dashboard/dealers-with-recordings', async (req: AuthRequest, res) =
   }
 });
 
+// 🎮 COMMUNITY BENCHMARKS - Anonymous comparison with all CSL users
+// Shows how you're doing vs. the entire CSL community (NO company names revealed)
+router.get('/community-benchmarks', async (req: AuthRequest, res) => {
+  try {
+    console.log('[Community Benchmarks] Calculating anonymous benchmarks...');
+
+    // Helper function to calculate lead quality score
+    const calculateQualityScore = (dealer: any): number => {
+      let score = 0;
+      if (dealer.companyName) score += 1;
+      if (dealer.contactName) score += 2;
+      if (dealer.email) score += 2;
+      if (dealer.phone) score += 2;
+      if (dealer.notes && dealer.notes.length > 20) score += 2;
+      else if (dealer.notes && dealer.notes.length > 0) score += 1;
+      
+      const hasNextStep = dealer.todos && dealer.todos.some((t: any) => !t.completed);
+      if (hasNextStep) score += 6;
+      else if (dealer.todos && dealer.todos.length > 0) score += 3;
+      
+      return score;
+    };
+
+    // 1. Fetch ALL companies' aggregate data (anonymous)
+    const allCompanies = await prisma.company.findMany({
+      select: { id: true }
+    });
+
+    const communityMetrics: any[] = [];
+
+    // Calculate metrics for each company (anonymously)
+    for (const company of allCompanies) {
+      const dealers = await prisma.dealer.findMany({
+        where: { companyId: company.id },
+        select: {
+          companyName: true,
+          contactName: true,
+          email: true,
+          phone: true,
+          notes: true,
+          createdAt: true,
+          todos: {
+            select: {
+              completed: true,
+              createdAt: true
+            }
+          },
+          changeHistory: {
+            where: { fieldName: 'email_sent' },
+            select: { id: true }
+          }
+        }
+      });
+
+      if (dealers.length === 0) continue; // Skip companies with no dealers
+
+      // Calculate metrics for this company
+      const qualityScores = dealers.map(calculateQualityScore);
+      const avgQuality = qualityScores.reduce((sum, s) => sum + s, 0) / qualityScores.length;
+
+      const totalTodos = dealers.flatMap(d => d.todos);
+      const completedTodos = totalTodos.filter(t => t.completed);
+      const taskCompletionRate = totalTodos.length > 0 ? (completedTodos.length / totalTodos.length) * 100 : 0;
+
+      const totalEmails = dealers.reduce((sum, d) => sum + d.changeHistory.length, 0);
+      const emailsPerLead = dealers.length > 0 ? totalEmails / dealers.length : 0;
+
+      const dealsWithNextStep = dealers.filter(d => d.todos.some(t => !t.completed)).length;
+      const leadCoverageRate = dealers.length > 0 ? (dealsWithNextStep / dealers.length) * 100 : 0;
+
+      // Calculate speed to follow-up (todos created within 24h of dealer creation)
+      const todosWithin24h = dealers.filter(d => {
+        const firstTodo = d.todos.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
+        if (!firstTodo) return false;
+        const hoursDiff = (firstTodo.createdAt.getTime() - d.createdAt.getTime()) / (1000 * 60 * 60);
+        return hoursDiff <= 24;
+      }).length;
+      const speedToFollowUp = dealers.length > 0 ? (todosWithin24h / dealers.length) * 100 : 0;
+
+      communityMetrics.push({
+        avgQuality,
+        taskCompletionRate,
+        emailsPerLead,
+        leadCoverageRate,
+        speedToFollowUp
+      });
+    }
+
+    // 2. Calculate current user's metrics
+    const myDealers = await prisma.dealer.findMany({
+      where: { companyId: req.companyId! },
+      select: {
+        companyName: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        notes: true,
+        createdAt: true,
+        todos: {
+          select: {
+            completed: true,
+            createdAt: true
+          }
+        },
+        changeHistory: {
+          where: { fieldName: 'email_sent' },
+          select: { id: true }
+        }
+      }
+    });
+
+    const myQualityScores = myDealers.map(calculateQualityScore);
+    const myAvgQuality = myQualityScores.length > 0 ? myQualityScores.reduce((sum, s) => sum + s, 0) / myQualityScores.length : 0;
+
+    const myTotalTodos = myDealers.flatMap(d => d.todos);
+    const myCompletedTodos = myTotalTodos.filter(t => t.completed);
+    const myTaskCompletionRate = myTotalTodos.length > 0 ? (myCompletedTodos.length / myTotalTodos.length) * 100 : 0;
+
+    const myTotalEmails = myDealers.reduce((sum, d) => sum + d.changeHistory.length, 0);
+    const myEmailsPerLead = myDealers.length > 0 ? myTotalEmails / myDealers.length : 0;
+
+    const myDealsWithNextStep = myDealers.filter(d => d.todos.some(t => !t.completed)).length;
+    const myLeadCoverageRate = myDealers.length > 0 ? (myDealsWithNextStep / myDealers.length) * 100 : 0;
+
+    const myTodosWithin24h = myDealers.filter(d => {
+      const firstTodo = d.todos.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
+      if (!firstTodo) return false;
+      const hoursDiff = (firstTodo.createdAt.getTime() - d.createdAt.getTime()) / (1000 * 60 * 60);
+      return hoursDiff <= 24;
+    }).length;
+    const mySpeedToFollowUp = myDealers.length > 0 ? (myTodosWithin24h / myDealers.length) * 100 : 0;
+
+    // 3. Calculate percentiles (where you rank vs. everyone)
+    const calculatePercentile = (myValue: number, allValues: number[]): number => {
+      if (allValues.length === 0) return 50;
+      const sorted = allValues.sort((a, b) => a - b);
+      const rank = sorted.filter(v => v < myValue).length;
+      return Math.round((rank / sorted.length) * 100);
+    };
+
+    const qualityPercentile = calculatePercentile(myAvgQuality, communityMetrics.map(m => m.avgQuality));
+    const taskPercentile = calculatePercentile(myTaskCompletionRate, communityMetrics.map(m => m.taskCompletionRate));
+    const emailPercentile = calculatePercentile(myEmailsPerLead, communityMetrics.map(m => m.emailsPerLead));
+    const coveragePercentile = calculatePercentile(myLeadCoverageRate, communityMetrics.map(m => m.leadCoverageRate));
+    const speedPercentile = calculatePercentile(mySpeedToFollowUp, communityMetrics.map(m => m.speedToFollowUp));
+
+    // 4. Calculate community averages
+    const communityAvgQuality = communityMetrics.length > 0 
+      ? communityMetrics.reduce((sum, m) => sum + m.avgQuality, 0) / communityMetrics.length 
+      : 0;
+    const communityAvgTaskCompletion = communityMetrics.length > 0
+      ? communityMetrics.reduce((sum, m) => sum + m.taskCompletionRate, 0) / communityMetrics.length
+      : 0;
+    const communityAvgEmailsPerLead = communityMetrics.length > 0
+      ? communityMetrics.reduce((sum, m) => sum + m.emailsPerLead, 0) / communityMetrics.length
+      : 0;
+    const communityAvgCoverage = communityMetrics.length > 0
+      ? communityMetrics.reduce((sum, m) => sum + m.leadCoverageRate, 0) / communityMetrics.length
+      : 0;
+    const communityAvgSpeed = communityMetrics.length > 0
+      ? communityMetrics.reduce((sum, m) => sum + m.speedToFollowUp, 0) / communityMetrics.length
+      : 0;
+
+    console.log('[Community Benchmarks] Calculated for', communityMetrics.length, 'companies');
+
+    res.json({
+      totalCompanies: communityMetrics.length,
+      yourMetrics: {
+        avgQuality: parseFloat(myAvgQuality.toFixed(1)),
+        taskCompletionRate: parseFloat(myTaskCompletionRate.toFixed(1)),
+        emailsPerLead: parseFloat(myEmailsPerLead.toFixed(2)),
+        leadCoverageRate: parseFloat(myLeadCoverageRate.toFixed(1)),
+        speedToFollowUp: parseFloat(mySpeedToFollowUp.toFixed(1))
+      },
+      communityAverages: {
+        avgQuality: parseFloat(communityAvgQuality.toFixed(1)),
+        taskCompletionRate: parseFloat(communityAvgTaskCompletion.toFixed(1)),
+        emailsPerLead: parseFloat(communityAvgEmailsPerLead.toFixed(2)),
+        leadCoverageRate: parseFloat(communityAvgCoverage.toFixed(1)),
+        speedToFollowUp: parseFloat(communityAvgSpeed.toFixed(1))
+      },
+      yourPercentiles: {
+        quality: qualityPercentile,
+        taskCompletion: taskPercentile,
+        emails: emailPercentile,
+        coverage: coveragePercentile,
+        speed: speedPercentile
+      }
+    });
+  } catch (error) {
+    console.error('[Community Benchmarks] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch community benchmarks' });
+  }
+});
+
 export default router;
 

@@ -71,6 +71,31 @@ interface EmailsTradeShow {
   dealers: EmailsDealer[];
 }
 
+interface CommunityBenchmarks {
+  totalCompanies: number;
+  yourMetrics: {
+    avgQuality: number;
+    taskCompletionRate: number;
+    emailsPerLead: number;
+    leadCoverageRate: number;
+    speedToFollowUp: number;
+  };
+  communityAverages: {
+    avgQuality: number;
+    taskCompletionRate: number;
+    emailsPerLead: number;
+    leadCoverageRate: number;
+    speedToFollowUp: number;
+  };
+  yourPercentiles: {
+    quality: number;
+    taskCompletion: number;
+    emails: number;
+    coverage: number;
+    speed: number;
+  };
+}
+
 const Reports = () => {
   const [exporting, setExporting] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -83,6 +108,8 @@ const Reports = () => {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [allDealers, setAllDealers] = useState<any[]>([]);
   const [dealersLoading, setDealersLoading] = useState(false);
+  const [communityBenchmarks, setCommunityBenchmarks] = useState<CommunityBenchmarks | null>(null);
+  const [benchmarksLoading, setBenchmarksLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -91,6 +118,7 @@ const Reports = () => {
     fetchTradeShowTodos();
     fetchTradeShowEmails();
     fetchAllDealers();
+    fetchCommunityBenchmarks();
   }, []);
 
   const fetchAllDealers = async () => {
@@ -103,6 +131,18 @@ const Reports = () => {
       setAllDealers([]); // Set empty array on error so page doesn't break
     } finally {
       setDealersLoading(false);
+    }
+  };
+
+  const fetchCommunityBenchmarks = async () => {
+    try {
+      setBenchmarksLoading(true);
+      const response = await api.get('/reports/community-benchmarks');
+      setCommunityBenchmarks(response.data);
+    } catch (error) {
+      console.error('Failed to load community benchmarks:', error);
+    } finally {
+      setBenchmarksLoading(false);
     }
   };
 
@@ -505,6 +545,234 @@ const Reports = () => {
                   ⚠️ {dealersWithScores.length - dealersWithNextStep} leads need next steps assigned!
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 🎮 COMMUNITY BENCHMARKS - Compare with all CSL users anonymously */}
+        {!benchmarksLoading && communityBenchmarks && (
+          <div className="mb-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-2xl p-8 border-4 border-purple-300">
+            <div className="text-center mb-6">
+              <div className="inline-block px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mb-3">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  🏆 Community Leaderboard
+                </h2>
+              </div>
+              <p className="text-gray-700 text-lg">
+                See how you compare with <strong className="text-purple-700">{communityBenchmarks.totalCompanies} CSL users</strong> worldwide
+              </p>
+              <p className="text-sm text-gray-600 mt-1 italic">
+                (Anonymous - No company names are shown)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Lead Quality Benchmark */}
+              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">⭐</div>
+                  <h3 className="font-bold text-gray-800 text-lg">Lead Quality</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">You:</span>
+                    <span className="text-2xl font-bold text-purple-600">{communityBenchmarks.yourMetrics.avgQuality.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Community Avg:</span>
+                    <span className="text-lg font-semibold text-gray-500">{communityBenchmarks.communityAverages.avgQuality.toFixed(1)}</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-3 text-center">
+                    <div className="text-3xl font-bold text-purple-700">{communityBenchmarks.yourPercentiles.quality}%</div>
+                    <div className="text-xs text-gray-700 mt-1">
+                      {communityBenchmarks.yourPercentiles.quality >= 75 ? '🔥 TOP PERFORMER!' :
+                       communityBenchmarks.yourPercentiles.quality >= 50 ? '👍 Above Average' :
+                       communityBenchmarks.yourPercentiles.quality >= 25 ? '⚡ Room to Grow' :
+                       '💪 Keep Going!'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Task Completion Benchmark */}
+              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">✅</div>
+                  <h3 className="font-bold text-gray-800 text-lg">Task Completion</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">You:</span>
+                    <span className="text-2xl font-bold text-green-600">{communityBenchmarks.yourMetrics.taskCompletionRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Community Avg:</span>
+                    <span className="text-lg font-semibold text-gray-500">{communityBenchmarks.communityAverages.taskCompletionRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-100 to-teal-100 rounded-lg p-3 text-center">
+                    <div className="text-3xl font-bold text-green-700">{communityBenchmarks.yourPercentiles.taskCompletion}%</div>
+                    <div className="text-xs text-gray-700 mt-1">
+                      {communityBenchmarks.yourPercentiles.taskCompletion >= 75 ? '🔥 TOP PERFORMER!' :
+                       communityBenchmarks.yourPercentiles.taskCompletion >= 50 ? '👍 Above Average' :
+                       communityBenchmarks.yourPercentiles.taskCompletion >= 25 ? '⚡ Room to Grow' :
+                       '💪 Keep Going!'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Speed to Follow-Up Benchmark */}
+              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">⚡</div>
+                  <h3 className="font-bold text-gray-800 text-lg">Speed to Follow-Up</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">You:</span>
+                    <span className="text-2xl font-bold text-orange-600">{communityBenchmarks.yourMetrics.speedToFollowUp.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Community Avg:</span>
+                    <span className="text-lg font-semibold text-gray-500">{communityBenchmarks.communityAverages.speedToFollowUp.toFixed(1)}%</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-3 text-center">
+                    <div className="text-3xl font-bold text-orange-700">{communityBenchmarks.yourPercentiles.speed}%</div>
+                    <div className="text-xs text-gray-700 mt-1">
+                      {communityBenchmarks.yourPercentiles.speed >= 75 ? '🔥 TOP PERFORMER!' :
+                       communityBenchmarks.yourPercentiles.speed >= 50 ? '👍 Above Average' :
+                       communityBenchmarks.yourPercentiles.speed >= 25 ? '⚡ Room to Grow' :
+                       '💪 Keep Going!'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emails Per Lead Benchmark */}
+              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">📧</div>
+                  <h3 className="font-bold text-gray-800 text-lg">Emails Per Lead</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">You:</span>
+                    <span className="text-2xl font-bold text-blue-600">{communityBenchmarks.yourMetrics.emailsPerLead.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Community Avg:</span>
+                    <span className="text-lg font-semibold text-gray-500">{communityBenchmarks.communityAverages.emailsPerLead.toFixed(2)}</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-3 text-center">
+                    <div className="text-3xl font-bold text-blue-700">{communityBenchmarks.yourPercentiles.emails}%</div>
+                    <div className="text-xs text-gray-700 mt-1">
+                      {communityBenchmarks.yourPercentiles.emails >= 75 ? '🔥 TOP PERFORMER!' :
+                       communityBenchmarks.yourPercentiles.emails >= 50 ? '👍 Above Average' :
+                       communityBenchmarks.yourPercentiles.emails >= 25 ? '⚡ Room to Grow' :
+                       '💪 Keep Going!'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lead Coverage Benchmark */}
+              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">🎯</div>
+                  <h3 className="font-bold text-gray-800 text-lg">Lead Coverage</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">You:</span>
+                    <span className="text-2xl font-bold text-indigo-600">{communityBenchmarks.yourMetrics.leadCoverageRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Community Avg:</span>
+                    <span className="text-lg font-semibold text-gray-500">{communityBenchmarks.communityAverages.leadCoverageRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg p-3 text-center">
+                    <div className="text-3xl font-bold text-indigo-700">{communityBenchmarks.yourPercentiles.coverage}%</div>
+                    <div className="text-xs text-gray-700 mt-1">
+                      {communityBenchmarks.yourPercentiles.coverage >= 75 ? '🔥 TOP PERFORMER!' :
+                       communityBenchmarks.yourPercentiles.coverage >= 50 ? '👍 Above Average' :
+                       communityBenchmarks.yourPercentiles.coverage >= 25 ? '⚡ Room to Grow' :
+                       '💪 Keep Going!'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overall Performance Summary */}
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-6 shadow-lg text-white">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">🏅</div>
+                  <h3 className="font-bold text-lg">Your Overall Rank</h3>
+                </div>
+                <div className="space-y-3">
+                  {(() => {
+                    const avgPercentile = Math.round(
+                      (communityBenchmarks.yourPercentiles.quality +
+                       communityBenchmarks.yourPercentiles.taskCompletion +
+                       communityBenchmarks.yourPercentiles.speed +
+                       communityBenchmarks.yourPercentiles.emails +
+                       communityBenchmarks.yourPercentiles.coverage) / 5
+                    );
+                    return (
+                      <>
+                        <div className="text-center">
+                          <div className="text-6xl font-bold">{avgPercentile}%</div>
+                          <div className="text-sm mt-2 opacity-90">Average Percentile</div>
+                        </div>
+                        <div className="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                          <div className="font-bold text-xl">
+                            {avgPercentile >= 90 ? '🌟 ELITE!' :
+                             avgPercentile >= 75 ? '🔥 EXCELLENT!' :
+                             avgPercentile >= 60 ? '💪 STRONG!' :
+                             avgPercentile >= 50 ? '👍 GOOD!' :
+                             avgPercentile >= 40 ? '⚡ IMPROVING!' :
+                             '🚀 KEEP PUSHING!'}
+                          </div>
+                          <div className="text-xs mt-1 opacity-90">
+                            You're in the <strong>top {100 - avgPercentile}%</strong> of CSL users
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Motivational Footer */}
+            <div className="mt-6 text-center">
+              {(() => {
+                const avgPercentile = Math.round(
+                  (communityBenchmarks.yourPercentiles.quality +
+                   communityBenchmarks.yourPercentiles.taskCompletion +
+                   communityBenchmarks.yourPercentiles.speed +
+                   communityBenchmarks.yourPercentiles.emails +
+                   communityBenchmarks.yourPercentiles.coverage) / 5
+                );
+                if (avgPercentile >= 75) {
+                  return (
+                    <p className="text-lg font-semibold text-purple-700">
+                      🎉 Outstanding work! You're setting the standard for the community! 🎉
+                    </p>
+                  );
+                } else if (avgPercentile >= 50) {
+                  return (
+                    <p className="text-lg font-semibold text-indigo-700">
+                      💪 Great job! Keep it up to break into the top 25%! 💪
+                    </p>
+                  );
+                } else {
+                  return (
+                    <p className="text-lg font-semibold text-gray-700">
+                      🚀 Every lead you improve puts you higher on the leaderboard! 🚀
+                    </p>
+                  );
+                }
+              })()}
             </div>
           </div>
         )}
