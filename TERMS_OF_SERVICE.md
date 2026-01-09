@@ -42,8 +42,51 @@ Capture Show Leads (CSL) is a trade show lead management platform that enables u
 - The Service requires an active paid subscription
 - Subscriptions are managed through Stripe
 - Payment is required before accessing the platform
-- Subscription fees are non-refundable except as required by law
 - We reserve the right to modify subscription pricing with 30 days notice
+
+### 3.2.1 ⛔ NO REFUNDS POLICY
+
+**SUBSCRIPTION FEES ARE NON-REFUNDABLE. PLEASE READ CAREFULLY:**
+
+#### What You CAN Do:
+✅ **Cancel Future Payments:** You can cancel your subscription at any time from your Account Settings. Cancellation will prevent future charges.  
+✅ **Stop Auto-Renewal:** Your cancellation will stop automatic renewal at the end of your current billing period.  
+✅ **Continue Using Service:** After canceling, you can continue using the service until the end of your current paid period (the date you already paid through).
+
+#### What You CANNOT Do:
+❌ **No Refunds for Current Period:** You CANNOT get a refund for your current billing period (the month or year you just paid for).  
+❌ **No Refunds for Previous Payments:** We do not refund any previous subscription payments under any circumstances.  
+❌ **No Prorated Refunds:** We do not offer prorated refunds if you cancel mid-period.  
+❌ **No "Change of Mind" Refunds:** Buyer's remorse, change of mind, or dissatisfaction with the service does not qualify for a refund.
+
+#### In Plain English:
+**When you cancel your subscription, we will stop charging you for FUTURE billing periods. However, we CANNOT and WILL NOT refund the money you already paid for your CURRENT subscription period. All sales are final.**
+
+**Example:**
+- You subscribe on January 1st for $19/month
+- You're charged $19 immediately (covers Jan 1 - Jan 31)
+- On January 15th, you decide to cancel
+- **Result:** 
+  - ✅ You can keep using the service until January 31st (you paid for the full month)
+  - ✅ You will NOT be charged again on February 1st (future payment canceled)
+  - ❌ You will NOT get a refund for the $19 you paid on January 1st (no refunds for current period)
+
+#### Exceptions (Billing Errors Only):
+We will issue refunds ONLY for:
+- **Duplicate charges:** If you were accidentally charged twice for the same subscription period
+- **Unauthorized charges:** If your credit card was charged without your authorization (must be reported within 7 days)
+- **Incorrect amounts:** If you were charged a different amount than the advertised subscription price
+- **As required by law:** Where applicable consumer protection laws mandate refunds
+
+**To request a billing error refund, you must contact us within 7 days of the charge at support@captureshowleads.com with evidence of the error.**
+
+#### Your Acknowledgment:
+**BY SUBSCRIBING, YOU ACKNOWLEDGE AND AGREE:**
+1. You have read and understood this NO REFUNDS policy
+2. You understand that canceling your subscription only stops future charges
+3. You understand that no refunds will be issued for current or past payments
+4. You accept full responsibility for managing your subscription and canceling before unwanted renewals
+5. All sales are final
 
 ### 3.3 Account Termination
 - You may cancel your subscription at any time through your account settings

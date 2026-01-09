@@ -314,18 +314,50 @@ const Subscription = () => {
               <p><strong>Automatic Renewal:</strong> Subscriptions automatically renew at the end of each billing period. You can cancel the renewal up to and including the date of renewal.</p>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-red-500 font-bold">•</span>
-              <p><strong>No Refunds:</strong> Once renewed, NO REFUNDS available. All fees are non-refundable.</p>
-            </div>
-            <div className="flex items-start gap-2">
               <span className="text-green-500 font-bold">•</span>
-              <p><strong>Easy Cancellation:</strong> Cancel anytime from your Account Settings before your renewal date.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-yellow-600 font-bold">•</span>
-              <p><strong>Billing Errors:</strong> Contact us within 7 days of any billing error for correction or refund.</p>
+              <p><strong>Easy Cancellation:</strong> Cancel anytime from your Account Settings before your renewal date to prevent future charges.</p>
             </div>
           </div>
+
+          {/* NO REFUNDS - Clear explanation */}
+          <div className="mt-4 bg-red-50 border-2 border-red-400 rounded-lg p-4">
+            <h4 className="text-base font-bold text-red-900 mb-2 flex items-center gap-2">
+              ⛔ NO REFUNDS POLICY
+            </h4>
+            <div className="space-y-2 text-sm text-red-900">
+              <p className="font-semibold">
+                📌 <strong>What You CAN Do:</strong>
+              </p>
+              <ul className="ml-6 space-y-1">
+                <li>✅ Cancel your subscription at any time</li>
+                <li>✅ Stop FUTURE payments from being charged</li>
+                <li>✅ Continue using the service until the end of your current paid period</li>
+              </ul>
+              
+              <p className="font-semibold mt-3">
+                📌 <strong>What You CANNOT Do:</strong>
+              </p>
+              <ul className="ml-6 space-y-1">
+                <li>❌ Get a refund for the CURRENT billing period</li>
+                <li>❌ Get a refund for any previous payments</li>
+                <li>❌ Receive prorated refunds for partial months/years</li>
+              </ul>
+
+              <p className="font-bold mt-3 text-red-950">
+                🔴 <strong>In Plain English:</strong> When you cancel, we will stop charging you in the future. 
+                However, we CANNOT and WILL NOT refund money you've already paid for your current subscription period. 
+                All sales are final. No exceptions.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2 text-sm text-gray-700">
+            <div className="flex items-start gap-2">
+              <span className="text-yellow-600 font-bold">•</span>
+              <p><strong>Billing Errors Only:</strong> Contact us within 7 days of any billing error (duplicate charge, incorrect amount) for correction or refund. This does not apply to buyer's remorse or change of mind.</p>
+            </div>
+          </div>
+
           <p className="text-xs text-gray-500 mt-4">
             By subscribing, you agree to our{' '}
             <a href="/terms-of-service" target="_blank" className="text-blue-600 hover:underline">Terms of Service</a>

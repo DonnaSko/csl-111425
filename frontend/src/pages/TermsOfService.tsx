@@ -60,9 +60,79 @@ const TermsOfService = () => {
                 <li>The Service requires an active paid subscription</li>
                 <li>Subscriptions are managed through Stripe</li>
                 <li>Payment is required before accessing the platform</li>
-                <li>Subscription fees are non-refundable except as required by law</li>
                 <li>We reserve the right to modify subscription pricing with 30 days notice</li>
               </ul>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3 flex items-center gap-2">
+                <span>3.2.1</span> <span className="text-red-600">⛔ NO REFUNDS POLICY</span>
+              </h3>
+              <div className="bg-red-50 border-2 border-red-400 rounded-lg p-6 my-4">
+                <p className="text-red-900 font-bold mb-4">SUBSCRIPTION FEES ARE NON-REFUNDABLE. PLEASE READ CAREFULLY:</p>
+                
+                <h4 className="font-semibold text-gray-900 mb-2">What You CAN Do:</h4>
+                <ul className="list-none space-y-2 text-gray-800 mb-4">
+                  <li>✅ <strong>Cancel Future Payments:</strong> You can cancel your subscription at any time from your Account Settings. Cancellation will prevent future charges.</li>
+                  <li>✅ <strong>Stop Auto-Renewal:</strong> Your cancellation will stop automatic renewal at the end of your current billing period.</li>
+                  <li>✅ <strong>Continue Using Service:</strong> After canceling, you can continue using the service until the end of your current paid period (the date you already paid through).</li>
+                </ul>
+
+                <h4 className="font-semibold text-gray-900 mb-2">What You CANNOT Do:</h4>
+                <ul className="list-none space-y-2 text-gray-800 mb-4">
+                  <li>❌ <strong>No Refunds for Current Period:</strong> You CANNOT get a refund for your current billing period (the month or year you just paid for).</li>
+                  <li>❌ <strong>No Refunds for Previous Payments:</strong> We do not refund any previous subscription payments under any circumstances.</li>
+                  <li>❌ <strong>No Prorated Refunds:</strong> We do not offer prorated refunds if you cancel mid-period.</li>
+                  <li>❌ <strong>No "Change of Mind" Refunds:</strong> Buyer's remorse, change of mind, or dissatisfaction with the service does not qualify for a refund.</li>
+                </ul>
+
+                <div className="bg-white border-2 border-red-600 rounded-lg p-4 my-4">
+                  <h4 className="font-bold text-red-900 mb-2">📌 In Plain English:</h4>
+                  <p className="text-gray-900">
+                    <strong>When you cancel your subscription, we will stop charging you for FUTURE billing periods. 
+                    However, we CANNOT and WILL NOT refund the money you already paid for your CURRENT subscription period. 
+                    All sales are final.</strong>
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-400 rounded-lg p-4 my-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">💡 Example:</h4>
+                  <ul className="list-disc pl-6 space-y-1 text-gray-800 text-sm">
+                    <li>You subscribe on January 1st for $19/month</li>
+                    <li>You're charged $19 immediately (covers Jan 1 - Jan 31)</li>
+                    <li>On January 15th, you decide to cancel</li>
+                    <li><strong>Result:</strong>
+                      <ul className="list-disc pl-6 mt-1">
+                        <li>✅ You can keep using the service until January 31st (you paid for the full month)</li>
+                        <li>✅ You will NOT be charged again on February 1st (future payment canceled)</li>
+                        <li>❌ You will NOT get a refund for the $19 you paid on January 1st (no refunds for current period)</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </div>
+
+                <h4 className="font-semibold text-gray-900 mb-2">Exceptions (Billing Errors Only):</h4>
+                <p className="text-gray-800 mb-2">We will issue refunds ONLY for:</p>
+                <ul className="list-disc pl-6 space-y-1 text-gray-800 text-sm mb-3">
+                  <li><strong>Duplicate charges:</strong> If you were accidentally charged twice for the same subscription period</li>
+                  <li><strong>Unauthorized charges:</strong> If your credit card was charged without your authorization (must be reported within 7 days)</li>
+                  <li><strong>Incorrect amounts:</strong> If you were charged a different amount than the advertised subscription price</li>
+                  <li><strong>As required by law:</strong> Where applicable consumer protection laws mandate refunds</li>
+                </ul>
+                <p className="text-gray-800 text-sm">
+                  <strong>To request a billing error refund, you must contact us within 7 days of the charge at support@captureshowleads.com with evidence of the error.</strong>
+                </p>
+
+                <div className="bg-red-100 border border-red-500 rounded-lg p-4 mt-4">
+                  <h4 className="font-bold text-red-900 mb-2">Your Acknowledgment:</h4>
+                  <p className="text-red-900 font-semibold mb-2">BY SUBSCRIBING, YOU ACKNOWLEDGE AND AGREE:</p>
+                  <ol className="list-decimal pl-6 space-y-1 text-red-900 text-sm">
+                    <li>You have read and understood this NO REFUNDS policy</li>
+                    <li>You understand that canceling your subscription only stops future charges</li>
+                    <li>You understand that no refunds will be issued for current or past payments</li>
+                    <li>You accept full responsibility for managing your subscription and canceling before unwanted renewals</li>
+                    <li>All sales are final</li>
+                  </ol>
+                </div>
+              </div>
             </section>
 
             {/* Section 4 - CRITICAL */}
