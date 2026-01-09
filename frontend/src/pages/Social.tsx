@@ -298,7 +298,7 @@ const Social = () => {
                 Copy to Clipboard
               </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <button
                   onClick={shareToTwitter}
                   className="px-6 py-3 bg-[#1DA1F2] text-white rounded-lg font-semibold hover:bg-[#1A91DA] transition flex items-center justify-center gap-2"
@@ -320,13 +320,42 @@ const Social = () => {
                   <span>📘</span>
                   Share on Facebook
                 </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPost);
+                    alert('✅ Post copied!\n\nPaste it on Instagram:\n1. Open Instagram app on your phone\n2. Tap "+" to create post\n3. Add a photo\n4. Paste caption (long-press → Paste)\n5. Post!');
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition flex items-center justify-center gap-2"
+                >
+                  <span>📸</span>
+                  Copy for Instagram
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPost);
+                    alert('✅ Post copied!\n\nPaste it on TikTok:\n1. Open TikTok app on your phone\n2. Tap "+" to create\n3. Add a video or photo\n4. Paste caption\n5. Post & go viral! 🔥');
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-[#00F2EA] via-[#FF0050] to-[#000000] text-white rounded-lg font-semibold hover:shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <span>🎵</span>
+                  Copy for TikTok
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPost);
+                    alert('✅ Post copied to clipboard!\n\nYou can now paste this on:\n• Pinterest\n• Reddit\n• Threads\n• Snapchat\n• WhatsApp Status\n• Your blog\n• Email newsletter\n• Or any other platform! 🚀');
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg font-semibold hover:from-green-600 hover:to-teal-600 transition flex items-center justify-center gap-2"
+                >
+                  <span>🌐</span>
+                  Copy for Other Platforms
+                </button>
               </div>
             </div>
 
             <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>💡 Pro Tip:</strong> Every post includes #CaptureShowLeads to help amplify our product! 
-                Feel free to customize the post before sharing. 🚀
+                <strong>💡 Pro Tip:</strong> Feel free to customize the post before sharing. Add your own hashtags, mentions, or personal touch! 🚀
               </p>
             </div>
           </div>
