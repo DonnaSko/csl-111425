@@ -150,8 +150,8 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const text = `${getShareText('facebook')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Simplified instructions
-    alert('🚀 Ready to Share on Facebook!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nNext steps:\n1. Facebook will open\n2. Paste the text\n3. Click "Photo/Video" 🖼️\n4. Select badge from Downloads\n5. Post! 🎉');
+    // Clear instructions
+    alert('🚀 Ready to Share on Facebook!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 IMPORTANT: Attach the badge image to make your post eye-catching!\n\nNext steps:\n1. Facebook will open\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 Click "Photo/Video" button\n4. 📂 Go to Downloads folder\n5. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n6. ✅ Badge appears in your post!\n7. Click "Post"! 🎉');
     
     const encodedText = encodeURIComponent(getShareText('facebook'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
@@ -167,8 +167,8 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const text = `${getShareText('twitter')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Simplified instructions
-    alert('🚀 Ready to Share on Twitter/X!\n\n✅ Badge image downloaded to your computer\n✅ Text copied to clipboard\n\nNext steps:\n1. Twitter/X will open\n2. Paste the text (Cmd+V or Ctrl+V)\n3. Click the image icon 🖼️\n4. Select the badge image from your Downloads\n5. Post! 🎉');
+    // Clear instructions with emphasis on attaching badge
+    alert('🚀 Ready to Share on X/Twitter!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 IMPORTANT: The badge image is now in your Downloads folder!\n\nNext steps:\n1. X/Twitter will open in a new window\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 CLICK THE IMAGE ICON at the bottom\n4. 📂 Go to Downloads folder\n5. 🖼️ Select the badge image (CSL-Top-Performer-*.png)\n6. ✅ You\'ll see the badge in your post preview\n7. Click "Post"! 🎉\n\nThe badge makes your post stand out!');
     
     const encodedText = encodeURIComponent(getShareText('twitter'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
@@ -184,7 +184,7 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const linkedInText = `${getShareText('linkedin')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(linkedInText);
     
-    alert('🚀 Ready to Share on LinkedIn!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nNext steps:\n1. LinkedIn will open\n2. Click "Start a post"\n3. Paste the text\n4. Click image icon 🖼️\n5. Select badge from Downloads\n6. Post! 🎉');
+    alert('🚀 Ready to Share on LinkedIn!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 Professional tip: LinkedIn posts with images get 2x more engagement!\n\nNext steps:\n1. LinkedIn will open\n2. Click "Start a post" at the top\n3. Paste the text (Cmd+V or Ctrl+V)\n4. 📎 Click the image icon (camera) at the bottom\n5. 📂 Go to Downloads folder\n6. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n7. ✅ Badge shows in your post\n8. Click "Post"! 🎉');
     
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
     setShowShareModal(false);
@@ -196,7 +196,7 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     
     const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ Ready to Share Anywhere!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nThis works for all platforms:\n• X/Twitter\n• Instagram\n• TikTok\n• LinkedIn\n• Facebook\n\nJust paste text + attach badge from Downloads! 🚀');
+    alert('✅ Ready to Share Anywhere!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 IMPORTANT: The badge image is downloaded!\n   Look for: CSL-Top-Performer-*.png in Downloads\n\nThis works for all platforms:\n• X/Twitter - Attach badge when composing\n• Instagram - Transfer to phone first\n• TikTok - Use as photo/video background\n• LinkedIn - Attach when creating post\n• Facebook - Add via Photo/Video button\n\nPosts with images get 10x more engagement! 🚀');
     setShowShareModal(false);
   };
 
@@ -206,17 +206,19 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     
     const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('📸 Ready for Instagram!\n\n✅ Badge image downloaded\n✅ Text copied\n\nNext steps:\n1. Open Instagram app\n2. Create post\n3. Select badge from Photos\n4. Paste caption\n5. Tag @captureshowleads\n6. Post! 🚀');
+    alert('📸 Ready for Instagram!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📱 Instagram is mobile-only, so:\n\nNext steps:\n1. Transfer badge image to your phone:\n   - Email it to yourself, OR\n   - Use AirDrop (iPhone), OR\n   - Use cloud storage (Google Photos, Dropbox)\n2. Open Instagram app\n3. Tap "+" to create post\n4. Select the badge image from your Photos\n5. Paste caption (long-press → Paste)\n6. Tag @captureshowleads\n7. Post! 🚀\n\nBadge filename: CSL-Top-Performer-*.png');
     setShowShareModal(false);
   };
 
-  const copyForTikTok = async () => {
+  const shareToTikTok = async () => {
     // Auto-download badge image
     await downloadBadgeImage();
     
     const text = `${getShareText('tiktok')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded\n✅ Text copied\n\nNext steps:\n1. Open TikTok app\n2. Create video with badge image\n3. Paste caption\n4. Tag @captureshowleads\n5. Post & go viral! 🔥');
+    
+    // TikTok doesn't have web intent, just guide user to app
+    alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded to your Downloads folder\n✅ Text copied to clipboard\n\nNext steps:\n1. Open TikTok app on your phone\n2. Tap "+" to create\n3. Select "Photo" mode\n4. Choose the badge image from your Photos\n5. Paste the caption (Cmd+V / Ctrl+V)\n6. Add @captureshowleads tag\n7. Post & go viral! 🔥\n\nNote: Transfer the badge image to your phone if needed!');
     setShowShareModal(false);
   };
 
@@ -230,16 +232,40 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
       >
         <div 
           ref={badgeRef}
-          className={`w-32 h-32 rounded-full bg-gradient-to-br ${getBadgeColor()} p-1 shadow-2xl hover:shadow-3xl`}
+          className="w-48 h-48 rounded-xl shadow-2xl hover:shadow-3xl relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          }}
         >
-          <div className="w-full h-full rounded-full bg-white flex flex-col items-center justify-center">
-            <div className="text-4xl mb-1">{getEmoji()}</div>
-            <div className="text-xs font-bold text-gray-800 text-center leading-tight">
-              {getRankText()}
+          {/* CSL Branded Badge Content */}
+          <div className="w-full h-full p-4 flex flex-col items-center justify-between text-white">
+            {/* Top - CSL Branding */}
+            <div className="text-center">
+              <div className="text-xs font-bold tracking-wider opacity-90">CAPTURE SHOW LEADS</div>
             </div>
-            <div className="text-[10px] text-gray-600 mt-0.5">
-              Top {100 - percentile}%
+            
+            {/* Middle - Achievement */}
+            <div className="text-center">
+              <div className="text-5xl mb-2">{getEmoji()}</div>
+              <div className="text-lg font-bold leading-tight mb-1">
+                {getRankText()}
+              </div>
+              <div className="text-2xl font-black">
+                TOP {100 - percentile}%
+              </div>
             </div>
+            
+            {/* Bottom - Website */}
+            <div className="text-center">
+              <div className="text-xs font-semibold tracking-wide">
+                CaptureShowLeads.com
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative corner element */}
+          <div className="absolute top-0 right-0 w-16 h-16 opacity-20">
+            <div className="text-white text-4xl transform rotate-12">🏆</div>
           </div>
         </div>
         
@@ -395,11 +421,11 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
               </button>
               
               <button
-                onClick={copyForTikTok}
+                onClick={shareToTikTok}
                 className="w-full px-6 py-3 bg-gradient-to-r from-[#00F2EA] via-[#FF0050] to-[#000000] text-white rounded-lg font-semibold hover:shadow-lg transition flex items-center justify-center gap-2"
               >
                 <span className="text-xl">🎵</span>
-                Copy for TikTok
+                Share on TikTok
               </button>
               
               <button
