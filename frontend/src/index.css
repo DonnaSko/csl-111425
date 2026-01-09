@@ -53,3 +53,29 @@ code {
 .animate-bounce-subtle {
   animation: bounce-subtle 3s ease-in-out infinite;
 }
+
+/* Eye-catching sparkle effect for badges */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Glow pulse effect for badges */
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 10px rgba(255,255,255,0.3));
+  }
+  50% {
+    filter: brightness(1.2) drop-shadow(0 0 20px rgba(255,255,255,0.6));
+  }
+}

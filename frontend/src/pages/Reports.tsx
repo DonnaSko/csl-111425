@@ -408,7 +408,7 @@ const Reports = () => {
                 className="bg-white h-2 rounded-full transition-all duration-500" 
                 style={{ width: `${completionRate}%` }}
               />
-            </div>
+        </div>
             <div className="text-xs mt-1 opacity-90">{completionRate}% Done! 🎉</div>
             <div className="text-xs mt-1 opacity-75">Click to view →</div>
           </button>
@@ -683,6 +683,160 @@ const Reports = () => {
                 (Anonymous - No company names are shown)
               </p>
             </div>
+
+            {/* Top Performer Badges Section */}
+            {(() => {
+              const badges: Array<{
+                percentile: number; 
+                metric: string; 
+                rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER';
+                actualValue?: number;
+                communityAverage?: number;
+                metricUnit?: string;
+              }> = [];
+              
+              // Check which badges user has earned (75%+ percentile)
+              const avgPercentile = Math.round(
+                (communityBenchmarks.yourPercentiles.quality +
+                 communityBenchmarks.yourPercentiles.taskCompletion +
+                 communityBenchmarks.yourPercentiles.speed +
+                 communityBenchmarks.yourPercentiles.emails +
+                 communityBenchmarks.yourPercentiles.coverage) / 5
+              );
+
+              // Overall Performance Badge
+              const yourOverall = communityBenchmarks.yourMetrics ? Math.round(
+                ((communityBenchmarks.yourMetrics.avgQuality / 10 * 100) +
+                 communityBenchmarks.yourMetrics.taskCompletionRate +
+                 communityBenchmarks.yourMetrics.leadCoverageRate) / 3
+              ) : 0;
+              const communityOverall = communityBenchmarks.communityAverages ? Math.round(
+                ((communityBenchmarks.communityAverages.avgQuality / 10 * 100) +
+                 communityBenchmarks.communityAverages.taskCompletionRate +
+                 communityBenchmarks.communityAverages.leadCoverageRate) / 3
+              ) : 0;
+              
+              if (avgPercentile >= 90) {
+                badges.push({ 
+                  percentile: avgPercentile, 
+                  metric: 'Overall Performance', 
+                  rank: 'ELITE',
+                  actualValue: yourOverall,
+                  communityAverage: communityOverall,
+                  metricUnit: '%'
+                });
+              } else if (avgPercentile >= 75) {
+                badges.push({ 
+                  percentile: avgPercentile, 
+                  metric: 'Overall Performance', 
+                  rank: 'EXCELLENT',
+                  actualValue: yourOverall,
+                  communityAverage: communityOverall,
+                  metricUnit: '%'
+                });
+              }
+
+              // Individual Metric Badges
+              if (communityBenchmarks.yourPercentiles.quality >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.quality, 
+                  metric: 'Lead Quality', 
+                  rank: communityBenchmarks.yourPercentiles.quality >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.avgQuality,
+                  communityAverage: communityBenchmarks.communityAverages?.avgQuality,
+                  metricUnit: '/10'
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.taskCompletion >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.taskCompletion, 
+                  metric: 'Task Completion', 
+                  rank: communityBenchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.taskCompletionRate,
+                  communityAverage: communityBenchmarks.communityAverages?.taskCompletionRate,
+                  metricUnit: '%'
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.speed >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.speed, 
+                  metric: 'Speed to Follow-Up', 
+                  rank: communityBenchmarks.yourPercentiles.speed >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.speedToFollowUp,
+                  communityAverage: communityBenchmarks.communityAverages?.speedToFollowUp,
+                  metricUnit: ' hrs'
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.emails >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.emails, 
+                  metric: 'Email Engagement', 
+                  rank: communityBenchmarks.yourPercentiles.emails >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.emailsPerLead,
+                  communityAverage: communityBenchmarks.communityAverages?.emailsPerLead,
+                  metricUnit: ' per lead'
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.coverage >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.coverage, 
+                  metric: 'Lead Coverage', 
+                  rank: communityBenchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.leadCoverageRate,
+                  communityAverage: communityBenchmarks.communityAverages?.leadCoverageRate,
+                  metricUnit: '%'
+                });
+              }
+
+              // Show badges if user earned any
+              if (badges.length > 0) {
+                return (
+                  <div className="mb-8 border-b-4 border-purple-300 pb-8">
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold text-purple-800 mb-2">
+                        🏆 Your Top Performer Badges
+                      </h3>
+                      <p className="text-gray-700">
+                        Click any badge to share your achievement on social media!
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        (Sharing is optional and helps CSL grow 🚀)
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap justify-center gap-8">
+                      {badges.map((badge, index) => (
+                        <div key={index} className="flex flex-col items-center">
+                          <TopPerformerBadge
+                            percentile={badge.percentile}
+                            metric={badge.metric}
+                            rank={badge.rank}
+                            actualValue={badge.actualValue}
+                            communityAverage={badge.communityAverage}
+                            metricUnit={badge.metricUnit}
+                          />
+                          <p className="mt-3 text-sm font-semibold text-gray-700">
+                            {badge.metric}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {badges.length === 1 && (
+                      <p className="text-center mt-6 text-gray-600">
+                        🎯 Great start! Keep improving to earn more badges!
+                      </p>
+                    )}
+                    {badges.length >= 3 && (
+                      <p className="text-center mt-6 text-purple-700 font-bold text-lg">
+                        🌟 Amazing! You've earned {badges.length} Top Performer badge{badges.length > 1 ? 's' : ''}!
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Lead Quality Benchmark */}
@@ -1040,13 +1194,13 @@ const Reports = () => {
                       <p className="text-center mt-6 text-purple-700 font-bold text-lg">
                         🌟 Amazing! You've earned {badges.length} Top Performer badge{badges.length > 1 ? 's' : ''}!
                       </p>
-                    )}
-                  </div>
+                      )}
+                    </div>
                 );
               }
               return null;
             })()}
-          </div>
+                  </div>
         )}
 
         {/* Export Button */}
@@ -1107,10 +1261,10 @@ const Reports = () => {
                           </span>
                         </div>
                         <div className="space-y-2">
-                          {show.dealers.map(dealer => (
-                            <button
+                      {show.dealers.map(dealer => (
+                          <button
                               key={dealer.id}
-                              onClick={() => navigate(`/dealers/${dealer.id}`)}
+                            onClick={() => navigate(`/dealers/${dealer.id}`)}
                               className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition flex justify-between items-center"
                             >
                               <div>
@@ -1118,18 +1272,18 @@ const Reports = () => {
                                 {dealer.contactName && <p className="text-sm text-gray-600">{dealer.contactName}</p>}
                               </div>
                               <span className="text-xs text-gray-500">
-                                Visited: {formatDate(dealer.associationDate)}
-                              </span>
+                            Visited: {formatDate(dealer.associationDate)}
+                          </span>
                             </button>
-                          ))}
+                      ))}
                         </div>
-                      </div>
-                    ))}
+                </div>
+              ))}
                   </div>
                 )}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
           {/* Follow-Ups Report Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-orange-200 hover:border-orange-400 transition">
@@ -1158,37 +1312,37 @@ const Reports = () => {
             
             {expandedReport === 'followups' && (
               <div className="p-6 bg-gradient-to-br from-orange-50 to-white">
-                {todosLoading ? (
+          {todosLoading ? (
                   <p className="text-gray-500 text-center py-8">⏳ Loading...</p>
-                ) : todosShows.length === 0 ? (
+          ) : todosShows.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">No tasks yet! 🎉</p>
-                ) : (
+          ) : (
                   <div className="space-y-4">
-                    {todosShows.map(show => (
+              {todosShows.map(show => (
                       <div key={show.id} className="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-md">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="text-xl font-bold text-gray-900">🎪 {show.name}</h4>
                             <p className="text-sm text-gray-600">
                               {show.startDate && `${formatDate(show.startDate)}${show.endDate ? ` - ${formatDate(show.endDate)}` : ''}`}
-                            </p>
-                          </div>
-                        </div>
-                        {show.dealers.map(dealer => (
+                      </p>
+                    </div>
+                  </div>
+                  {show.dealers.map(dealer => (
                           <div key={dealer.id} className="mt-3 border-t border-orange-100 pt-3">
-                            <button
-                              onClick={() => navigate(`/dealers/${dealer.id}`)}
+                        <button
+                          onClick={() => navigate(`/dealers/${dealer.id}`)}
                               className="text-orange-600 hover:text-orange-800 font-semibold"
-                            >
-                              {dealer.companyName}
+                        >
+                          {dealer.companyName}
                               {dealer.contactName && ` – ${dealer.contactName}`}
-                            </button>
+                        </button>
                             <div className="mt-2 space-y-2">
-                              {dealer.todos.map(todo => (
+                        {dealer.todos.map(todo => (
                                 <div
-                                  key={todo.id}
+                            key={todo.id}
                                   className={`p-3 rounded-lg ${
-                                    todo.completed 
+                                    todo.completed
                                       ? 'bg-green-50 border border-green-200' 
                                       : todo.followUp 
                                         ? 'bg-red-50 border-2 border-red-300 animate-pulse'
@@ -1199,8 +1353,8 @@ const Reports = () => {
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <span className={todo.completed ? 'line-through text-gray-500' : 'text-gray-900 font-medium'}>
-                                          {todo.title}
-                                        </span>
+                                  {todo.title}
+                                </span>
                                         {todo.followUp && !todo.completed && (
                                           <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-bounce">
                                             🔥 FOLLOW-UP
@@ -1209,48 +1363,48 @@ const Reports = () => {
                                         {todo.completed && (
                                           <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full font-bold">
                                             ✅ DONE
-                                          </span>
-                                        )}
-                                      </div>
-                                      {todo.description && (
+                                  </span>
+                                )}
+                              </div>
+                              {todo.description && (
                                         <p className="text-sm text-gray-600 mt-1">{todo.description}</p>
                                       )}
                                       <div className="flex gap-3 mt-2 text-xs text-gray-500">
                                         {todo.dueDate && <span>📅 Due: {formatDate(todo.dueDate)}</span>}
-                                        {todo.followUp && todo.followUpDate && (
+                                {todo.followUp && todo.followUpDate && (
                                           <span className="text-red-600 font-semibold">
                                             🔥 Follow-up: {formatDate(todo.followUpDate)}
-                                          </span>
-                                        )}
-                                        {todo.completed && todo.completedAt && (
+                                  </span>
+                                )}
+                                {todo.completed && todo.completedAt && (
                                           <span className="text-green-600">
                                             ✓ Done: {formatDateTime(todo.completedAt)}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {!todo.completed && (
-                                      <button
-                                        onClick={() => handleCompleteTodo(todo.id)}
-                                        disabled={updatingTodoId === todo.id}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {!todo.completed && (
+                              <button
+                                onClick={() => handleCompleteTodo(todo.id)}
+                                disabled={updatingTodoId === todo.id}
                                         className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 font-semibold text-sm whitespace-nowrap transform hover:scale-105 transition"
-                                      >
+                              >
                                         {updatingTodoId === todo.id ? '⏳' : '✅ Complete'}
-                                      </button>
-                                    )}
+                              </button>
+                            )}
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
                         ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                            </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
             )}
-          </div>
+      </div>
 
           {/* Emails Report Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-purple-200 hover:border-purple-400 transition">

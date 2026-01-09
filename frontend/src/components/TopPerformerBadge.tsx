@@ -18,6 +18,68 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const badgeRef = useRef<HTMLDivElement>(null);
 
+  // Fun, attention-grabbing color schemes for each metric
+  const getColorScheme = () => {
+    const metricLower = metric?.toLowerCase() || '';
+    
+    // Each metric gets its own vibrant color palette
+    if (metricLower.includes('overall')) {
+      // Overall: Rainbow gradient (most prestigious)
+      return {
+        gradient: 'linear-gradient(135deg, #ff0080 0%, #ff8c00 25%, #40e0d0 50%, #9d00ff 75%, #ff0080 100%)',
+        shadow: 'rgba(255, 0, 128, 0.4)'
+      };
+    } else if (metricLower.includes('quality')) {
+      // Quality: Emerald green (premium)
+      return {
+        gradient: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
+        shadow: 'rgba(16, 185, 129, 0.4)'
+      };
+    } else if (metricLower.includes('speed') || metricLower.includes('follow')) {
+      // Speed: Electric blue/cyan (fast!)
+      return {
+        gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)',
+        shadow: 'rgba(6, 182, 212, 0.4)'
+      };
+    } else if (metricLower.includes('email')) {
+      // Email: Hot pink/magenta (engaging!)
+      return {
+        gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 50%, #be185d 100%)',
+        shadow: 'rgba(236, 72, 153, 0.4)'
+      };
+    } else if (metricLower.includes('task')) {
+      // Tasks: Orange/amber (productive!)
+      return {
+        gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+        shadow: 'rgba(245, 158, 11, 0.4)'
+      };
+    } else if (metricLower.includes('coverage')) {
+      // Coverage: Deep purple (comprehensive)
+      return {
+        gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)',
+        shadow: 'rgba(139, 92, 246, 0.4)'
+      };
+    }
+    
+    // Fallback based on rank
+    if (rank === 'ELITE') {
+      return {
+        gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+        shadow: 'rgba(251, 191, 36, 0.4)'
+      };
+    } else if (rank === 'EXCELLENT') {
+      return {
+        gradient: 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)',
+        shadow: 'rgba(168, 85, 247, 0.4)'
+      };
+    } else {
+      return {
+        gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+        shadow: 'rgba(59, 130, 246, 0.4)'
+      };
+    }
+  };
+
   // Check if user has previously given consent
   const hasGivenConsent = () => {
     return localStorage.getItem('badge_share_consent') === 'true' || consentGiven;
@@ -325,14 +387,11 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
       >
         <div 
           ref={badgeRef}
-          className="w-56 h-56 rounded-2xl shadow-2xl hover:shadow-3xl relative overflow-hidden transform transition-all duration-300 hover:-translate-y-1"
+          className="w-56 h-56 rounded-2xl shadow-2xl hover:shadow-3xl relative overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:rotate-2"
           style={{
-            background: rank === 'ELITE' 
-              ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)'
-              : rank === 'EXCELLENT'
-              ? 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)'
-              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+            background: getColorScheme().gradient,
+            boxShadow: `0 20px 60px ${getColorScheme().shadow}, inset 0 1px 0 rgba(255,255,255,0.3)`,
+            animation: 'pulse 3s ease-in-out infinite',
           }}
         >
           {/* Animated shine effect */}
@@ -386,12 +445,18 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
             </div>
           </div>
           
-          {/* Decorative sparkle elements */}
-          <div className="absolute top-2 right-2 w-6 h-6 opacity-40 animate-pulse">
-            <div className="text-white text-2xl">✨</div>
+          {/* Decorative sparkle elements - MORE sparkles, MORE fun! */}
+          <div className="absolute top-2 right-2 w-8 h-8 animate-sparkle">
+            <div className="text-white text-3xl drop-shadow-lg">✨</div>
           </div>
-          <div className="absolute bottom-2 left-2 w-6 h-6 opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}>
-            <div className="text-white text-2xl">⭐</div>
+          <div className="absolute bottom-2 left-2 w-8 h-8 animate-sparkle" style={{ animationDelay: '0.5s' }}>
+            <div className="text-white text-3xl drop-shadow-lg">⭐</div>
+          </div>
+          <div className="absolute top-2 left-2 w-6 h-6 animate-sparkle" style={{ animationDelay: '1s' }}>
+            <div className="text-yellow-200 text-2xl drop-shadow-lg">💫</div>
+          </div>
+          <div className="absolute bottom-2 right-2 w-6 h-6 animate-sparkle" style={{ animationDelay: '1.5s' }}>
+            <div className="text-yellow-200 text-2xl drop-shadow-lg">🌟</div>
           </div>
         </div>
         
