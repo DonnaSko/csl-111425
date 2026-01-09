@@ -88,9 +88,9 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
       return `I'm in the top ${topPercent}% on @captureshowlead! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
     }
     
-    // Facebook - no @ mentions work, use text
+    // Facebook - include page reference
     if (platform === 'facebook') {
-      return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+      return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow them: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement #SalesExcellence`;
     }
     
     // LinkedIn - professional tone
@@ -103,8 +103,8 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
       return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
     }
     
-    // Copy/default - include both social handles
-    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\n\n#CSL #TradeShows #LeadManagement`;
+    // Copy/default - include all social handles
+    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
   };
 
   const shareToFacebook = () => {
