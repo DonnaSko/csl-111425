@@ -16,19 +16,16 @@ code {
     monospace;
 }
 
-
-/* Scale-in animation for modals */
-@keyframes scale-in {
-  0% {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+/* Flash red animation - 3 times in 3 seconds */
+@keyframes flash-red {
+  0%, 100% { background-color: transparent; }
+  16.66% { background-color: #fecaca; } /* pale red */
+  33.33% { background-color: transparent; }
+  50% { background-color: #fecaca; }
+  66.66% { background-color: transparent; }
+  83.33% { background-color: #fecaca; }
 }
 
-.animate-scale-in {
-  animation: scale-in 0.3s ease-out;
+.animate-flash-red {
+  animation: flash-red 3s ease-in-out;
 }

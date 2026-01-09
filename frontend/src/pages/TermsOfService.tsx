@@ -1,251 +1,184 @@
-import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 const TermsOfService = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Terms of Service</h1>
-        
-        <div className="bg-white rounded-lg shadow p-8 space-y-6">
-          <p className="text-gray-600 text-sm">Last Updated: September 24, 2025</p>
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-6">Terms of Service</h1>
           
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. What You're Getting</h2>
-            <p className="text-gray-700 leading-relaxed mb-4">
-              You're using our trade-show lead app ("Service"). You can buy:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li><strong>Monthly Subscription</strong> – Use for shows from the paid date + 32 days</li>
-              <li><strong>Annual Subscription</strong> – Use from paid date + 365 days</li>
-            </ul>
-          </section>
+          <div className="text-sm text-gray-600 mb-8 space-y-1">
+            <p><strong>Effective Date:</strong> January 9, 2026</p>
+            <p><strong>Last Updated:</strong> January 9, 2026</p>
+            <p><strong>Company:</strong> Capture Show Leads, LLC ("CSL", "we", "us", or "our")</p>
+            <p><strong>Service:</strong> Capture Show Leads Platform (the "Service")</p>
+          </div>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">2. Your Data is Yours</h2>
-            <p className="text-gray-700 leading-relaxed">
-              You (and your company) own all lead data (contacts, notes, photos, voice notes). <strong>We never sell your data.</strong>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">3. Using the Service</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li><strong>Who can use it:</strong> A Paid User with a current monthly or annual subscription. Each person from a Company/Team will need to buy a seat or a subscription to have access to the app.</li>
-              <li><strong>What you can do:</strong> Capture leads at shows, add notes/photos/voice notes, export CSV, manage follow-ups.</li>
-              <li><strong>What you can't do:</strong> Anything illegal, spammy, or that breaks someone else's rights.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">4. Show Windows & Edit-Lock</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>You can add/edit leads from Tradeshows during your subscription term – Start at the paid date + 32 days for the Monthly plan, or the Paid Date + 366 days for the Annual plan.</li>
-              <li>After that, the show becomes read-only (you can still view/export).</li>
-              <li>This helps teams follow up instead of "polishing" forever.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">5. Plans, Limits, and Pricing</h2>
-            <p className="text-gray-700">
-              <strong>Subscription Pricing:</strong> Monthly pricing or Annual pricing as listed on our app/site. You can buy add-ons (e.g., extra devices, custom form setup, hot-leads report).
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Payments & Refunds</h2>
-            
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
-              <p className="text-gray-900 font-bold text-lg mb-2">⚠️ AUTOMATIC RENEWAL NOTICE</p>
-              <p className="text-gray-800">
-                <strong>Your Monthly or Annual subscription will automatically renew</strong> at the end of each billing period. 
-                We will charge your credit card on file unless you cancel.
-              </p>
-              <ul className="list-disc list-inside text-gray-800 mt-2 space-y-1">
-                <li><strong>You can cancel the renewal up to and including the date of renewal.</strong></li>
-                <li><strong>Once renewed, NO REFUNDS available.</strong></li>
-              </ul>
-            </div>
-            
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>Payments are processed by <strong>Stripe</strong>.</li>
-              <li><strong>Automatic renewal - you can cancel the renewal up to and including the date of renewal. Once renewed, NO REFUNDS available.</strong></li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Support & Admin Access</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>We provide email support (and priority support for Enterprise).</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Privacy & Security</h2>
-            <p className="text-gray-700 leading-relaxed">
-              We protect data in transit and at rest using industry-standard methods. 
-              See our <Link to="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link> for full details.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Availability & Changes</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>We aim for high uptime. Sometimes we'll update or pause features for maintenance.</li>
-              <li>We can change the Service and pricing; we'll post updates. If a change is material, we'll notify you.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">10. Termination & Refund Policy</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>You may stop using the Service anytime. Subscriptions remain active until canceled.</li>
-              <li>We can suspend/terminate for abuse, non-payment, or security risks.</li>
-              <li>On termination, you can export your data. We may retain backups for a time as described in the Privacy Policy.</li>
-            </ul>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-6 mb-2">Refund Policy (B2B)</h3>
-            <p className="text-gray-700 leading-relaxed">
-              <strong>Automatic renewal</strong> - you can cancel the renewal up to and including the date of renewal. <strong>Once renewed, NO REFUNDS available.</strong>
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Cancellation Policy</h3>
-            <p className="text-gray-700 leading-relaxed">
-              You can cancel your subscription anytime from your Account Settings, up to and including your renewal date. Once the subscription has renewed, no refunds will be issued.
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Billing Errors</h3>
-            <p className="text-gray-700 leading-relaxed">
-              If you believe you were charged in error (duplicate charge, wrong plan, wrong amount), <strong>contact us within 7 days of the charge.</strong> Verified billing errors will be corrected or refunded.
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Service Unavailability</h3>
-            <p className="text-gray-700 leading-relaxed">
-              If the service is unavailable due to our fault for a material period of time, we may issue a service credit or prorated refund at our discretion.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">11. Liability</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>To the fullest extent allowed by law, our liability is limited to the amounts you paid us in the past 12 months for the Service.</li>
-              <li>We are not liable for indirect or consequential damages.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">12. Hold Harmless & Indemnification</h2>
-            <p className="text-gray-700 leading-relaxed mb-4">
-              You agree to protect us if someone else sues because of how you used the Service. To the fullest extent allowed by law, Customer (you) will defend, indemnify, and hold harmless Capture Show Leads, LLC, its affiliates, and their directors, officers, employees, and agents (together, "CSL") from and against any third-party claims, demands, losses, liabilities, damages, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
-            </p>
-            <ol className="list-decimal list-inside text-gray-700 space-y-2 ml-4">
-              <li>Use or misuse of the Service by you or your users;</li>
-              <li>Breach of these Terms or violation of applicable laws or regulations;</li>
-              <li>Customer Data or Content you upload, collect, or process (including lead data, photos, voice notes, and emails), and any alleged IP or privacy violations in that content;</li>
-              <li>Your combinations of the Service with other products, systems, or data not provided by CSL;</li>
-              <li>Your instructions or configurations to the Service (including qualifiers, email templates, or exports).</li>
-            </ol>
-            
-            <p className="text-gray-700 leading-relaxed mt-4">
-              This obligation does not apply to the extent a claim is caused by CSL's gross negligence or willful misconduct.
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Defense & Settlement</h3>
-            <p className="text-gray-700 leading-relaxed">
-              CSL will: (a) promptly notify you of any claim (delay won't relieve you unless it materially harms your defense); (b) let you control the defense and settlement; and (c) reasonably cooperate at your expense. You may not settle any claim that imposes any admission of fault, non-monetary obligations, or liability on CSL without CSL's prior written consent (not to be unreasonably withheld). CSL may participate with its own counsel at its own expense.
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Relationship to Other Terms</h3>
-            <p className="text-gray-700 leading-relaxed">
-              This Section works in addition to the Limitation of Liability section and does not expand CSL's liability. Your statutory consumer rights (if any) remain unaffected.
-            </p>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Exclusions</h3>
-            <p className="text-gray-700 leading-relaxed mb-2">
-              CSL's obligation does not apply to any claim to the extent it arises from:
-            </p>
-            <ol className="list-[lower-alpha] list-inside text-gray-700 space-y-1 ml-4">
-              <li>Customer Data or Content (including leads, photos, voice notes, emails);</li>
-              <li>Combinations of the Service with items not supplied by CSL where the claim would not exist but for that combination;</li>
-              <li>Modifications to the Service not made by CSL;</li>
-              <li>Use not in accordance with the Documentation or these Terms;</li>
-              <li>Open source components used under their own licenses; or</li>
-              <li>Customer's continued use of a version after CSL makes an updated, non-infringing version available.</li>
-            </ol>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Customer's IP Indemnity</h3>
-            <p className="text-gray-700 leading-relaxed">
-              Customer will defend, indemnify, and hold CSL harmless from any third-party claim alleging that Customer Data/Content, configurations, or Customer's use of the Service in violation of these Terms infringes or misappropriates a third party's IP rights, and will pay all damages, costs, and reasonable attorneys' fees finally awarded or included in a settlement Customer approves.
-            </p>
-          </section>
-
-          <section className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">13. Consent to Record/Photograph & Badge Scans</h2>
-            
-            <div className="bg-white p-4 rounded-lg border-l-4 border-red-500 mb-6">
-              <p className="text-gray-800 font-semibold mb-2">⚠️ Important: Your Responsibility</p>
+          <div className="prose prose-lg max-w-none space-y-8">
+            {/* Section 1 */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
               <p className="text-gray-700">
-                As a paid user, <strong>YOU are responsible</strong> for obtaining permission from dealers and customers who visit your trade show booth before you:
+                By accessing or using the Capture Show Leads platform, you ("User", "you", or "your") agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using the Service.
               </p>
-              <ul className="list-disc list-inside text-gray-700 mt-2 ml-4">
-                <li>Take a photo of their badge or business card</li>
-                <li>Record voice notes about your conversation</li>
-                <li>Capture their contact information</li>
-                <li>Take any photos of them or their materials</li>
+            </section>
+
+            {/* Section 2 */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
+              <p className="text-gray-700 mb-4">
+                Capture Show Leads (CSL) is a trade show lead management platform that enables users to:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Capture and manage dealer/lead information</li>
+                <li>Track follow-ups and communications</li>
+                <li>Send emails with attachments</li>
+                <li>Manage trade show attendance</li>
+                <li>Upload and store photos, voice recordings, and documents</li>
+                <li>Generate reports and analytics</li>
+                <li><strong>Compare performance metrics anonymously with other CSL users (Community Benchmarking)</strong></li>
+                <li><strong>Share performance achievements on social media (Top Performer Badges)</strong></li>
               </ul>
-              <p className="text-gray-700 mt-2">
-                <strong>Capture Show Leads is not responsible for your failure to obtain proper consent.</strong>
+            </section>
+
+            {/* Section 3 */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Account Registration & Subscription</h2>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">3.1 Account Creation</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+                <li>You must provide accurate and complete information during registration</li>
+                <li>You are responsible for maintaining the confidentiality of your account credentials</li>
+                <li>You agree to accept responsibility for all activities that occur under your account</li>
+                <li>You must notify us immediately of any unauthorized use of your account</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">3.2 Subscription & Payment</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+                <li>The Service requires an active paid subscription</li>
+                <li>Subscriptions are managed through Stripe</li>
+                <li>Payment is required before accessing the platform</li>
+                <li>Subscription fees are non-refundable except as required by law</li>
+                <li>We reserve the right to modify subscription pricing with 30 days notice</li>
+              </ul>
+            </section>
+
+            {/* Section 4 - CRITICAL */}
+            <section className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Data Usage & Community Benchmarking</h2>
+              
+              <div className="bg-yellow-50 border-2 border-yellow-400 p-4 rounded-lg mb-4">
+                <p className="font-bold text-gray-900 mb-2">BY USING THE SERVICE, YOU CONSENT TO THE FOLLOWING:</p>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">4.2 Community Benchmarking & Gamification</h3>
+              
+              <h4 className="font-semibold text-gray-900 mb-2">Anonymous Data Aggregation</h4>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+                <li><strong>We collect and aggregate performance metrics across ALL CSL users for community benchmarking purposes</strong></li>
+                <li><strong>Metrics include:</strong> Lead quality scores, Task completion rates, Speed-to-follow-up times, Email engagement rates, Lead coverage rates</li>
+                <li><strong>Your data is anonymized and aggregated with all other users' data</strong></li>
+                <li><strong>NO company names, user names, or identifying information is revealed to other users</strong></li>
+              </ul>
+
+              <h4 className="font-semibold text-gray-900 mb-2">What is NOT Shared</h4>
+              <p className="text-gray-700 mb-2">Company names or identities, Specific user information, Individual lead/dealer data, Contact information, Email content, Notes or recordings, Photos or attachments</p>
+            </section>
+
+            {/* Section 5 - Social Media */}
+            <section className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Social Media Sharing & Top Performer Badges</h2>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">5.1 Top Performer Badges</h3>
+              <p className="text-gray-700 mb-4">
+                Users who achieve high percentile rankings (75%+) may earn "Top Performer" badges. Badges are visual achievements that can be shared on social media. Badge sharing is <strong>OPTIONAL</strong> - users choose when and where to share.
               </p>
-            </div>
-            
-            <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Consent for Photos, Audio, and Badge Scans</h3>
-            
-            <ol className="list-decimal list-inside text-gray-700 space-y-4 ml-4">
-              <li>
-                <strong>Consent required.</strong> Customer and its users must obtain the individual's express consent (verbal or written) before capturing any photo, audio/voice note, or image of an event badge using the Service. Consent should make clear that (a) information will be captured for follow-up after the show, and (b) the individual may decline.
-              </li>
-              <li>
-                <strong>Compliance with laws & show rules.</strong> Customer is solely responsible for compliance with all applicable privacy, right-of-publicity, recording-consent, and wiretapping laws, and with event/venue/organizer policies regarding photography, recordings, and badge scanning. (Note: some U.S. states require all-party consent for audio recording.)
-              </li>
-              <li>
-                <strong>No sensitive personal data.</strong> Customer agrees not to capture or store sensitive data (e.g., government IDs, financial account numbers, health/medical data, biometric templates) in the Service. Images of badges should be limited to business-contact details related to the event.
-              </li>
-              <li>
-                <strong>Notice & opt-out.</strong> If any individual asks not to be recorded or photographed, Customer will stop immediately and will delete any previously captured photo/audio/badge image of that individual upon request.
-              </li>
-              <li>
-                <strong>Customer representations.</strong> Customer represents and warrants that it has all rights, permissions, and consents required to collect and process personal data via the Service, and that it has provided all legally required notices (including where required by organizer/venue policies).
-              </li>
-              <li>
-                <strong>Indemnity.</strong> To the extent permitted by law, Customer will defend, indemnify, and hold harmless Capture Show Leads from claims, fines, or penalties arising out of Customer's failure to obtain consent or comply with applicable laws/policies related to photos, audio, or badge scans (subject to the indemnity limits set elsewhere in these Terms). <em>(See Section 12: Hold Harmless & Indemnification)</em>
-              </li>
-            </ol>
-          </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">14. Disputes & Law</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-              <li>These terms are governed by the laws of <strong>New Jersey</strong> (without regard to conflicts of law).</li>
-              <li><strong>Venue:</strong> Courts located in Morris County, NJ.</li>
-            </ul>
-          </section>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">5.2 Sharing to Social Media</h3>
+              <p className="font-semibold text-gray-900 mb-2">BY SHARING A BADGE, YOU CONSENT TO:</p>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Public posting on your chosen social media platform</li>
+                <li>CSL may engage with your post (like, comment, share)</li>
+                <li>CSL may use your public post as a testimonial</li>
+                <li>The post will include CSL branding and a link to our website</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">15. Contact</h2>
-            <p className="text-gray-700 leading-relaxed">Questions? Contact us:</p>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-gray-700"><strong>Capture Show Leads, LLC</strong></p>
-              <p className="text-gray-700">Email: <a href="mailto:support@CaptureShowLeads.com" className="text-blue-600 hover:underline">support@CaptureShowLeads.com</a></p>
-              <p className="text-gray-700">Phone: <a href="tel:973-467-0680" className="text-blue-600 hover:underline">973-467-0680</a></p>
-            </div>
-          </section>
+            {/* Section 6 */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">6. User Conduct</h2>
+              <p className="text-gray-700 mb-4">You agree to use the Service only for lawful purposes and in accordance with these Terms.</p>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">6.2 Prohibited Activities</h3>
+              <p className="text-gray-700 mb-2">You may NOT:</p>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Violate any applicable laws or regulations</li>
+                <li>Upload malware, viruses, or malicious code</li>
+                <li>Attempt to gain unauthorized access to the Service</li>
+                <li>Interfere with other users' access to the Service</li>
+                <li>Scrape or harvest data from the Service</li>
+                <li>Use the Service to send spam or unsolicited communications</li>
+                <li>Impersonate another user or entity</li>
+                <li>Share your account credentials with others</li>
+              </ul>
+            </section>
 
-          <section className="border-t pt-6 mt-8">
-            <p className="text-gray-500 text-sm text-center">
-              <strong>By using the Service you agree to these Terms.</strong>
-            </p>
-          </section>
+            {/* Section 7 */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Intellectual Property</h2>
+              <p className="text-gray-700">
+                The Service, including all software, design, and content, is owned by CSL. The CSL name, logo, and trademarks (Capture Show Leads® and CSL™) are owned by CSL. You may not use CSL's intellectual property without written permission.
+              </p>
+            </section>
+
+            {/* Disclaimers */}
+            <section className="bg-red-50 p-6 rounded-lg border-2 border-red-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Disclaimers & Limitations of Liability</h2>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">9.2 No Warranties</h3>
+              <p className="text-gray-700 mb-4">
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW: We make no warranties, express or implied. We do not warrant that the Service will meet your requirements or that community benchmarks are 100% accurate.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">9.3 Limitation of Liability</h3>
+              <p className="text-gray-700">
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW: Our liability is limited to the amount you paid in the past 12 months. We are not liable for indirect, incidental, or consequential damages, lost profits, data loss, or business interruption.
+              </p>
+            </section>
+
+            {/* Contact */}
+            <section className="bg-gray-50 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Contact Information</h2>
+              <div className="space-y-2 text-gray-700">
+                <p><strong>Capture Show Leads, LLC</strong></p>
+                <p>Email: <a href="mailto:support@captureshowleads.com" className="text-blue-600 hover:underline">support@captureshowleads.com</a></p>
+                <p>Website: <a href="https://www.captureshowleads.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">www.CaptureShowLeads.com</a></p>
+                <p className="mt-4">For legal inquiries: <a href="mailto:legal@captureshowleads.com" className="text-blue-600 hover:underline">legal@captureshowleads.com</a></p>
+                <p>For data privacy requests: <a href="mailto:privacy@captureshowleads.com" className="text-blue-600 hover:underline">privacy@captureshowleads.com</a></p>
+              </div>
+            </section>
+
+            {/* Acknowledgment */}
+            <section className="bg-green-50 p-6 rounded-lg border-2 border-green-300">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Acknowledgment</h2>
+              <p className="text-gray-700 font-semibold">
+                BY USING THE CAPTURE SHOW LEADS SERVICE, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THESE TERMS OF SERVICE.
+              </p>
+              <p className="text-gray-700 mt-4">
+                If you do not agree to these Terms, you must immediately cease using the Service and cancel your account.
+              </p>
+            </section>
+
+            {/* Document Info */}
+            <section className="text-sm text-gray-500 border-t pt-6">
+              <p><strong>Document Version:</strong> 1.0</p>
+              <p><strong>Effective Date:</strong> January 9, 2026</p>
+              <p><strong>Last Reviewed:</strong> January 9, 2026</p>
+              <p className="mt-4">© {currentYear} Capture Show Leads, LLC. All rights reserved.</p>
+            </section>
+          </div>
         </div>
       </div>
     </Layout>
@@ -253,4 +186,3 @@ const TermsOfService = () => {
 };
 
 export default TermsOfService;
-

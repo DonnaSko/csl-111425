@@ -29,24 +29,20 @@ const Footer = () => {
             <h4 className="text-white font-semibold mb-3">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <a 
-                  href="/TERMS_OF_SERVICE.md" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <Link 
+                  to="/terms-of-service"
                   className="text-sm hover:text-white transition"
                 >
                   Terms of Service
-                </a>
+                </Link>
               </li>
               <li>
-                <a 
-                  href="/PRIVACY_POLICY.md" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <Link 
+                  to="/privacy-policy"
                   className="text-sm hover:text-white transition"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
                 <Link 
