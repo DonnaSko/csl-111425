@@ -158,11 +158,11 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
     }
     
     if (platform === 'facebook') {
-      return `${achievement}\n\nI'm in the top ${topPercent}% of trade show professionals using Capture Show Leads!\n\n${metricName} puts me ahead of ${percentile}% of users. This tool is a game-changer! ${emoji}\n\nFollow: facebook.com/profile.php?id=61581979524580\n\n${tradeShowHashtags}`;
+      return `${achievement}\n\nI'm in the top ${topPercent}% of trade show professionals using CaptureShowLeads!\n\n${metricName} puts me ahead of ${percentile}% of users. This tool is a game-changer! ${emoji}\n\nFollow: facebook.com/profile.php?id=61581979524580\n\n${tradeShowHashtags}`;
     }
     
     if (platform === 'linkedin') {
-      return `${achievement}\n\nI'm proud to be in the top ${topPercent}% of trade show professionals for ${metricName.toLowerCase()}.\n\nCapture Show Leads has transformed how I manage trade show leads and follow-ups. The results speak for themselves! ${emoji}\n\nConnect with Capture Show Leads: linkedin.com/company/109237009\n\n${tradeShowHashtags} #B2BSales #SaaS`;
+      return `${achievement}\n\nI'm proud to be in the top ${topPercent}% of trade show professionals for ${metricName.toLowerCase()}.\n\nCaptureShowLeads has transformed how I manage trade show leads and follow-ups. The results speak for themselves! ${emoji}\n\nConnect with CaptureShowLeads: linkedin.com/company/109237009\n\n${tradeShowHashtags} #B2BSales #SaaS`;
     }
     
     if (platform === 'instagram') {
@@ -342,7 +342,7 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
           <div className="w-full h-full p-4 flex flex-col items-center justify-between text-white relative z-10">
             {/* Top - CSL Branding */}
             <div className="text-center">
-              <div className="text-xs font-black tracking-wider opacity-95 drop-shadow-lg">CAPTURE SHOW LEADS</div>
+              <div className="text-xs font-black tracking-wider opacity-95 drop-shadow-lg">CAPTURESHOWLEADS</div>
             </div>
             
             {/* Middle - Achievement */}
