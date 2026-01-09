@@ -29,3 +29,13 @@ code {
 .animate-flash-red {
   animation: flash-red 3s ease-in-out;
 }
+
+/* Prevent hashtag styling in generated social posts */
+.social-post-text {
+  color: #1f2937 !important;
+}
+
+.social-post-text * {
+  color: inherit !important;
+  text-decoration: none !important;
+}
