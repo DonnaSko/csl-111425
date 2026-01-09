@@ -19,19 +19,29 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     return localStorage.getItem('badge_share_consent') === 'true' || consentGiven;
   };
 
-  const handleBadgeClick = () => {
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[BADGE CLICK] Badge clicked, checking consent...');
+    console.log('[BADGE CLICK] Has consent:', hasGivenConsent());
+    
     if (!hasGivenConsent()) {
+      console.log('[BADGE CLICK] Opening consent modal...');
       setShowConsentModal(true);
     } else {
+      console.log('[BADGE CLICK] Opening share modal...');
       setShowShareModal(true);
     }
   };
 
   const handleConsentAccept = () => {
+    console.log('[BADGE CONSENT] User accepted consent');
     setConsentGiven(true);
     if (dontShowAgain) {
+      console.log('[BADGE CONSENT] Saving consent to localStorage');
       localStorage.setItem('badge_share_consent', 'true');
     }
+    console.log('[BADGE CONSENT] Closing consent modal, opening share modal');
     setShowConsentModal(false);
     setShowShareModal(true);
   };
@@ -226,9 +236,11 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     <>
       {/* Badge Button */}
       <button
+        type="button"
         onClick={handleBadgeClick}
-        className={`relative group transform hover:scale-110 transition-all duration-300 cursor-pointer`}
+        className="relative group transform hover:scale-110 transition-all duration-300 cursor-pointer bg-transparent border-0 p-0"
         title="Click to share your achievement!"
+        style={{ zIndex: 1 }}
       >
         <div 
           ref={badgeRef}
@@ -277,7 +289,7 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
 
       {/* Consent Modal */}
       {showConsentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-scale-in">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">{getEmoji()}</div>
@@ -354,7 +366,7 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
 
       {/* Share Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-scale-in">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">{getEmoji()}</div>
