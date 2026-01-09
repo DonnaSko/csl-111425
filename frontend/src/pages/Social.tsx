@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import TopPerformerBadge from '../components/TopPerformerBadge';
 
 interface TradeShow {
   id: string;
@@ -18,11 +19,32 @@ const Social = () => {
   const [postType, setPostType] = useState<'announcement' | 'recap' | 'booth' | 'networking'>('announcement');
   const [generatedPost, setGeneratedPost] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [realStats, setRealStats] = useState<{
+    totalDealers: number;
+    totalEmails: number;
+    totalTodos: number;
+    completedTodos: number;
+  } | null>(null);
+  const [benchmarks, setBenchmarks] = useState<any>(null);
+  const [benchmarksLoading, setBenchmarksLoading] = useState(false);
 
   useEffect(() => {
     fetchTradeShows();
     loadUserInfo();
+    fetchCommunityBenchmarks();
   }, []);
+
+  const fetchCommunityBenchmarks = async () => {
+    setBenchmarksLoading(true);
+    try {
+      const response = await api.get('/reports/community-benchmarks');
+      setBenchmarks(response.data);
+    } catch (error) {
+      console.error('Failed to load community benchmarks:', error);
+    } finally {
+      setBenchmarksLoading(false);
+    }
+  };
 
   const fetchTradeShows = async () => {
     try {
@@ -45,65 +67,134 @@ const Social = () => {
     }
   };
 
-  const generatePost = () => {
+  const fetchRealStats = async (tradeShowId: string) => {
+    try {
+      // Fetch dealers for the selected trade show
+      const dealersResponse = await api.get('/dealers');
+      const allDealers = dealersResponse.data.dealers || [];
+      
+      // Filter dealers for this specific trade show
+      const tradeShowDealers = allDealers.filter((dealer: any) => 
+        dealer.tradeShows?.some((ts: any) => ts.tradeShowId === tradeShowId)
+      );
+      
+      // Calculate stats
+      const totalDealers = tradeShowDealers.length;
+      const totalEmails = tradeShowDealers.reduce((sum: number, dealer: any) => 
+        sum + (dealer.changeHistory?.filter((ch: any) => ch.fieldName === 'email_sent').length || 0), 0
+      );
+      const allTodos = tradeShowDealers.reduce((todos: any[], dealer: any) => 
+        [...todos, ...(dealer.todos || [])], []
+      );
+      const totalTodos = allTodos.length;
+      const completedTodos = allTodos.filter((todo: any) => todo.completed).length;
+      
+      setRealStats({
+        totalDealers,
+        totalEmails,
+        totalTodos,
+        completedTodos
+      });
+      
+      return {
+        totalDealers,
+        totalEmails,
+        totalTodos,
+        completedTodos
+      };
+    } catch (error) {
+      console.error('Failed to load real stats:', error);
+      return {
+        totalDealers: 0,
+        totalEmails: 0,
+        totalTodos: 0,
+        completedTodos: 0
+      };
+    }
+  };
+
+  const generatePost = async () => {
     setLoading(true);
     
-    // Simulate AI generation delay
-    setTimeout(() => {
-      const show = tradeShows.find(ts => ts.id === selectedShow);
-      if (!show) return;
-
-      const location = show.location || 'the venue';
-      const industryHashtags = getIndustryHashtags(industry);
-      const trendingHashtags = getTrendingHashtags(postType);
-      
-      let post = '';
-      
-      switch (postType) {
-        case 'announcement':
-          post = `🎉 Exciting news! ${companyName} will be attending ${show.name} in ${location}!\n\n` +
-                 `📍 Visit our booth to:\n` +
-                 `✅ See our latest innovations\n` +
-                 `✅ Connect with our team\n` +
-                 `✅ Discover industry solutions\n\n` +
-                 `Who else is attending? Let's connect! 🤝\n\n` +
-                 `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
-          break;
-          
-        case 'recap':
-          post = `🌟 What an amazing ${show.name}!\n\n` +
-                 `Thank you to everyone who visited our booth! We had incredible conversations ` +
-                 `and made valuable connections.\n\n` +
-                 `Key highlights:\n` +
-                 `✨ Met 100+ industry professionals\n` +
-                 `✨ Showcased our innovations\n` +
-                 `✨ Built partnerships for the future\n\n` +
-                 `Already looking forward to next year! 🚀\n\n` +
-                 `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
-          break;
-          
-        case 'booth':
-          post = `🎪 Come visit us at ${show.name}!\n\n` +
-                 `We're at Booth [Your Booth #] ready to:\n` +
-                 `💡 Share industry insights\n` +
-                 `💡 Demo our solutions\n` +
-                 `💡 Answer your questions\n\n` +
-                 `Stop by for exclusive show offers! 🎁\n\n` +
-                 `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
-          break;
-          
-        case 'networking':
-          post = `🤝 Loving the energy at ${show.name}!\n\n` +
-                 `Great conversations with industry leaders and innovators. ` +
-                 `This is what trade shows are all about - connection, collaboration, and growth.\n\n` +
-                 `If you're here, let's connect! Drop a comment or DM. 📲\n\n` +
-                 `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
-          break;
-      }
-      
-      setGeneratedPost(post);
+    const show = tradeShows.find(ts => ts.id === selectedShow);
+    if (!show) {
       setLoading(false);
-    }, 1000);
+      return;
+    }
+
+    // Fetch real stats for recap posts
+    let stats = realStats;
+    if (postType === 'recap') {
+      stats = await fetchRealStats(selectedShow);
+    }
+
+    const location = show.location || 'the venue';
+    const industryHashtags = getIndustryHashtags(industry);
+    const trendingHashtags = getTrendingHashtags(postType);
+    
+    let post = '';
+    
+    switch (postType) {
+      case 'announcement':
+        post = `🎉 Exciting news! ${companyName} will be attending ${show.name} in ${location}!\n\n` +
+               `📍 Visit our booth to:\n` +
+               `✅ See our latest innovations\n` +
+               `✅ Connect with our team\n` +
+               `✅ Discover industry solutions\n\n` +
+               `Who else is attending? Let's connect! 🤝\n\n` +
+               `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
+        break;
+        
+      case 'recap':
+        const totalDealers = stats?.totalDealers || 0;
+        const totalEmails = stats?.totalEmails || 0;
+        const completedTodos = stats?.completedTodos || 0;
+        
+        // Build highlights based on real data
+        let highlights = '';
+        if (totalDealers > 0) {
+          highlights += `✨ Connected with ${totalDealers} industry professional${totalDealers !== 1 ? 's' : ''}\n`;
+        }
+        if (totalEmails > 0) {
+          highlights += `✨ Sent ${totalEmails} personalized follow-up${totalEmails !== 1 ? 's' : ''}\n`;
+        }
+        if (completedTodos > 0) {
+          highlights += `✨ Completed ${completedTodos} action item${completedTodos !== 1 ? 's' : ''} and counting\n`;
+        }
+        if (!highlights) {
+          highlights = `✨ Great conversations and connections\n✨ Showcased our innovations\n✨ Built partnerships for the future\n`;
+        }
+        
+        post = `🌟 What an amazing ${show.name}!\n\n` +
+               `Thank you to everyone who visited our booth! We had incredible conversations ` +
+               `and made valuable connections.\n\n` +
+               `Key highlights:\n` +
+               highlights +
+               `\nAlready looking forward to next year! 🚀\n\n` +
+               `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
+        break;
+        
+      case 'booth':
+        post = `🎪 Come visit us at ${show.name}!\n\n` +
+               `We're at Booth [Your Booth #] ready to:\n` +
+               `💡 Share industry insights\n` +
+               `💡 Demo our solutions\n` +
+               `💡 Answer your questions\n\n` +
+               `Stop by for exclusive show offers! 🎁\n\n` +
+               `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
+        break;
+        
+      case 'networking':
+        post = `🤝 Loving the energy at ${show.name}!\n\n` +
+               `Great conversations with industry leaders and innovators. ` +
+               `This is what trade shows are all about - connection, collaboration, and growth.\n\n` +
+               `If you're here, let's connect! Drop a comment or DM. 📲\n\n` +
+               `${industryHashtags} ${trendingHashtags} #CaptureShowLeads`;
+        break;
+    }
+    
+    setGeneratedPost(post);
+    setLoading(false);
   };
 
   const getIndustryHashtags = (ind: string): string => {
@@ -125,13 +216,13 @@ const Social = () => {
 
   const getTrendingHashtags = (type: string): string => {
     const trending: { [key: string]: string } = {
-      'announcement': '#TradeShow #Networking #BusinessGrowth #B2B',
-      'recap': '#EventRecap #Success #Grateful #Community',
-      'booth': '#LiveEvent #InPerson #ShowFloor #VisitUs',
-      'networking': '#BusinessNetworking #MakeConnections #Collaboration #Partnership',
+      'announcement': '#TradeShow #TradeShows #Networking #BusinessGrowth #B2B',
+      'recap': '#TradeShow #TradeShows #EventRecap #Success #Grateful #Community',
+      'booth': '#TradeShow #TradeShows #LiveEvent #InPerson #ShowFloor #VisitUs',
+      'networking': '#TradeShow #TradeShows #BusinessNetworking #MakeConnections #Collaboration #Partnership',
     };
     
-    return trending[type] || '#TradeShow #Business';
+    return trending[type] || '#TradeShow #TradeShows #Business';
   };
 
   const copyToClipboard = () => {
@@ -391,6 +482,95 @@ const Social = () => {
             </div>
           </div>
         </div>
+
+        {/* Your Achievement Badges */}
+        {!benchmarksLoading && benchmarks && (
+          <div className="mt-8 bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 rounded-xl shadow-lg p-8 border-2 border-purple-200">
+            <div className="text-center mb-6">
+              <h3 className="text-3xl font-bold text-gray-900 mb-2">🏆 Your Achievement Badges</h3>
+              <p className="text-gray-600">
+                Share your top performer badges on social media! Click any badge to share.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center items-center gap-8">
+              {/* Overall Performance Badge */}
+              {benchmarks.yourPercentiles && (
+                <div className="text-center">
+                  <TopPerformerBadge 
+                    percentile={benchmarks.yourPercentiles.quality}
+                    metric="Overall Performance"
+                    rank={
+                      benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
+                      benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
+                      benchmarks.yourPercentiles.quality >= 50 ? 'STRONG' :
+                      'TOP_PERFORMER'
+                    }
+                  />
+                  <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
+                </div>
+              )}
+
+              {/* Lead Quality Badge */}
+              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.quality > 0 && (
+                <div className="text-center">
+                  <TopPerformerBadge 
+                    percentile={benchmarks.yourPercentiles.quality}
+                    metric="Lead Quality"
+                    rank={
+                      benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
+                      benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
+                      benchmarks.yourPercentiles.quality >= 50 ? 'STRONG' :
+                      'TOP_PERFORMER'
+                    }
+                  />
+                  <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
+                </div>
+              )}
+
+              {/* Speed to Follow-Up Badge */}
+              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.speed > 0 && (
+                <div className="text-center">
+                  <TopPerformerBadge 
+                    percentile={benchmarks.yourPercentiles.speed}
+                    metric="Follow-Up Speed"
+                    rank={
+                      benchmarks.yourPercentiles.speed >= 90 ? 'ELITE' :
+                      benchmarks.yourPercentiles.speed >= 75 ? 'EXCELLENT' :
+                      benchmarks.yourPercentiles.speed >= 50 ? 'STRONG' :
+                      'TOP_PERFORMER'
+                    }
+                  />
+                  <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
+                </div>
+              )}
+
+              {/* Email Engagement Badge */}
+              {benchmarks.yourPercentiles && benchmarks.yourPercentiles.emails > 0 && (
+                <div className="text-center">
+                  <TopPerformerBadge 
+                    percentile={benchmarks.yourPercentiles.emails}
+                    metric="Email Engagement"
+                    rank={
+                      benchmarks.yourPercentiles.emails >= 90 ? 'ELITE' :
+                      benchmarks.yourPercentiles.emails >= 75 ? 'EXCELLENT' :
+                      benchmarks.yourPercentiles.emails >= 50 ? 'STRONG' :
+                      'TOP_PERFORMER'
+                    }
+                  />
+                  <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 bg-white rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-gray-700 text-center">
+                <strong>💡 Tip:</strong> Click any badge to share your achievement on social media! 
+                Your badge will automatically download, and you'll get instructions for each platform. 🚀
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
