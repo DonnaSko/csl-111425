@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import TopPerformerBadge from '../components/TopPerformerBadge';
 
 interface AttendanceDealer {
   id: string;
@@ -774,6 +775,110 @@ const Reports = () => {
                 }
               })()}
             </div>
+
+            {/* Top Performer Badges Section */}
+            {(() => {
+              const badges: Array<{percentile: number; metric: string; rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER'}> = [];
+              
+              // Check which badges user has earned (75%+ percentile)
+              const avgPercentile = Math.round(
+                (communityBenchmarks.yourPercentiles.quality +
+                 communityBenchmarks.yourPercentiles.taskCompletion +
+                 communityBenchmarks.yourPercentiles.speed +
+                 communityBenchmarks.yourPercentiles.emails +
+                 communityBenchmarks.yourPercentiles.coverage) / 5
+              );
+
+              // Overall Performance Badge
+              if (avgPercentile >= 90) {
+                badges.push({ percentile: avgPercentile, metric: 'Overall Performance', rank: 'ELITE' });
+              } else if (avgPercentile >= 75) {
+                badges.push({ percentile: avgPercentile, metric: 'Overall Performance', rank: 'EXCELLENT' });
+              }
+
+              // Individual Metric Badges
+              if (communityBenchmarks.yourPercentiles.quality >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.quality, 
+                  metric: 'Lead Quality', 
+                  rank: communityBenchmarks.yourPercentiles.quality >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.taskCompletion >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.taskCompletion, 
+                  metric: 'Task Completion', 
+                  rank: communityBenchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.speed >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.speed, 
+                  metric: 'Speed to Follow-Up', 
+                  rank: communityBenchmarks.yourPercentiles.speed >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.emails >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.emails, 
+                  metric: 'Email Engagement', 
+                  rank: communityBenchmarks.yourPercentiles.emails >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                });
+              }
+              if (communityBenchmarks.yourPercentiles.coverage >= 75) {
+                badges.push({ 
+                  percentile: communityBenchmarks.yourPercentiles.coverage, 
+                  metric: 'Lead Coverage', 
+                  rank: communityBenchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                });
+              }
+
+              // Show badges if user earned any
+              if (badges.length > 0) {
+                return (
+                  <div className="mt-8 border-t-4 border-purple-300 pt-8">
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold text-purple-800 mb-2">
+                        🏆 Your Top Performer Badges
+                      </h3>
+                      <p className="text-gray-700">
+                        Click any badge to share your achievement on social media!
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        (Sharing is optional and helps CSL grow 🚀)
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap justify-center gap-8">
+                      {badges.map((badge, index) => (
+                        <div key={index} className="flex flex-col items-center">
+                          <TopPerformerBadge
+                            percentile={badge.percentile}
+                            metric={badge.metric}
+                            rank={badge.rank}
+                          />
+                          <p className="mt-3 text-sm font-semibold text-gray-700">
+                            {badge.metric}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {badges.length === 1 && (
+                      <p className="text-center mt-6 text-gray-600">
+                        🎯 Great start! Keep improving to earn more badges!
+                      </p>
+                    )}
+                    {badges.length >= 3 && (
+                      <p className="text-center mt-6 text-purple-700 font-bold text-lg">
+                        🌟 Amazing! You've earned {badges.length} Top Performer badge{badges.length > 1 ? 's' : ''}!
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
 
