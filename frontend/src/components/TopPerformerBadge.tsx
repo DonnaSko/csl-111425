@@ -426,7 +426,7 @@ const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAve
                 {getRankText()}
               </div>
               <div className="text-xl font-black drop-shadow-lg">
-                TOP {100 - percentile}%
+                {percentile === 100 ? 'TOP 1%' : percentile === 0 ? 'NOT RANKED' : `TOP ${100 - percentile}%`}
               </div>
               
               {/* Community comparison */}
