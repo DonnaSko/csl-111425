@@ -192,6 +192,7 @@ const DealerDetail = () => {
     address: '',
     status: 'Prospect',
   });
+  const [highlightEmailField, setHighlightEmailField] = useState(false);
 
   const [noteContent, setNoteContent] = useState('');
   const [newProductName, setNewProductName] = useState('');
@@ -278,7 +279,27 @@ const DealerDetail = () => {
 
   const handleSendEmail = async () => {
     if (!dealer?.email) {
-      alert('This dealer does not have an email address.');
+      // Expand Dealer Information section
+      setSections(sections.map(s => 
+        s.id === 'info' ? { ...s, expanded: true } : s
+      ));
+      
+      // Highlight email field
+      setHighlightEmailField(true);
+      
+      // Scroll to top after a brief delay to let the section expand
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+      
+      // Show helpful error message
+      alert('⚠️ No Email Address Found\n\nThis dealer does not have an email address on file.\n\nThe Dealer Information section has been opened and the email field is highlighted in yellow.\n\nPlease add an email address for this dealer, then try sending your email again.');
+      
+      // Remove highlight after 10 seconds
+      setTimeout(() => {
+        setHighlightEmailField(false);
+      }, 10000);
+      
       return;
     }
 
@@ -1589,12 +1610,29 @@ const DealerDetail = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                    {highlightEmailField && (
+                      <span className="ml-2 text-red-600 font-semibold animate-pulse">
+                        ← Please add email here
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="email"
                     value={dealerInfo.email}
-                    onChange={(e) => handleDealerInfoChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      handleDealerInfoChange('email', e.target.value);
+                      // Remove highlight when user starts typing
+                      if (highlightEmailField) {
+                        setHighlightEmailField(false);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      highlightEmailField 
+                        ? 'bg-yellow-100 border-yellow-400 border-2' 
+                        : 'border-gray-300'
+                    }`}
                   />
                 </div>
                 <div>
