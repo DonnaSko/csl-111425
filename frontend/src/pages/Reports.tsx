@@ -49,12 +49,36 @@ interface TodosTradeShow {
   dealers: TodosDealer[];
 }
 
+interface EmailHistoryItem {
+  id: string;
+  subject: string;
+  sentDate: string;
+}
+
+interface EmailsDealer {
+  id: string;
+  companyName: string;
+  contactName: string | null;
+  email: string | null;
+  emails: EmailHistoryItem[];
+}
+
+interface EmailsTradeShow {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  dealers: EmailsDealer[];
+}
+
 const Reports = () => {
   const [exporting, setExporting] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [todosLoading, setTodosLoading] = useState(false);
+  const [emailsLoading, setEmailsLoading] = useState(false);
   const [attendanceShows, setAttendanceShows] = useState<AttendanceTradeShow[]>([]);
   const [todosShows, setTodosShows] = useState<TodosTradeShow[]>([]);
+  const [emailsShows, setEmailsShows] = useState<EmailsTradeShow[]>([]);
   const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -62,6 +86,7 @@ const Reports = () => {
   useEffect(() => {
     fetchAttendance();
     fetchTradeShowTodos();
+    fetchTradeShowEmails();
   }, []);
 
   const handleExport = async () => {
@@ -106,6 +131,18 @@ const Reports = () => {
       console.error('Failed to load trade show todos report:', error);
     } finally {
       setTodosLoading(false);
+    }
+  };
+
+  const fetchTradeShowEmails = async () => {
+    try {
+      setEmailsLoading(true);
+      const response = await api.get('/reports/trade-shows/emails');
+      setEmailsShows(response.data.tradeShows || []);
+    } catch (error) {
+      console.error('Failed to load trade show emails report:', error);
+    } finally {
+      setEmailsLoading(false);
     }
   };
 
@@ -334,6 +371,78 @@ const Reports = () => {
                                 {updatingTodoId === todo.id ? 'Completing...' : 'Complete'}
                               </button>
                             )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Emails Sent by Tradeshow */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mt-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
+            Emails Sent by Tradeshow
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-600 mb-4">
+            Emails sent to dealers grouped by tradeshow. Sorted by tradeshow (most recent first), then by email date (newest first).
+          </p>
+
+          {emailsLoading ? (
+            <p className="text-gray-500 text-sm sm:text-base">Loading email history...</p>
+          ) : emailsShows.length === 0 ? (
+            <p className="text-gray-500 text-sm sm:text-base">No emails sent to dealers linked to tradeshows yet.</p>
+          ) : (
+            <div className="space-y-3 sm:space-y-4">
+              {emailsShows.map(show => (
+                <div key={show.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{show.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        {show.startDate && (
+                          <>
+                            {formatDate(show.startDate)}
+                            {show.endDate && ` - ${formatDate(show.endDate)}`}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+                      {show.dealers.reduce((sum, d) => sum + d.emails.length, 0)} email{show.dealers.reduce((sum, d) => sum + d.emails.length, 0) !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {show.dealers.map(dealer => (
+                    <div key={dealer.id} className="mt-3 border-t border-gray-100 pt-3">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/dealers/${dealer.id}`)}
+                          className="text-blue-600 hover:underline font-medium text-xs sm:text-sm text-left break-words"
+                        >
+                          {dealer.companyName}
+                          {dealer.contactName ? ` – ${dealer.contactName}` : ''}
+                        </button>
+                        {dealer.email && (
+                          <span className="text-xs text-gray-500 break-all">
+                            {dealer.email}
+                          </span>
+                        )}
+                      </div>
+
+                      <ul className="space-y-2 text-xs sm:text-sm text-gray-800">
+                        {dealer.emails.map(email => (
+                          <li key={email.id} className="flex flex-col gap-1 pl-3 border-l-2 border-blue-200">
+                            <div className="text-gray-900 break-words">
+                              {email.subject}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Sent: {formatDateTime(email.sentDate)}
+                            </div>
                           </li>
                         ))}
                       </ul>

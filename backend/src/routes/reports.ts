@@ -289,6 +289,70 @@ router.get('/trade-shows/todos', async (req: AuthRequest, res) => {
   }
 });
 
+// Trade show Emails Sent report
+router.get('/trade-shows/emails', async (req: AuthRequest, res) => {
+  try {
+    const tradeShows = await prisma.tradeShow.findMany({
+      where: { companyId: req.companyId! },
+      orderBy: { startDate: 'desc' },
+      include: {
+        dealers: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                companyName: true,
+                contactName: true,
+                email: true,
+                changeHistory: {
+                  where: {
+                    fieldName: 'email_sent'
+                  },
+                  orderBy: {
+                    createdAt: 'desc'
+                  },
+                  select: {
+                    id: true,
+                    newValue: true,
+                    createdAt: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const shaped = tradeShows
+      .map((ts: any) => ({
+        id: ts.id,
+        name: ts.name,
+        startDate: ts.startDate,
+        endDate: ts.endDate,
+        dealers: ts.dealers
+          .map((dts: any) => ({
+            id: dts.dealer.id,
+            companyName: dts.dealer.companyName,
+            contactName: dts.dealer.contactName,
+            email: dts.dealer.email,
+            emails: dts.dealer.changeHistory.map((ch: any) => ({
+              id: ch.id,
+              subject: ch.newValue, // Full history text: "Email sent: [subject] with X attachments..."
+              sentDate: ch.createdAt
+            }))
+          }))
+          .filter((d: any) => d.emails.length > 0) // Only dealers with emails
+      }))
+      .filter((ts: any) => ts.dealers.length > 0); // Only trade shows with dealers who have emails
+
+    res.json({ tradeShows: shaped });
+  } catch (error) {
+    console.error('Trade show emails report error:', error);
+    res.status(500).json({ error: 'Failed to fetch trade show emails report' });
+  }
+});
+
 // Get dealers by status for dashboard
 router.get('/dashboard/dealers-by-status/:status', async (req: AuthRequest, res) => {
   try {
