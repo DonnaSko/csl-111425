@@ -895,7 +895,14 @@ const Reports = () => {
 
             {/* Top Performer Badges Section */}
             {(() => {
-              const badges: Array<{percentile: number; metric: string; rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER'}> = [];
+              const badges: Array<{
+                percentile: number; 
+                metric: string; 
+                rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER';
+                actualValue?: number;
+                communityAverage?: number;
+                metricUnit?: string;
+              }> = [];
               
               // Check which badges user has earned (75%+ percentile)
               const avgPercentile = Math.round(
@@ -907,10 +914,35 @@ const Reports = () => {
               );
 
               // Overall Performance Badge
+              const yourOverall = communityBenchmarks.yourMetrics ? Math.round(
+                ((communityBenchmarks.yourMetrics.avgQuality / 10 * 100) +
+                 communityBenchmarks.yourMetrics.taskCompletionRate +
+                 communityBenchmarks.yourMetrics.leadCoverageRate) / 3
+              ) : 0;
+              const communityOverall = communityBenchmarks.communityAverages ? Math.round(
+                ((communityBenchmarks.communityAverages.avgQuality / 10 * 100) +
+                 communityBenchmarks.communityAverages.taskCompletionRate +
+                 communityBenchmarks.communityAverages.leadCoverageRate) / 3
+              ) : 0;
+              
               if (avgPercentile >= 90) {
-                badges.push({ percentile: avgPercentile, metric: 'Overall Performance', rank: 'ELITE' });
+                badges.push({ 
+                  percentile: avgPercentile, 
+                  metric: 'Overall Performance', 
+                  rank: 'ELITE',
+                  actualValue: yourOverall,
+                  communityAverage: communityOverall,
+                  metricUnit: '%'
+                });
               } else if (avgPercentile >= 75) {
-                badges.push({ percentile: avgPercentile, metric: 'Overall Performance', rank: 'EXCELLENT' });
+                badges.push({ 
+                  percentile: avgPercentile, 
+                  metric: 'Overall Performance', 
+                  rank: 'EXCELLENT',
+                  actualValue: yourOverall,
+                  communityAverage: communityOverall,
+                  metricUnit: '%'
+                });
               }
 
               // Individual Metric Badges
@@ -918,35 +950,50 @@ const Reports = () => {
                 badges.push({ 
                   percentile: communityBenchmarks.yourPercentiles.quality, 
                   metric: 'Lead Quality', 
-                  rank: communityBenchmarks.yourPercentiles.quality >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                  rank: communityBenchmarks.yourPercentiles.quality >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.avgQuality,
+                  communityAverage: communityBenchmarks.communityAverages?.avgQuality,
+                  metricUnit: '/10'
                 });
               }
               if (communityBenchmarks.yourPercentiles.taskCompletion >= 75) {
                 badges.push({ 
                   percentile: communityBenchmarks.yourPercentiles.taskCompletion, 
                   metric: 'Task Completion', 
-                  rank: communityBenchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                  rank: communityBenchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.taskCompletionRate,
+                  communityAverage: communityBenchmarks.communityAverages?.taskCompletionRate,
+                  metricUnit: '%'
                 });
               }
               if (communityBenchmarks.yourPercentiles.speed >= 75) {
                 badges.push({ 
                   percentile: communityBenchmarks.yourPercentiles.speed, 
                   metric: 'Speed to Follow-Up', 
-                  rank: communityBenchmarks.yourPercentiles.speed >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                  rank: communityBenchmarks.yourPercentiles.speed >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.speedToFollowUp,
+                  communityAverage: communityBenchmarks.communityAverages?.speedToFollowUp,
+                  metricUnit: ' hrs'
                 });
               }
               if (communityBenchmarks.yourPercentiles.emails >= 75) {
                 badges.push({ 
                   percentile: communityBenchmarks.yourPercentiles.emails, 
                   metric: 'Email Engagement', 
-                  rank: communityBenchmarks.yourPercentiles.emails >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                  rank: communityBenchmarks.yourPercentiles.emails >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.emailsPerLead,
+                  communityAverage: communityBenchmarks.communityAverages?.emailsPerLead,
+                  metricUnit: ' per lead'
                 });
               }
               if (communityBenchmarks.yourPercentiles.coverage >= 75) {
                 badges.push({ 
                   percentile: communityBenchmarks.yourPercentiles.coverage, 
                   metric: 'Lead Coverage', 
-                  rank: communityBenchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' : 'TOP_PERFORMER' 
+                  rank: communityBenchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' : 'TOP_PERFORMER',
+                  actualValue: communityBenchmarks.yourMetrics?.leadCoverageRate,
+                  communityAverage: communityBenchmarks.communityAverages?.leadCoverageRate,
+                  metricUnit: '%'
                 });
               }
 
@@ -973,6 +1020,9 @@ const Reports = () => {
                             percentile={badge.percentile}
                             metric={badge.metric}
                             rank={badge.rank}
+                            actualValue={badge.actualValue}
+                            communityAverage={badge.communityAverage}
+                            metricUnit={badge.metricUnit}
                           />
                           <p className="mt-3 text-sm font-semibold text-gray-700">
                             {badge.metric}

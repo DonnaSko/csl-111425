@@ -6,9 +6,12 @@ interface TopPerformerBadgeProps {
   metric?: string; // Optional, for display purposes
   rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER';
   onShareToAll?: () => void; // Optional callback for "Share to All" button
+  actualValue?: number; // The actual metric value (e.g., 8.5 for quality score)
+  communityAverage?: number; // Community average for comparison
+  metricUnit?: string; // Unit for the metric (e.g., "%", "score", "emails")
 }
 
-const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps) => {
+const TopPerformerBadge = ({ percentile, metric, rank, actualValue, communityAverage, metricUnit = '%' }: TopPerformerBadgeProps) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
@@ -119,38 +122,59 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     }
   };
 
+  // AI-generated share text with actual performance data
   const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'instagram' | 'tiktok' | 'copy' = 'copy') => {
     const topPercent = 100 - percentile;
     const emoji = getEmoji();
-    const metricPart = metric ? ` for ${metric}` : '';
+    const metricName = metric || 'Performance';
     
-    // Twitter/X - mention @captureshowlead
+    // Build data-driven story
+    let story = '';
+    if (actualValue && communityAverage) {
+      const improvement = ((actualValue - communityAverage) / communityAverage * 100).toFixed(0);
+      story = `My ${metricName.toLowerCase()}: ${actualValue}${metricUnit} (${improvement}% above average!)`;
+    } else {
+      story = `Ranked in the top ${topPercent}% for ${metricName.toLowerCase()}!`;
+    }
+    
+    // Rank-specific messaging
+    let achievement = '';
+    if (rank === 'ELITE') {
+      achievement = `🌟 ELITE STATUS ACHIEVED! ${story}`;
+    } else if (rank === 'EXCELLENT') {
+      achievement = `🔥 EXCELLENT PERFORMANCE! ${story}`;
+    } else if (rank === 'STRONG') {
+      achievement = `💪 STRONG SHOWING! ${story}`;
+    } else {
+      achievement = `🏆 TOP PERFORMER! ${story}`;
+    }
+    
+    // Top 10 trade show hashtags (ALWAYS included)
+    const tradeShowHashtags = '#TradeShow #TradeShows #CaptureShowLeads #B2BLeadGeneration #TradeShowMarketing #ExhibitorTips #TradeShowSuccess #LeadCapture #SalesProspecting #EventMarketing';
+    
+    // Platform-specific formatting
     if (platform === 'twitter') {
-      return `I'm in the top ${topPercent}%${metricPart} on @captureshowlead! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+      return `${achievement}\n\nProud to be in the top ${topPercent}% using @captureshowlead! ${emoji}\n\n${tradeShowHashtags}`;
     }
     
-    // Facebook - include page reference
     if (platform === 'facebook') {
-      return `I'm in the top ${topPercent}%${metricPart} on Capture Show Leads! ${emoji}\n\nFollow them: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement #SalesExcellence`;
+      return `${achievement}\n\nI'm in the top ${topPercent}% of trade show professionals using Capture Show Leads!\n\n${metricName} puts me ahead of ${percentile}% of users. This tool is a game-changer! ${emoji}\n\nFollow: facebook.com/profile.php?id=61581979524580\n\n${tradeShowHashtags}`;
     }
     
-    // LinkedIn - professional tone with company page
     if (platform === 'linkedin') {
-      return `Proud to be in the top ${topPercent}%${metricPart} of users on Capture Show Leads! ${emoji}\n\nFollow Capture Show Leads: linkedin.com/company/109237009\n\n#TradeShows #LeadManagement #SalesExcellence #B2B #SaaS`;
+      return `${achievement}\n\nI'm proud to be in the top ${topPercent}% of trade show professionals for ${metricName.toLowerCase()}.\n\nCapture Show Leads has transformed how I manage trade show leads and follow-ups. The results speak for themselves! ${emoji}\n\nConnect with Capture Show Leads: linkedin.com/company/109237009\n\n${tradeShowHashtags} #B2BSales #SaaS`;
     }
     
-    // Instagram - include @mention and extra hashtags
     if (platform === 'instagram') {
-      return `I'm in the top ${topPercent}%${metricPart} on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
+      return `${achievement}\n\nTop ${topPercent}% in ${metricName.toLowerCase()}! ${emoji}\n\nTrade show success doesn't happen by accident - it takes the right tools and consistent execution.\n\n@captureshowleads makes it easy!\n\n${tradeShowHashtags}`;
     }
     
-    // TikTok - short, punchy, hashtag-heavy for viral potential
     if (platform === 'tiktok') {
-      return `I'm in the top ${topPercent}%${metricPart} on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #B2B #Sales #TradeShowLife #LeadGen #BusinessTips #SalesSuccess #Entrepreneur`;
+      return `${achievement}\n\nI'm in the TOP ${topPercent}%! ${emoji}\n\nThis is what happens when you use the right tools for trade show lead management.\n\n@captureshowleads\n\n${tradeShowHashtags} #SalesSuccess #Entrepreneur`;
     }
     
-    // Copy/default - include all social handles
-    return `I'm in the top ${topPercent}%${metricPart} on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
+    // Copy/default
+    return `${achievement}\n\nTop ${topPercent}% of trade show professionals!\n\nFollow us:\nX: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n${tradeShowHashtags}`;
   };
 
   const shareToFacebook = async () => {
@@ -301,48 +325,73 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
       >
         <div 
           ref={badgeRef}
-          className="w-48 h-48 rounded-xl shadow-2xl hover:shadow-3xl relative overflow-hidden"
+          className="w-56 h-56 rounded-2xl shadow-2xl hover:shadow-3xl relative overflow-hidden transform transition-all duration-300 hover:-translate-y-1"
           style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: rank === 'ELITE' 
+              ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)'
+              : rank === 'EXCELLENT'
+              ? 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)'
+              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
           }}
         >
+          {/* Animated shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50 animate-pulse"></div>
+          
           {/* CSL Branded Badge Content */}
-          <div className="w-full h-full p-4 flex flex-col items-center justify-between text-white">
+          <div className="w-full h-full p-4 flex flex-col items-center justify-between text-white relative z-10">
             {/* Top - CSL Branding */}
             <div className="text-center">
-              <div className="text-xs font-bold tracking-wider opacity-90">CAPTURE SHOW LEADS</div>
+              <div className="text-xs font-black tracking-wider opacity-95 drop-shadow-lg">CAPTURE SHOW LEADS</div>
             </div>
             
             {/* Middle - Achievement */}
             <div className="text-center flex-1 flex flex-col justify-center">
-              <div className="text-4xl mb-1">{getEmoji()}</div>
+              <div className="text-5xl mb-2 drop-shadow-2xl animate-bounce-subtle">{getEmoji()}</div>
               
               {/* Metric Name - What this badge is for */}
               {metric && (
-                <div className="text-xs font-bold uppercase tracking-wide opacity-90 mb-1">
+                <div className="text-xs font-black uppercase tracking-wider opacity-95 mb-2 bg-black/20 px-2 py-1 rounded">
                   {metric}
                 </div>
               )}
               
-              <div className="text-base font-bold leading-tight mb-1">
+              {/* Actual Performance Data */}
+              {actualValue !== undefined && (
+                <div className="text-2xl font-black mb-1 drop-shadow-lg">
+                  {actualValue}{metricUnit}
+                </div>
+              )}
+              
+              <div className="text-sm font-bold leading-tight mb-1 opacity-90">
                 {getRankText()}
               </div>
-              <div className="text-xl font-black">
+              <div className="text-xl font-black drop-shadow-lg">
                 TOP {100 - percentile}%
               </div>
+              
+              {/* Community comparison */}
+              {communityAverage !== undefined && actualValue !== undefined && (
+                <div className="text-[10px] opacity-80 mt-1">
+                  vs avg: {communityAverage}{metricUnit}
+                </div>
+              )}
             </div>
             
             {/* Bottom - Website */}
             <div className="text-center">
-              <div className="text-xs font-semibold tracking-wide">
+              <div className="text-xs font-black tracking-wide drop-shadow-lg">
                 CaptureShowLeads.com
               </div>
             </div>
           </div>
           
-          {/* Decorative corner element */}
-          <div className="absolute top-0 right-0 w-16 h-16 opacity-20">
-            <div className="text-white text-4xl transform rotate-12">🏆</div>
+          {/* Decorative sparkle elements */}
+          <div className="absolute top-2 right-2 w-6 h-6 opacity-40 animate-pulse">
+            <div className="text-white text-2xl">✨</div>
+          </div>
+          <div className="absolute bottom-2 left-2 w-6 h-6 opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}>
+            <div className="text-white text-2xl">⭐</div>
           </div>
         </div>
         

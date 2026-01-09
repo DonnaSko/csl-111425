@@ -546,6 +546,18 @@ const Social = () => {
                 
                 // Only show Overall Performance badge if >= 50% (worth bragging about!)
                 if (avgPercentile >= 50) {
+                  // Calculate overall score (average of all metrics normalized to 0-100 scale)
+                  const yourOverall = benchmarks.yourMetrics ? Math.round(
+                    ((benchmarks.yourMetrics.avgQuality / 10 * 100) +
+                     benchmarks.yourMetrics.taskCompletionRate +
+                     benchmarks.yourMetrics.leadCoverageRate) / 3
+                  ) : 0;
+                  const communityOverall = benchmarks.communityAverages ? Math.round(
+                    ((benchmarks.communityAverages.avgQuality / 10 * 100) +
+                     benchmarks.communityAverages.taskCompletionRate +
+                     benchmarks.communityAverages.leadCoverageRate) / 3
+                  ) : 0;
+                  
                   badges.push(
                     <div key="overall" className="text-center">
                       <TopPerformerBadge 
@@ -556,6 +568,9 @@ const Social = () => {
                           avgPercentile >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={yourOverall}
+                        communityAverage={communityOverall}
+                        metricUnit="%"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
                     </div>
@@ -574,6 +589,9 @@ const Social = () => {
                           benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={benchmarks.yourMetrics?.avgQuality}
+                        communityAverage={benchmarks.communityAverages?.avgQuality}
+                        metricUnit="/10"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
                     </div>
@@ -592,6 +610,9 @@ const Social = () => {
                           benchmarks.yourPercentiles.speed >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={benchmarks.yourMetrics?.speedToFollowUp}
+                        communityAverage={benchmarks.communityAverages?.speedToFollowUp}
+                        metricUnit=" hrs"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
                     </div>
@@ -610,6 +631,9 @@ const Social = () => {
                           benchmarks.yourPercentiles.emails >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={benchmarks.yourMetrics?.emailsPerLead}
+                        communityAverage={benchmarks.communityAverages?.emailsPerLead}
+                        metricUnit=" per lead"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
                     </div>
@@ -628,6 +652,9 @@ const Social = () => {
                           benchmarks.yourPercentiles.taskCompletion >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={benchmarks.yourMetrics?.taskCompletionRate}
+                        communityAverage={benchmarks.communityAverages?.taskCompletionRate}
+                        metricUnit="%"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Task Completion</p>
                     </div>
@@ -646,6 +673,9 @@ const Social = () => {
                           benchmarks.yourPercentiles.coverage >= 75 ? 'EXCELLENT' :
                           'STRONG'
                         }
+                        actualValue={benchmarks.yourMetrics?.leadCoverageRate}
+                        communityAverage={benchmarks.communityAverages?.leadCoverageRate}
+                        metricUnit="%"
                       />
                       <p className="text-sm font-semibold text-gray-700 mt-2">Lead Coverage</p>
                     </div>
