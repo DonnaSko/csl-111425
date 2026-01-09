@@ -231,24 +231,38 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
   };
 
   const copyForInstagram = async () => {
+    console.log('[Instagram] Share initiated');
+    
     // Auto-download badge image
     await downloadBadgeImage();
     
     const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('📸 Ready for Instagram!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📱 Instagram is mobile-only, so:\n\nNext steps:\n1. Transfer badge image to your phone:\n   - Email it to yourself, OR\n   - Use AirDrop (iPhone), OR\n   - Use cloud storage (Google Photos, Dropbox)\n2. Open Instagram app\n3. Tap "+" to create post\n4. Select the badge image from your Photos\n5. Paste caption (long-press → Paste)\n6. Tag @captureshowleads\n7. Post! 🚀\n\nBadge filename: CSL-Top-Performer-*.png');
+    
+    // Open Instagram BEFORE alert (will open app on mobile, web on desktop)
+    const instagramWindow = window.open('https://www.instagram.com/', '_blank');
+    console.log('[Instagram] Window opened:', instagramWindow ? 'success' : 'blocked');
+    
+    // Alert AFTER opening
+    alert('📸 Ready for Instagram!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n✅ Instagram opened in new window\n\n📱 On Mobile:\n1. Instagram app should open automatically\n2. Tap "+" to create post\n3. Select the badge image from your Photos\n4. Paste caption (long-press → Paste)\n5. Tag @captureshowleads\n6. Post! 🚀\n\n💻 On Desktop:\n• Transfer badge to your phone:\n  - Email it to yourself, OR\n  - Use AirDrop (iPhone), OR\n  - Use cloud storage (Google Photos, Dropbox)\n\nBadge filename: CSL-Top-Performer-*.png');
     setShowShareModal(false);
   };
 
   const shareToTikTok = async () => {
+    console.log('[TikTok] Share initiated');
+    
     // Auto-download badge image
     await downloadBadgeImage();
     
     const text = `${getShareText('tiktok')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // TikTok doesn't have web intent, just guide user to app
-    alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded to your Downloads folder\n✅ Text copied to clipboard\n\nNext steps:\n1. Open TikTok app on your phone\n2. Tap "+" to create\n3. Select "Photo" mode\n4. Choose the badge image from your Photos\n5. Paste the caption (Cmd+V / Ctrl+V)\n6. Add @captureshowleads tag\n7. Post & go viral! 🔥\n\nNote: Transfer the badge image to your phone if needed!');
+    // Open TikTok BEFORE alert (will open app on mobile, web on desktop)
+    const tiktokWindow = window.open('https://www.tiktok.com/', '_blank');
+    console.log('[TikTok] Window opened:', tiktokWindow ? 'success' : 'blocked');
+    
+    // Alert AFTER opening
+    alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded to your Downloads folder\n✅ Text copied to clipboard\n✅ TikTok opened in new window\n\n📱 On Mobile:\n1. TikTok app should open automatically\n2. Tap "+" to create\n3. Select "Photo" mode\n4. Choose the badge image from your Photos\n5. Paste the caption\n6. Add @captureshowleads tag\n7. Post & go viral! 🔥\n\n💻 On Desktop:\n• Transfer the badge image to your phone if needed\n• Use TikTok app for best posting experience\n\nBadge filename: CSL-Top-Performer-*.png');
     setShowShareModal(false);
   };
 

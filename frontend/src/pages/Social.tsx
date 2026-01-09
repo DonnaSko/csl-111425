@@ -413,23 +413,37 @@ const Social = () => {
                 </button>
                 <button
                   onClick={() => {
+                    // Copy to clipboard
                     navigator.clipboard.writeText(generatedPost);
-                    alert('✅ Post copied!\n\nPaste it on Instagram:\n1. Open Instagram app on your phone\n2. Tap "+" to create post\n3. Add a photo\n4. Paste caption (long-press → Paste)\n5. Post!');
+                    
+                    // Open Instagram (will open app on mobile, web on desktop)
+                    const instagramWindow = window.open('https://www.instagram.com/', '_blank');
+                    console.log('[Instagram] Window opened:', instagramWindow ? 'success' : 'blocked');
+                    
+                    // Alert AFTER opening
+                    alert('✅ Post copied to clipboard!\n✅ Instagram opened in new window\n\n📱 On Mobile:\n1. Instagram app should open automatically\n2. Tap "+" to create post\n3. Add a photo\n4. Paste caption (long-press → Paste)\n5. Post!\n\n💻 On Desktop:\n• Instagram web doesn\'t support posting\n• Use your phone\'s Instagram app instead\n• Text is already copied!');
                   }}
                   className="px-6 py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition flex items-center justify-center gap-2"
                 >
                   <span>📸</span>
-                  Copy for Instagram
+                  Share on Instagram
                 </button>
                 <button
                   onClick={() => {
+                    // Copy to clipboard
                     navigator.clipboard.writeText(generatedPost);
-                    alert('✅ Post copied!\n\nPaste it on TikTok:\n1. Open TikTok app on your phone\n2. Tap "+" to create\n3. Add a video or photo\n4. Paste caption\n5. Post & go viral! 🔥');
+                    
+                    // Open TikTok (will open app on mobile, web on desktop)
+                    const tiktokWindow = window.open('https://www.tiktok.com/', '_blank');
+                    console.log('[TikTok] Window opened:', tiktokWindow ? 'success' : 'blocked');
+                    
+                    // Alert AFTER opening
+                    alert('✅ Post copied to clipboard!\n✅ TikTok opened in new window\n\n📱 On Mobile:\n1. TikTok app should open automatically\n2. Tap "+" to create\n3. Add a video or photo\n4. Paste caption\n5. Post & go viral! 🔥\n\n💻 On Desktop:\n• TikTok web has limited posting\n• Use your phone\'s TikTok app for best results\n• Text is already copied!');
                   }}
                   className="px-6 py-3 bg-gradient-to-r from-[#00F2EA] via-[#FF0050] to-[#000000] text-white rounded-lg font-semibold hover:shadow-lg transition flex items-center justify-center gap-2"
                 >
                   <span>🎵</span>
-                  Copy for TikTok
+                  Share on TikTok
                 </button>
                 <button
                   onClick={() => {
