@@ -79,21 +79,40 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
     }
   };
 
-  const getShareText = () => {
+  const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'copy' = 'copy') => {
     const topPercent = 100 - percentile;
-    return `I'm in the top ${topPercent}% on Capture Show Leads! ${getEmoji()} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+    const emoji = getEmoji();
+    
+    // Twitter/X - mention @captureshowlead
+    if (platform === 'twitter') {
+      return `I'm in the top ${topPercent}% on @captureshowlead! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+    }
+    
+    // Facebook - no @ mentions work, use text
+    if (platform === 'facebook') {
+      return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+    }
+    
+    // LinkedIn - professional tone
+    if (platform === 'linkedin') {
+      return `Proud to be in the top ${topPercent}% of users on Capture Show Leads! ${emoji} #TradeShows #LeadManagement #SalesExcellence #B2B`;
+    }
+    
+    // Copy/default - include @mention for versatility
+    return `I'm in the top ${topPercent}% on Capture Show Leads (@captureshowlead)! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
   };
 
   const shareToFacebook = () => {
-    const text = encodeURIComponent(getShareText());
+    const text = encodeURIComponent(getShareText('facebook'));
     const url = encodeURIComponent('https://www.captureshowleads.com');
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
     setShowShareModal(false);
   };
 
   const shareToTwitter = () => {
-    const text = encodeURIComponent(getShareText());
+    const text = encodeURIComponent(getShareText('twitter'));
     const url = encodeURIComponent('https://www.captureshowleads.com');
+    // Twitter/X will tag @captureshowlead and you'll get notified!
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400');
     setShowShareModal(false);
   };
@@ -106,7 +125,7 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
   };
 
   const copyShareText = () => {
-    const text = `${getShareText()}\n\nhttps://www.captureshowleads.com`;
+    const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     alert('✅ Text copied to clipboard! Paste it anywhere you like.');
     setShowShareModal(false);
@@ -235,16 +254,21 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
             {/* Preview */}
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 mb-6 border-2 border-purple-200">
               <p className="text-sm text-gray-800 mb-3 italic">
-                "{getShareText()}"
+                "{getShareText('twitter')}"
               </p>
-              <a 
-                href="https://www.captureshowleads.com" 
-                className="text-xs text-blue-600 hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                🔗 www.captureshowleads.com
-              </a>
+              <div className="space-y-1">
+                <a 
+                  href="https://www.captureshowleads.com" 
+                  className="text-xs text-blue-600 hover:underline block"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  🔗 www.captureshowleads.com
+                </a>
+                <p className="text-xs text-gray-600">
+                  📱 X/Twitter will tag @captureshowlead so we can engage with your post!
+                </p>
+              </div>
             </div>
 
             {/* Share Buttons */}
