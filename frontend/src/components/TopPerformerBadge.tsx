@@ -6,7 +6,7 @@ interface TopPerformerBadgeProps {
   rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER';
 }
 
-const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
+const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
@@ -82,34 +82,35 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
   const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'instagram' | 'tiktok' | 'copy' = 'copy') => {
     const topPercent = 100 - percentile;
     const emoji = getEmoji();
+    const metricPart = metric ? ` for ${metric}` : '';
     
     // Twitter/X - mention @captureshowlead
     if (platform === 'twitter') {
-      return `I'm in the top ${topPercent}% on @captureshowlead! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+      return `I'm in the top ${topPercent}%${metricPart} on @captureshowlead! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
     }
     
     // Facebook - include page reference
     if (platform === 'facebook') {
-      return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow them: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement #SalesExcellence`;
+      return `I'm in the top ${topPercent}%${metricPart} on Capture Show Leads! ${emoji}\n\nFollow them: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement #SalesExcellence`;
     }
     
     // LinkedIn - professional tone with company page
     if (platform === 'linkedin') {
-      return `Proud to be in the top ${topPercent}% of users on Capture Show Leads! ${emoji}\n\nFollow Capture Show Leads: linkedin.com/company/109237009\n\n#TradeShows #LeadManagement #SalesExcellence #B2B #SaaS`;
+      return `Proud to be in the top ${topPercent}%${metricPart} of users on Capture Show Leads! ${emoji}\n\nFollow Capture Show Leads: linkedin.com/company/109237009\n\n#TradeShows #LeadManagement #SalesExcellence #B2B #SaaS`;
     }
     
     // Instagram - include @mention and extra hashtags
     if (platform === 'instagram') {
-      return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
+      return `I'm in the top ${topPercent}%${metricPart} on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
     }
     
     // TikTok - short, punchy, hashtag-heavy for viral potential
     if (platform === 'tiktok') {
-      return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #B2B #Sales #TradeShowLife #LeadGen #BusinessTips #SalesSuccess #Entrepreneur`;
+      return `I'm in the top ${topPercent}%${metricPart} on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #B2B #Sales #TradeShowLife #LeadGen #BusinessTips #SalesSuccess #Entrepreneur`;
     }
     
     // Copy/default - include all social handles
-    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
+    return `I'm in the top ${topPercent}%${metricPart} on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
   };
 
   const shareToFacebook = () => {

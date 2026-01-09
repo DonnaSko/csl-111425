@@ -838,8 +838,11 @@ router.get('/community-benchmarks', async (req: AuthRequest, res) => {
       return score;
     };
 
-    // 1. Fetch ALL companies' aggregate data (anonymous)
+    // 1. Fetch ALL companies' aggregate data (anonymous) - EXCLUDING the current user
     const allCompanies = await prisma.company.findMany({
+      where: {
+        id: { not: req.companyId } // Exclude current user for true comparison
+      },
       select: { id: true }
     });
 
@@ -949,9 +952,18 @@ router.get('/community-benchmarks', async (req: AuthRequest, res) => {
 
     // 3. Calculate percentiles (where you rank vs. everyone)
     const calculatePercentile = (myValue: number, allValues: number[]): number => {
-      if (allValues.length === 0) return 50;
+      // If no other companies, you're 100% (top of the league, even if alone!)
+      if (allValues.length === 0) return 100;
+      
       const sorted = allValues.sort((a, b) => a - b);
+      
+      // Count how many are STRICTLY LESS than your value
       const rank = sorted.filter(v => v < myValue).length;
+      
+      // If everyone (including you) has the same value, you're in the middle
+      if (sorted.every(v => v === myValue)) return 50;
+      
+      // Normal percentile calculation
       return Math.round((rank / sorted.length) * 100);
     };
 
