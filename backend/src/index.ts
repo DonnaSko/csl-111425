@@ -109,9 +109,9 @@ try {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`✅ Health check available at http://0.0.0.0:${PORT}/health`);
     
-    // Start the notification scheduler (sends daily todo reminders at 8 AM)
+    // Start the notification scheduler (sends daily todo reminders at 4:53 PM)
     startScheduler();
-    console.log(`✅ Notification scheduler started (8:00 AM daily)`);
+    console.log(`✅ Notification scheduler started (4:53 PM daily)`);
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error);

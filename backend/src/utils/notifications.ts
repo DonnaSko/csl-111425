@@ -193,15 +193,42 @@ function formatEmailHTML(user: UserWithTodos): string {
 
   html += `
       </ul>
-      <p style="margin-top: 20px;">
+      
+      <!-- Badge Sharing Section -->
+      <div style="background: linear-gradient(135deg, #9333ea, #3b82f6); border-radius: 12px; padding: 24px; margin-top: 24px; color: white;">
+        <h3 style="margin: 0 0 12px; font-size: 20px; display: flex; align-items: center;">
+          🏆 Share Your Achievements!
+        </h3>
+        <p style="margin: 0 0 16px; font-size: 14px; opacity: 0.95;">
+          Have you checked your top performer badges? Share your success on social media and show the world your excellence!
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <a href="${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}/social" 
+             style="display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 13px; border: 1px solid rgba(255,255,255,0.3);">
+            📱 View Your Badges
+          </a>
+          <a href="${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}/reports" 
+             style="display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 13px; border: 1px solid rgba(255,255,255,0.3);">
+            📊 View Reports
+          </a>
+        </div>
+        <p style="margin: 0; font-size: 12px; opacity: 0.85;">
+          💡 <strong>Tip:</strong> Badges are automatically generated based on your performance vs. other CSL users. Click to share on X, Facebook, LinkedIn, Instagram, or TikTok!
+        </p>
+      </div>
+      
+      <p style="margin-top: 24px; text-align: center;">
         <a href="${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}" 
-           style="display: inline-block; background: #3B82F6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+           style="display: inline-block; background: #3B82F6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
           Open Capture Show Leads →
         </a>
       </p>
     </div>
     <div class="footer">
-      <p>This is an automated reminder from Capture Show Leads.</p>
+      <p>This is an automated daily reminder from Capture Show Leads.</p>
+      <p style="color: #64748b; font-size: 11px; margin-top: 8px;">
+        Sent at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} on ${todayFormatted}
+      </p>
       <p>© ${new Date().getFullYear()} Capture Show Leads</p>
     </div>
   </div>
@@ -239,8 +266,20 @@ function formatEmailText(user: UserWithTodos): string {
     text += '\n';
   }
 
-  text += `\nOpen Capture Show Leads: ${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}\n`;
-  text += `\n---\nThis is an automated reminder from Capture Show Leads.`;
+  text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `🏆 SHARE YOUR ACHIEVEMENTS!\n\n`;
+  text += `Have you checked your top performer badges?\n`;
+  text += `Share your success on social media!\n\n`;
+  text += `View Your Badges: ${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}/social\n`;
+  text += `View Reports: ${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}/reports\n\n`;
+  text += `💡 Tip: Badges are automatically generated based on your\n`;
+  text += `performance vs. other CSL users. Share on X, Facebook,\n`;
+  text += `LinkedIn, Instagram, or TikTok!\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  text += `Open Capture Show Leads: ${process.env.FRONTEND_URL || 'https://csl-bjg7z.ondigitalocean.app'}\n`;
+  text += `\n---\n`;
+  text += `This is an automated daily reminder from Capture Show Leads.\n`;
+  text += `Sent: ${new Date().toLocaleString('en-US')}`;
 
   return text;
 }

@@ -1,5 +1,5 @@
 // Simple scheduler for daily notifications
-// Runs at 8:00 AM every day
+// Runs at 4:53 PM every day
 
 import { sendDailyTodoNotifications, sendRenewalReminderEmails } from './notifications';
 
@@ -7,7 +7,7 @@ let schedulerInterval: NodeJS.Timeout | null = null;
 let lastRunDate: string | null = null;
 
 /**
- * Check if it's time to run the daily notification (8:00 AM)
+ * Check if it's time to run the daily notification (4:53 PM)
  */
 function shouldRunNotification(): boolean {
   const now = new Date();
@@ -15,10 +15,10 @@ function shouldRunNotification(): boolean {
   const minute = now.getMinutes();
   const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
-  // Run at 8:00 AM (between 8:00 and 8:01)
-  const isCorrectTime = hour === 8 && minute === 0;
+  // Run at 4:53 PM (between 16:53 and 16:54)
+  const isCorrectTime = hour === 16 && minute === 53;
   
-  // Only run once per day
+  // Only run once per day - this prevents duplicate emails
   const hasNotRunToday = lastRunDate !== today;
 
   return isCorrectTime && hasNotRunToday;
@@ -62,12 +62,12 @@ export function startScheduler() {
     return;
   }
 
-  console.log('[Scheduler] Starting notification scheduler (8:00 AM daily)');
+  console.log('[Scheduler] Starting notification scheduler (4:53 PM daily)');
   
   // Check every minute
   schedulerInterval = setInterval(runScheduledCheck, 60 * 1000);
   
-  // Also run an immediate check in case server starts at 8:00 AM
+  // Also run an immediate check in case server starts at 4:53 PM
   runScheduledCheck();
 }
 
@@ -89,7 +89,7 @@ export function getSchedulerStatus() {
   return {
     running: schedulerInterval !== null,
     lastRunDate,
-    nextRunTime: '8:00 AM daily',
+    nextRunTime: '4:53 PM daily',
     serverTime: new Date().toISOString(),
   };
 }
