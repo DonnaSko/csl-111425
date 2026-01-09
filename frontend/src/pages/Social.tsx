@@ -488,37 +488,6 @@ const Social = () => {
           </div>
         )}
 
-        {/* Tips Section */}
-        <div className="mt-8 bg-white rounded-xl shadow-lg p-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">💡 Social Media Tips</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">📸 Add Photos</h4>
-              <p className="text-sm text-blue-800">
-                Posts with images get 150% more engagement! Take photos of your booth, products, or team.
-              </p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <h4 className="font-semibold text-green-900 mb-2">⏰ Post Timing</h4>
-              <p className="text-sm text-green-800">
-                Best times: Before the show (build excitement), during (live updates), and after (recap & thanks).
-              </p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4">
-              <h4 className="font-semibold text-purple-900 mb-2">🤝 Engage</h4>
-              <p className="text-sm text-purple-800">
-                Reply to comments, tag attendees, and engage with other exhibitors for maximum reach.
-              </p>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-4">
-              <h4 className="font-semibold text-orange-900 mb-2">🔖 Use Hashtags</h4>
-              <p className="text-sm text-orange-800">
-                Mix event hashtags, industry tags, and #CaptureShowLeads for best visibility!
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Your Achievement Badges */}
         {!benchmarksLoading && benchmarks && (
           <div className="mt-8 bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 rounded-xl shadow-lg p-8 border-2 border-purple-200">
