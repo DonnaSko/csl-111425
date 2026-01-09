@@ -236,17 +236,39 @@ const Social = () => {
   };
 
   const shareToLinkedIn = () => {
-    const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
+    // Copy to clipboard as backup
     navigator.clipboard.writeText(generatedPost);
-    alert('✅ Post copied to clipboard!\n\nLinkedIn will open. Click "Start a post" and paste your content!');
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'width=600,height=600');
+    
+    // Try LinkedIn's feed/share endpoint (opens compose dialog)
+    // Unfortunately LinkedIn doesn't support text parameter for security reasons
+    // But this opens the compose dialog directly
+    const linkedInWindow = window.open('https://www.linkedin.com/feed/?shareActive=true', '_blank', 'width=600,height=600');
+    
+    console.log('[LinkedIn] Window opened:', linkedInWindow ? 'success' : 'blocked');
+    
+    // Alert AFTER window opens
+    alert('✅ Post copied to clipboard!\n✅ LinkedIn opened - compose dialog ready\n\n👉 PASTE YOUR POST: Press Cmd+V (Mac) or Ctrl+V (Windows)\n\nLinkedIn will open their "Start a post" dialog.\nJust paste and click "Post"!');
   };
 
   const shareToFacebook = () => {
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
+    const encodedText = encodeURIComponent(generatedPost);
+    
+    // Copy to clipboard as backup
     navigator.clipboard.writeText(generatedPost);
-    alert('✅ Post copied to clipboard!\n\nFacebook will open. Paste your content to share!');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'width=600,height=400');
+    
+    // Try Facebook with quote parameter (may or may not work due to Facebook restrictions)
+    // Facebook deprecated text pre-fill, but we'll try anyway
+    const facebookWindow = window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
+      '_blank',
+      'width=600,height=400'
+    );
+    
+    console.log('[Facebook] Window opened:', facebookWindow ? 'success' : 'blocked');
+    
+    // Alert AFTER window opens
+    alert('✅ Post copied to clipboard!\n✅ Facebook opened\n\n⚠️ NOTE: Facebook may not show your text automatically due to their restrictions.\n\n👉 IF TEXT IS EMPTY: Press Cmd+V (Mac) or Ctrl+V (Windows) to paste!\n\nThen click "Post"!');
   };
 
   return (
