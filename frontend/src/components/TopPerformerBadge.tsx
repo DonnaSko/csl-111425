@@ -79,7 +79,7 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
     }
   };
 
-  const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'instagram' | 'copy' = 'copy') => {
+  const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'instagram' | 'tiktok' | 'copy' = 'copy') => {
     const topPercent = 100 - percentile;
     const emoji = getEmoji();
     
@@ -103,8 +103,13 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
       return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
     }
     
+    // TikTok - short, punchy, hashtag-heavy for viral potential
+    if (platform === 'tiktok') {
+      return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #B2B #Sales #TradeShowLife #LeadGen #BusinessTips #SalesSuccess #Entrepreneur`;
+    }
+    
     // Copy/default - include all social handles
-    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
+    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
   };
 
   const shareToFacebook = () => {
@@ -140,6 +145,13 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
     const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     alert('✅ Instagram text copied!\n\nPaste it on Instagram and tag @captureshowleads!\n\nDon\'t forget to upload your badge screenshot! 📸');
+    setShowShareModal(false);
+  };
+
+  const copyForTikTok = () => {
+    const text = `${getShareText('tiktok')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(text);
+    alert('✅ TikTok text copied!\n\n📱 Next Steps:\n1. Open TikTok app\n2. Create a new video with your badge screenshot\n3. Paste this text as your caption\n4. Tag @captureshowleads\n5. Post & go viral! 🔥');
     setShowShareModal(false);
   };
 
@@ -315,6 +327,14 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
               >
                 <span className="text-xl">📸</span>
                 Copy for Instagram
+              </button>
+              
+              <button
+                onClick={copyForTikTok}
+                className="w-full px-6 py-3 bg-gradient-to-r from-[#00F2EA] via-[#FF0050] to-[#000000] text-white rounded-lg font-semibold hover:shadow-lg transition flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">🎵</span>
+                Copy for TikTok
               </button>
               
               <button
