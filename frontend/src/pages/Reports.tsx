@@ -337,9 +337,15 @@ const Reports = () => {
             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-xl p-6 border-2 border-yellow-300">
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-4xl">⭐</div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-900">Lead Quality Score</h3>
-                  <p className="text-sm text-gray-600">Higher = More complete data</p>
+                  <p className="text-sm text-gray-700 mt-1 leading-relaxed">
+                    Measures how <strong>sales-ready</strong> your leads are. Higher scores mean more complete contact info, 
+                    notes, and follow-up plans. <strong className="text-orange-600">Low-quality leads need more data before they can convert to sales.</strong>
+                  </p>
+                  <p className="text-xs text-gray-600 mt-2 italic">
+                    💡 Goal: Get all leads to <strong>11+</strong> (green zone) by adding contact details and next steps.
+                  </p>
                 </div>
               </div>
               
