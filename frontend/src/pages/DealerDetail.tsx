@@ -193,6 +193,7 @@ const DealerDetail = () => {
     status: 'Prospect',
   });
   const [highlightEmailField, setHighlightEmailField] = useState(false);
+  const [flashToField, setFlashToField] = useState(false);
 
   const [noteContent, setNoteContent] = useState('');
   const [newProductName, setNewProductName] = useState('');
@@ -279,26 +280,16 @@ const DealerDetail = () => {
 
   const handleSendEmail = async () => {
     if (!dealer?.email) {
-      // Expand Dealer Information section
-      setSections(sections.map(s => 
-        s.id === 'info' ? { ...s, expanded: true } : s
-      ));
+      // Flash the "To:" field in red 3 times
+      setFlashToField(true);
       
-      // Highlight email field
-      setHighlightEmailField(true);
+      // Show error message
+      alert('⚠️ No Email Address\n\nThis dealer does not have an email address on file.\n\nPlease add an email address in the Dealer Information section before sending an email.');
       
-      // Scroll to top after a brief delay to let the section expand
+      // Stop flashing after 3 seconds (3 flashes)
       setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
-      
-      // Show helpful error message
-      alert('⚠️ No Email Address Found\n\nThis dealer does not have an email address on file.\n\nThe Dealer Information section has been opened and the email field is highlighted in yellow.\n\nPlease add an email address for this dealer, then try sending your email again.');
-      
-      // Remove highlight after 10 seconds
-      setTimeout(() => {
-        setHighlightEmailField(false);
-      }, 10000);
+        setFlashToField(false);
+      }, 3000);
       
       return;
     }
@@ -2371,9 +2362,9 @@ const DealerDetail = () => {
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="font-semibold mb-3 text-blue-900">📧 Send Email to Dealer</h4>
                 <div className="space-y-3">
-                  <div>
+                  <div className={`p-2 rounded ${flashToField ? 'animate-flash-red' : ''}`}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      To: {dealer?.email || 'No email address'}
+                      To: {dealer?.email || '⚠️ No email address'}
                     </label>
                   </div>
                   <div>
