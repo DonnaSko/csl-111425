@@ -11,6 +11,7 @@ import CaptureLead from './pages/CaptureLead';
 import TradeShows from './pages/TradeShows';
 import TradeShowDetail from './pages/TradeShowDetail';
 import Reports from './pages/Reports';
+import Social from './pages/Social';
 import Todos from './pages/Todos';
 import GettingStarted from './pages/GettingStarted';
 import Subscription from './pages/Subscription';
@@ -102,6 +103,14 @@ function App() {
               element={
                 <PrivateRoute requireSubscription>
                   <Reports />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/social"
+              element={
+                <PrivateRoute requireSubscription>
+                  <Social />
                 </PrivateRoute>
               }
             />

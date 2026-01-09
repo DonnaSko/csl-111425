@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 interface TopPerformerBadgeProps {
   percentile: number;
@@ -11,6 +12,7 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const badgeRef = useRef<HTMLDivElement>(null);
 
   // Check if user has previously given consent
   const hasGivenConsent = () => {
@@ -32,6 +34,33 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     }
     setShowConsentModal(false);
     setShowShareModal(true);
+  };
+
+  // Auto-download badge as PNG image
+  const downloadBadgeImage = async (): Promise<string> => {
+    if (!badgeRef.current) return '';
+    
+    try {
+      const canvas = await html2canvas(badgeRef.current, {
+        backgroundColor: null,
+        scale: 3, // Higher quality
+        logging: false,
+      });
+      
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Auto-download the image
+      const link = document.createElement('a');
+      const metricName = metric ? metric.replace(/\s+/g, '-') : 'Badge';
+      link.download = `CSL-Top-Performer-${metricName}-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      return dataUrl;
+    } catch (error) {
+      console.error('Failed to generate badge image:', error);
+      return '';
+    }
   };
 
   const getBadgeColor = () => {
@@ -113,13 +142,16 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     return `I'm in the top ${topPercent}%${metricPart} on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
   };
 
-  const shareToFacebook = () => {
+  const shareToFacebook = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
     // Copy text to clipboard
     const text = `${getShareText('facebook')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Alert with instructions
-    alert('📱 Facebook Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the circle with your rank)\n3. Facebook will open → Paste the text\n4. Click "Photo/Video" and attach your badge screenshot\n5. Post! 🚀\n\n💡 TIP: Screenshot your badge NOW before Facebook opens!');
+    // Simplified instructions
+    alert('🚀 Ready to Share on Facebook!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nNext steps:\n1. Facebook will open\n2. Paste the text\n3. Click "Photo/Video" 🖼️\n4. Select badge from Downloads\n5. Post! 🎉');
     
     const encodedText = encodeURIComponent(getShareText('facebook'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
@@ -127,13 +159,16 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     setShowShareModal(false);
   };
 
-  const shareToTwitter = () => {
-    // First, copy the text to clipboard
+  const shareToTwitter = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
+    // Copy text to clipboard
     const text = `${getShareText('twitter')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Open Twitter with a helpful alert
-    alert('📱 Twitter/X Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the circle with your rank)\n3. Twitter will open → Paste the text\n4. Click the image icon and attach your badge screenshot\n5. Post! 🚀\n\n💡 TIP: Screenshot your badge NOW before Twitter opens!');
+    // Simplified instructions
+    alert('🚀 Ready to Share on Twitter/X!\n\n✅ Badge image downloaded to your computer\n✅ Text copied to clipboard\n\nNext steps:\n1. Twitter/X will open\n2. Paste the text (Cmd+V or Ctrl+V)\n3. Click the image icon 🖼️\n4. Select the badge image from your Downloads\n5. Post! 🎉');
     
     const encodedText = encodeURIComponent(getShareText('twitter'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
@@ -141,42 +176,47 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     setShowShareModal(false);
   };
 
-  const shareToLinkedIn = () => {
-    const url = encodeURIComponent('https://www.captureshowleads.com');
-    // LinkedIn doesn't support pre-filled text via URL, but users can copy our suggested text
-    // The share text includes your company page: linkedin.com/company/109237009
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
+  const shareToLinkedIn = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
     
-    // Copy LinkedIn text to clipboard for easy pasting
+    const url = encodeURIComponent('https://www.captureshowleads.com');
     const linkedInText = `${getShareText('linkedin')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(linkedInText);
     
-    // Quick notification
-    setTimeout(() => {
-      alert('💼 LinkedIn share opened!\n\n✅ Suggested text copied to clipboard - paste it as your post caption!\n\nIncludes link to CSL LinkedIn page: linkedin.com/company/109237009');
-    }, 500);
+    alert('🚀 Ready to Share on LinkedIn!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nNext steps:\n1. LinkedIn will open\n2. Click "Start a post"\n3. Paste the text\n4. Click image icon 🖼️\n5. Select badge from Downloads\n6. Post! 🎉');
     
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
     setShowShareModal(false);
   };
 
-  const copyShareText = () => {
+  const copyShareText = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
     const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ Text copied to clipboard!\n\n📸 IMPORTANT: Take a screenshot of your badge (the gold circle with your rank) to attach to your post!\n\nThis text works for:\n• X/Twitter: @captureshowlead\n• Instagram: @captureshowleads  \n• TikTok: @captureshowleads\n• LinkedIn: Company page linked\n• Facebook: Page linked\n\nPaste the text + attach your badge screenshot = perfect post! 🚀');
+    alert('✅ Ready to Share Anywhere!\n\n✅ Badge image downloaded\n✅ Text copied to clipboard\n\nThis works for all platforms:\n• X/Twitter\n• Instagram\n• TikTok\n• LinkedIn\n• Facebook\n\nJust paste text + attach badge from Downloads! 🚀');
     setShowShareModal(false);
   };
 
-  const copyForInstagram = () => {
+  const copyForInstagram = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
     const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('📸 Instagram Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the gold circle)\n3. Open Instagram app\n4. Create new post → Upload your badge screenshot\n5. Paste the caption\n6. Tag @captureshowleads\n7. Post! 🚀\n\n💡 Make sure to screenshot the badge before leaving this page!');
+    alert('📸 Ready for Instagram!\n\n✅ Badge image downloaded\n✅ Text copied\n\nNext steps:\n1. Open Instagram app\n2. Create post\n3. Select badge from Photos\n4. Paste caption\n5. Tag @captureshowleads\n6. Post! 🚀');
     setShowShareModal(false);
   };
 
-  const copyForTikTok = () => {
+  const copyForTikTok = async () => {
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
     const text = `${getShareText('tiktok')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('🎵 TikTok Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the gold circle)\n3. Open TikTok app\n4. Create video → Upload your badge screenshot (or use green screen)\n5. Paste the caption\n6. Tag @captureshowleads\n7. Post & go viral! 🔥\n\n💡 Screenshot tip: Badge is the gold circle with your rank!');
+    alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded\n✅ Text copied\n\nNext steps:\n1. Open TikTok app\n2. Create video with badge image\n3. Paste caption\n4. Tag @captureshowleads\n5. Post & go viral! 🔥');
     setShowShareModal(false);
   };
 
@@ -188,7 +228,10 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
         className={`relative group transform hover:scale-110 transition-all duration-300 cursor-pointer`}
         title="Click to share your achievement!"
       >
-        <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${getBadgeColor()} p-1 shadow-2xl hover:shadow-3xl`}>
+        <div 
+          ref={badgeRef}
+          className={`w-32 h-32 rounded-full bg-gradient-to-br ${getBadgeColor()} p-1 shadow-2xl hover:shadow-3xl`}
+        >
           <div className="w-full h-full rounded-full bg-white flex flex-col items-center justify-center">
             <div className="text-4xl mb-1">{getEmoji()}</div>
             <div className="text-xs font-bold text-gray-800 text-center leading-tight">
@@ -199,9 +242,6 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
             </div>
           </div>
         </div>
-        
-        {/* Pulsing ring animation */}
-        <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${getBadgeColor()} opacity-75 animate-ping`} />
         
         {/* Hover tooltip */}
         <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">

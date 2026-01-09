@@ -23,6 +23,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Dealers', href: '/dealers', icon: '👥' },
     { name: 'Trade Shows', href: '/trade-shows', icon: '📅' },
     { name: 'Reports', href: '/reports', icon: '📊' },
+    { name: 'Social', href: '/social', icon: '🚀' },
     { name: 'To-Dos', href: '/todos', icon: '✅' },
     { name: 'Buying Group Maintenance', href: '/buying-group-maintenance', icon: '🏢' },
     { name: 'Account Settings', href: '/account-settings', icon: '⚙️' },
