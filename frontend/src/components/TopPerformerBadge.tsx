@@ -79,7 +79,7 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
     }
   };
 
-  const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'copy' = 'copy') => {
+  const getShareText = (platform: 'twitter' | 'facebook' | 'linkedin' | 'instagram' | 'copy' = 'copy') => {
     const topPercent = 100 - percentile;
     const emoji = getEmoji();
     
@@ -98,8 +98,13 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
       return `Proud to be in the top ${topPercent}% of users on Capture Show Leads! ${emoji} #TradeShows #LeadManagement #SalesExcellence #B2B`;
     }
     
-    // Copy/default - include @mention for versatility
-    return `I'm in the top ${topPercent}% on Capture Show Leads (@captureshowlead)! ${emoji} #CSL #TradeShows #LeadManagement #SalesExcellence`;
+    // Instagram - include @mention and extra hashtags
+    if (platform === 'instagram') {
+      return `I'm in the top ${topPercent}% on @captureshowleads! ${emoji}\n\n#CSL #TradeShows #LeadManagement #SalesExcellence #B2B #TradeShowLife #LeadGeneration`;
+    }
+    
+    // Copy/default - include both social handles
+    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\n\n#CSL #TradeShows #LeadManagement`;
   };
 
   const shareToFacebook = () => {
@@ -127,7 +132,14 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
   const copyShareText = () => {
     const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ Text copied to clipboard! Paste it anywhere you like.');
+    alert('✅ Text copied to clipboard!\n\nPaste it on Instagram, LinkedIn, or anywhere else!\n\nIncludes: @captureshowlead (X) & @captureshowleads (Instagram)');
+    setShowShareModal(false);
+  };
+
+  const copyForInstagram = () => {
+    const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(text);
+    alert('✅ Instagram text copied!\n\nPaste it on Instagram and tag @captureshowleads!\n\nDon\'t forget to upload your badge screenshot! 📸');
     setShowShareModal(false);
   };
 
@@ -298,11 +310,19 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
               </button>
               
               <button
+                onClick={copyForInstagram}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">📸</span>
+                Copy for Instagram
+              </button>
+              
+              <button
                 onClick={copyShareText}
                 className="w-full px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition flex items-center justify-center gap-2"
               >
                 <span className="text-xl">📋</span>
-                Copy Text
+                Copy Text (All Platforms)
               </button>
             </div>
 
