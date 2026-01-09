@@ -96,10 +96,11 @@ const Reports = () => {
   const fetchAllDealers = async () => {
     try {
       setDealersLoading(true);
-      const response = await api.get('/dealers');
-      setAllDealers(response.data || []);
+      const response = await api.get('/dealers?limit=5000'); // Get all dealers
+      setAllDealers(response.data?.dealers || []);
     } catch (error) {
       console.error('Failed to load dealers:', error);
+      setAllDealers([]); // Set empty array on error so page doesn't break
     } finally {
       setDealersLoading(false);
     }
@@ -226,9 +227,13 @@ const Reports = () => {
     if (dealer.email) score += 2;
     if (dealer.phone) score += 2;
     if (dealer.notes) score += 2;
-    if (dealer.dealerNotes && dealer.dealerNotes.length > 0) score += 2;
-    if (dealer.todos && dealer.todos.length > 0) score += 3;
-    if (dealer.todos && dealer.todos.some((t: any) => t.followUp)) score += 3;
+    // Use _count if available (from dealers list endpoint)
+    const notesCount = dealer._count?.dealerNotes || 0;
+    const todosCount = dealer._count?.todos || 0;
+    if (notesCount > 0) score += 2;
+    if (todosCount > 0) score += 3;
+    // Can't check followUp from _count, so just add bonus if has todos
+    if (todosCount > 1) score += 3; // Bonus for multiple todos
     return score; // Max 15
   };
 
@@ -254,7 +259,7 @@ const Reports = () => {
   const dealersWithTiming = dealersWithScores.map(d => ({
     ...d,
     hoursSinceCreated: getHoursSinceCreated(d.createdAt),
-    hasNextStep: d.todos && d.todos.length > 0
+    hasNextStep: (d._count?.todos || 0) > 0
   }));
 
   const within1Hour = dealersWithTiming.filter(d => d.hoursSinceCreated <= 1 && d.hasNextStep).length;
@@ -263,7 +268,7 @@ const Reports = () => {
   const untouched48Hours = dealersWithTiming.filter(d => d.hoursSinceCreated > 48 && !d.hasNextStep).length;
 
   // Coverage Metrics
-  const dealersWithNextStep = dealersWithScores.filter(d => d.todos && d.todos.length > 0).length;
+  const dealersWithNextStep = dealersWithScores.filter(d => (d._count?.todos || 0) > 0).length;
   const coverageRate = dealersWithScores.length > 0 
     ? Math.round((dealersWithNextStep / dealersWithScores.length) * 100) 
     : 0;
