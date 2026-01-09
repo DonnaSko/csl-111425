@@ -21,6 +21,14 @@ model User {
   companyId           String
   dailyEmailReminders Boolean  @default(true)
   marketingEmails     Boolean  @default(false)
+  
+  // Social Media Links
+  socialTwitter       String?
+  socialFacebook      String?
+  socialLinkedIn      String?
+  socialInstagram     String?
+  socialTikTok        String?
+  
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

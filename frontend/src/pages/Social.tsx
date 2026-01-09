@@ -28,11 +28,47 @@ const Social = () => {
   const [benchmarks, setBenchmarks] = useState<any>(null);
   const [benchmarksLoading, setBenchmarksLoading] = useState(false);
 
+  // Social Links State
+  const [socialLinks, setSocialLinks] = useState({
+    twitter: '',
+    facebook: '',
+    linkedIn: '',
+    instagram: '',
+    tikTok: '',
+  });
+  const [savingSocialLinks, setSavingSocialLinks] = useState(false);
+  const [socialLinksSaved, setSocialLinksSaved] = useState(false);
+
   useEffect(() => {
     fetchTradeShows();
     loadUserInfo();
     fetchCommunityBenchmarks();
+    fetchSocialLinks();
   }, []);
+
+  const fetchSocialLinks = async () => {
+    try {
+      const response = await api.get('/social-links');
+      setSocialLinks(response.data);
+    } catch (error) {
+      console.error('Failed to load social links:', error);
+    }
+  };
+
+  const saveSocialLinks = async () => {
+    setSavingSocialLinks(true);
+    setSocialLinksSaved(false);
+    try {
+      await api.put('/social-links', socialLinks);
+      setSocialLinksSaved(true);
+      setTimeout(() => setSocialLinksSaved(false), 3000);
+    } catch (error) {
+      console.error('Failed to save social links:', error);
+      alert('Failed to save social links. Please try again.');
+    } finally {
+      setSavingSocialLinks(false);
+    }
+  };
 
   const fetchCommunityBenchmarks = async () => {
     setBenchmarksLoading(true);
@@ -281,6 +317,126 @@ const Social = () => {
             Generate AI-powered social media posts for your trade show attendance. 
             All posts automatically include #CaptureShowLeads to help amplify our product! 🎉
           </p>
+        </div>
+
+        {/* Connect Your Social Accounts Section */}
+        <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 rounded-xl shadow-lg p-8 mb-8 border-2 border-purple-200">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">🔗 Connect Your Social Accounts</h2>
+              <p className="text-gray-600">Add your social media profile URLs to make sharing even easier!</p>
+            </div>
+            {socialLinksSaved && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-lg flex items-center gap-2">
+                <span>✅</span>
+                <span className="font-semibold">Saved!</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Twitter / X */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <span>𝕏</span> X / Twitter Profile
+              </label>
+              <input
+                type="url"
+                value={socialLinks.twitter}
+                onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                placeholder="https://x.com/yourusername"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: https://x.com/captureshowlead</p>
+            </div>
+
+            {/* Facebook */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <span>📘</span> Facebook Profile
+              </label>
+              <input
+                type="url"
+                value={socialLinks.facebook}
+                onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                placeholder="https://facebook.com/yourprofile"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: https://facebook.com/profile.php?id=61581979524580</p>
+            </div>
+
+            {/* LinkedIn */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <span>💼</span> LinkedIn Profile
+              </label>
+              <input
+                type="url"
+                value={socialLinks.linkedIn}
+                onChange={(e) => setSocialLinks({ ...socialLinks, linkedIn: e.target.value })}
+                placeholder="https://linkedin.com/in/yourprofile"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: https://linkedin.com/in/yourname</p>
+            </div>
+
+            {/* Instagram */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <span>📸</span> Instagram Profile
+              </label>
+              <input
+                type="url"
+                value={socialLinks.instagram}
+                onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                placeholder="https://instagram.com/yourusername"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: https://instagram.com/captureshowleads</p>
+            </div>
+
+            {/* TikTok */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <span>🎵</span> TikTok Profile
+              </label>
+              <input
+                type="url"
+                value={socialLinks.tikTok}
+                onChange={(e) => setSocialLinks({ ...socialLinks, tikTok: e.target.value })}
+                placeholder="https://tiktok.com/@yourusername"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: https://tiktok.com/@captureshowleads</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={saveSocialLinks}
+              disabled={savingSocialLinks}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center gap-2"
+            >
+              {savingSocialLinks ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <span>💾</span>
+                  <span>Save Social Links</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>💡 Pro Tip:</strong> Adding your social links makes it easier to share your achievements! 
+              When you click to share badges or posts, we'll use these links to help you connect with your audience faster.
+            </p>
+          </div>
         </div>
 
         {/* Generator Card */}

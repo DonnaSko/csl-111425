@@ -16,6 +16,7 @@ import groupRoutes from './routes/groups';
 import buyingGroupRoutes from './routes/buyingGroups';
 import notificationRoutes from './routes/notifications';
 import emailFilesRoutes from './routes/emailFiles';
+import socialLinksRoutes from './routes/socialLinks';
 
 // Import scheduler
 import { startScheduler } from './utils/scheduler';
@@ -70,6 +71,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/buying-groups', buyingGroupRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/email-files', emailFilesRoutes);
+app.use('/api/social-links', socialLinksRoutes);
 
 // Routes (without /api prefix - DigitalOcean may strip it)
 app.use('/auth', authRoutes);
