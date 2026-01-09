@@ -346,8 +346,17 @@ const Reports = () => {
           {/* Booth Visitors Card */}
           <button
             onClick={() => {
+              // Get only dealers who are booth visitors (from attendanceShows)
+              const boothVisitors = attendanceShows.flatMap(show => 
+                show.dealers.map(d => ({
+                  ...d,
+                  tradeshow: show.name,
+                  tradeshowDate: show.startDate,
+                }))
+              );
+              
               setModalConfig({
-                dealers: allDealers,
+                dealers: boothVisitors,
                 title: `All ${totalDealers} Booth Visitors`,
                 subtitle: 'Click any dealer to view their details',
                 icon: '👥',
