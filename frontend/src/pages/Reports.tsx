@@ -81,6 +81,8 @@ const Reports = () => {
   const [emailsShows, setEmailsShows] = useState<EmailsTradeShow[]>([]);
   const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
+  const [allDealers, setAllDealers] = useState<any[]>([]);
+  const [dealersLoading, setDealersLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -88,7 +90,20 @@ const Reports = () => {
     fetchAttendance();
     fetchTradeShowTodos();
     fetchTradeShowEmails();
+    fetchAllDealers();
   }, []);
+
+  const fetchAllDealers = async () => {
+    try {
+      setDealersLoading(true);
+      const response = await api.get('/dealers');
+      setAllDealers(response.data || []);
+    } catch (error) {
+      console.error('Failed to load dealers:', error);
+    } finally {
+      setDealersLoading(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -203,6 +218,56 @@ const Reports = () => {
     sum + show.dealers.reduce((dSum, dealer) => dSum + dealer.emails.length, 0), 0
   );
 
+  // Calculate Lead Quality Metrics
+  const calculateQualityScore = (dealer: any) => {
+    let score = 0;
+    if (dealer.companyName) score += 1;
+    if (dealer.contactName) score += 2;
+    if (dealer.email) score += 2;
+    if (dealer.phone) score += 2;
+    if (dealer.notes) score += 2;
+    if (dealer.dealerNotes && dealer.dealerNotes.length > 0) score += 2;
+    if (dealer.todos && dealer.todos.length > 0) score += 3;
+    if (dealer.todos && dealer.todos.some((t: any) => t.followUp)) score += 3;
+    return score; // Max 15
+  };
+
+  const dealersWithScores = allDealers.map(d => ({
+    ...d,
+    qualityScore: calculateQualityScore(d)
+  }));
+
+  const avgQualityScore = dealersWithScores.length > 0
+    ? Math.round((dealersWithScores.reduce((sum, d) => sum + d.qualityScore, 0) / dealersWithScores.length) * 10) / 10
+    : 0;
+  
+  const lowQualityLeads = dealersWithScores.filter(d => d.qualityScore < 6).length;
+  const mediumQualityLeads = dealersWithScores.filter(d => d.qualityScore >= 6 && d.qualityScore < 11).length;
+  const highQualityLeads = dealersWithScores.filter(d => d.qualityScore >= 11).length;
+
+  // Speed-to-Follow-Up Metrics
+  const now = new Date().getTime();
+  const getHoursSinceCreated = (createdAt: string) => {
+    return (now - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  };
+
+  const dealersWithTiming = dealersWithScores.map(d => ({
+    ...d,
+    hoursSinceCreated: getHoursSinceCreated(d.createdAt),
+    hasNextStep: d.todos && d.todos.length > 0
+  }));
+
+  const within1Hour = dealersWithTiming.filter(d => d.hoursSinceCreated <= 1 && d.hasNextStep).length;
+  const within24Hours = dealersWithTiming.filter(d => d.hoursSinceCreated <= 24 && d.hasNextStep).length;
+  const untouched24Hours = dealersWithTiming.filter(d => d.hoursSinceCreated > 24 && !d.hasNextStep).length;
+  const untouched48Hours = dealersWithTiming.filter(d => d.hoursSinceCreated > 48 && !d.hasNextStep).length;
+
+  // Coverage Metrics
+  const dealersWithNextStep = dealersWithScores.filter(d => d.todos && d.todos.length > 0).length;
+  const coverageRate = dealersWithScores.length > 0 
+    ? Math.round((dealersWithNextStep / dealersWithScores.length) * 100) 
+    : 0;
+
   return (
     <Layout>
       <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-8">
@@ -259,6 +324,179 @@ const Reports = () => {
             <div className="text-sm opacity-90">Emails Sent</div>
           </div>
         </div>
+
+        {/* Lead Quality & Speed Metrics - NEW GAMIFICATION */}
+        {!dealersLoading && dealersWithScores.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Lead Quality Score Card */}
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-xl p-6 border-2 border-yellow-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl">⭐</div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Lead Quality Score</h3>
+                  <p className="text-sm text-gray-600">Higher = More complete data</p>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700 font-medium">Average Quality:</span>
+                  <span className="text-3xl font-bold text-yellow-600">{avgQualityScore}/15</span>
+                </div>
+                <div className="bg-gray-200 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(avgQualityScore / 15) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-red-100 rounded-lg p-3 text-center border-2 border-red-300">
+                  <div className="text-2xl font-bold text-red-700">{lowQualityLeads}</div>
+                  <div className="text-xs text-red-600 font-medium">🔴 Low (0-5)</div>
+                  <div className="text-xs text-gray-600">Need info</div>
+                </div>
+                <div className="bg-yellow-100 rounded-lg p-3 text-center border-2 border-yellow-400">
+                  <div className="text-2xl font-bold text-yellow-700">{mediumQualityLeads}</div>
+                  <div className="text-xs text-yellow-600 font-medium">🟡 Med (6-10)</div>
+                  <div className="text-xs text-gray-600">Okay</div>
+                </div>
+                <div className="bg-green-100 rounded-lg p-3 text-center border-2 border-green-400">
+                  <div className="text-2xl font-bold text-green-700">{highQualityLeads}</div>
+                  <div className="text-xs text-green-600 font-medium">🟢 High (11-15)</div>
+                  <div className="text-xs text-gray-600">Sales ready!</div>
+                </div>
+              </div>
+
+              <div className="mt-4 text-xs text-gray-600 bg-white rounded-lg p-3">
+                <strong>Quality Score = </strong>
+                Company(1) + Contact(2) + Email(2) + Phone(2) + Notes(2-4) + Next Steps(3-6)
+              </div>
+            </div>
+
+            {/* Speed-to-Follow-Up Card */}
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-xl p-6 border-2 border-red-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl">⚡</div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Follow-Up Speed</h3>
+                  <p className="text-sm text-gray-600">Faster = Higher conversion</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white rounded-xl p-4 border-2 border-green-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">⚡ Within 1 Hour</span>
+                    <span className="text-2xl font-bold text-green-600">{within1Hour}</span>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">Speed demons! 🏃‍♂️</div>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 border-2 border-blue-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">✅ Within 24 Hours</span>
+                    <span className="text-2xl font-bold text-blue-600">{within24Hours}</span>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">Great response time!</div>
+                </div>
+
+                {untouched48Hours > 0 && (
+                  <div className="bg-white rounded-xl p-4 border-2 border-red-400 animate-pulse">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">🔥 Untouched &gt; 48 Hours</span>
+                      <span className="text-2xl font-bold text-red-600">{untouched48Hours}</span>
+                    </div>
+                    <div className="text-xs text-red-600 font-semibold mt-1">⚠️ URGENT: Follow up NOW!</div>
+                  </div>
+                )}
+
+                {untouched24Hours > 0 && untouched48Hours === 0 && (
+                  <div className="bg-white rounded-xl p-4 border-2 border-orange-300">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">⏰ Untouched &gt; 24 Hours</span>
+                      <span className="text-2xl font-bold text-orange-600">{untouched24Hours}</span>
+                    </div>
+                    <div className="text-xs text-orange-600 font-medium mt-1">Need attention soon</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 text-xs text-gray-600 bg-white rounded-lg p-3">
+                <strong>⏱️ Pro Tip:</strong> Leads contacted within 1 hour are 7x more likely to convert!
+              </div>
+            </div>
+
+            {/* Coverage Rate Card */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-xl p-6 border-2 border-blue-300 lg:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl">🎯</div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Lead Coverage</h3>
+                  <p className="text-sm text-gray-600">How many leads have next steps assigned?</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl p-6">
+                  <div className="text-center mb-3">
+                    <div className="text-5xl font-bold text-blue-600">{coverageRate}%</div>
+                    <div className="text-sm text-gray-600 mt-1">Coverage Rate</div>
+                  </div>
+                  <div className="bg-gray-200 rounded-full h-4">
+                    <div 
+                      className={`h-4 rounded-full transition-all duration-500 ${
+                        coverageRate >= 90 ? 'bg-green-500' :
+                        coverageRate >= 70 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${coverageRate}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 text-center">
+                    <span className="text-sm font-medium text-gray-700">
+                      {dealersWithNextStep} / {dealersWithScores.length} leads have next steps
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                      <span className="text-sm text-gray-700">✅ With Next Step:</span>
+                      <span className="font-bold text-green-600">{dealersWithNextStep}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-red-50 rounded">
+                      <span className="text-sm text-gray-700">⚠️ No Next Step:</span>
+                      <span className="font-bold text-red-600">{dealersWithScores.length - dealersWithNextStep}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                      <span className="text-sm text-gray-700">📧 Emails Sent:</span>
+                      <span className="font-bold text-purple-600">{totalEmailsSent}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                      <span className="text-sm text-gray-700">🔥 Follow-Ups:</span>
+                      <span className="font-bold text-orange-600">{pendingFollowUps}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {coverageRate === 100 && (
+                <div className="mt-4 bg-green-500 text-white rounded-xl p-4 text-center font-bold animate-pulse">
+                  🏆 PERFECT COVERAGE! Every lead has a next step! 🎉
+                </div>
+              )}
+
+              {coverageRate < 70 && (
+                <div className="mt-4 bg-red-500 text-white rounded-xl p-4 text-center font-semibold">
+                  ⚠️ {dealersWithScores.length - dealersWithNextStep} leads need next steps assigned!
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Export Button */}
         <div className="flex justify-end mb-8">
