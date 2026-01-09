@@ -168,6 +168,7 @@ const DealerDetail = () => {
     { id: 'badges', title: 'Badge Scanning', expanded: false },
     { id: 'todos', title: 'Tasks and To Do\'s', expanded: false },
     { id: 'emails', title: 'Emails', expanded: false },
+    { id: 'emailHistory', title: '📧 Email History', expanded: false },
     { id: 'privacy', title: 'Privacy Permissions', expanded: false },
     { id: 'tradeshows', title: '🎪 Associated Tradeshows', expanded: false },
     { id: 'completedTasks', title: 'Completed Tasks', expanded: false },
@@ -2487,6 +2488,75 @@ const DealerDetail = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Email History Accordion */}
+              {dealer.changeHistory && (() => {
+                const emailHistory = dealer.changeHistory
+                  .filter(ch => ch.fieldName === 'email_sent')
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                if (emailHistory.length === 0) return null;
+
+                return (
+                  <div className="mb-4 border border-gray-200 rounded-lg">
+                    <button
+                      onClick={() => {
+                        const updatedSections = sections.map(s =>
+                          s.id === 'emailHistory' ? { ...s, expanded: !s.expanded } : s
+                        );
+                        setSections(updatedSections);
+                      }}
+                      className="w-full px-4 py-3 flex justify-between items-center bg-gray-50 hover:bg-gray-100 rounded-t-lg"
+                    >
+                      <h4 className="font-semibold text-gray-900">📧 Email History ({emailHistory.length})</h4>
+                      <span className="text-gray-500">
+                        {sections.find(s => s.id === 'emailHistory')?.expanded ? '▼' : '▶'}
+                      </span>
+                    </button>
+                    
+                    {sections.find(s => s.id === 'emailHistory')?.expanded && (
+                      <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+                        {emailHistory.map((email) => {
+                          // Parse the email history value
+                          // Format: 'Email sent: "Subject here" with 2 attachment(s): file1.pdf, file2.pdf'
+                          const subjectMatch = email.newValue?.match(/Email sent: "([^"]+)"/);
+                          const subject = subjectMatch ? subjectMatch[1] : email.newValue || 'No subject';
+                          
+                          const attachmentsMatch = email.newValue?.match(/with (\d+) attachment\(s\): (.+)$/);
+                          const attachments = attachmentsMatch ? attachmentsMatch[2] : null;
+
+                          // Get associated tradeshows
+                          const tradeshows = dealer.tradeShows?.map(ts => ts.tradeShow.name).join(', ') || 'No tradeshow';
+
+                          return (
+                            <div key={email.id} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-xs font-medium text-blue-800">
+                                  📅 {formatDate(email.createdAt)}
+                                </span>
+                                <span className="text-xs text-blue-600">
+                                  🎪 {tradeshows}
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  Subject: {subject}
+                                </p>
+                                {attachments && (
+                                  <p className="text-xs text-gray-600">
+                                    📎 Attachments: {attachments}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="space-y-2">
                 {dealer.todos.filter(todo => todo.type === 'email' && !todo.completed).map((todo) => (
                   <div key={todo.id} className="bg-gray-50 rounded-lg p-4">
