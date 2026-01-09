@@ -93,9 +93,9 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
       return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow them: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement #SalesExcellence`;
     }
     
-    // LinkedIn - professional tone
+    // LinkedIn - professional tone with company page
     if (platform === 'linkedin') {
-      return `Proud to be in the top ${topPercent}% of users on Capture Show Leads! ${emoji} #TradeShows #LeadManagement #SalesExcellence #B2B`;
+      return `Proud to be in the top ${topPercent}% of users on Capture Show Leads! ${emoji}\n\nFollow Capture Show Leads: linkedin.com/company/109237009\n\n#TradeShows #LeadManagement #SalesExcellence #B2B #SaaS`;
     }
     
     // Instagram - include @mention and extra hashtags
@@ -109,7 +109,7 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
     }
     
     // Copy/default - include all social handles
-    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
+    return `I'm in the top ${topPercent}% on Capture Show Leads! ${emoji}\n\nFollow us:\nX/Twitter: @captureshowlead\nInstagram: @captureshowleads\nTikTok: @captureshowleads\nLinkedIn: linkedin.com/company/109237009\nFacebook: facebook.com/profile.php?id=61581979524580\n\n#CSL #TradeShows #LeadManagement`;
   };
 
   const shareToFacebook = () => {
@@ -129,8 +129,19 @@ const TopPerformerBadge = ({ percentile, rank }: TopPerformerBadgeProps) => {
 
   const shareToLinkedIn = () => {
     const url = encodeURIComponent('https://www.captureshowleads.com');
-    // LinkedIn doesn't support pre-filled text via URL, users add their own
+    // LinkedIn doesn't support pre-filled text via URL, but users can copy our suggested text
+    // The share text includes your company page: linkedin.com/company/109237009
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
+    
+    // Copy LinkedIn text to clipboard for easy pasting
+    const linkedInText = `${getShareText('linkedin')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(linkedInText);
+    
+    // Quick notification
+    setTimeout(() => {
+      alert('💼 LinkedIn share opened!\n\n✅ Suggested text copied to clipboard - paste it as your post caption!\n\nIncludes link to CSL LinkedIn page: linkedin.com/company/109237009');
+    }, 500);
+    
     setShowShareModal(false);
   };
 
