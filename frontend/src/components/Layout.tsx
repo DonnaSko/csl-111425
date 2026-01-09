@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import Footer from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
@@ -39,7 +40,7 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Mobile menu backdrop */}
       {isMobileMenuOpen && (
         <div
@@ -134,8 +135,10 @@ const Layout = ({ children }: LayoutProps) => {
       </div>
 
       {/* Main content - add top padding on mobile for fixed header, left padding on desktop for sidebar */}
-      <div className="pt-14 lg:pt-0 lg:pl-64 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+      <div className="flex-1 pt-14 lg:pt-0 lg:pl-64 flex flex-col">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8">{children}</div>
+        {/* Footer - appears on every page */}
+        <Footer />
       </div>
     </div>
   );

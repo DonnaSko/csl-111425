@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import TopPerformerBadge from '../components/TopPerformerBadge';
+import DealerListModal from '../components/DealerListModal';
 
 interface AttendanceDealer {
   id: string;
@@ -111,6 +112,14 @@ const Reports = () => {
   const [dealersLoading, setDealersLoading] = useState(false);
   const [communityBenchmarks, setCommunityBenchmarks] = useState<CommunityBenchmarks | null>(null);
   const [benchmarksLoading, setBenchmarksLoading] = useState(false);
+  const [showDealerModal, setShowDealerModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    dealers: any[];
+    title: string;
+    subtitle: string;
+    icon: string;
+    color: string;
+  } | null>(null);
 
   const navigate = useNavigate();
 
@@ -332,15 +341,56 @@ const Reports = () => {
           </p>
         </div>
 
-        {/* Stats Dashboard - Gamification */}
+        {/* Stats Dashboard - Gamification - CLICKABLE CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
+          {/* Booth Visitors Card */}
+          <button
+            onClick={() => {
+              setModalConfig({
+                dealers: allDealers,
+                title: `All ${totalDealers} Booth Visitors`,
+                subtitle: 'Click any dealer to view their details',
+                icon: '👥',
+                color: 'from-blue-500 to-blue-600'
+              });
+              setShowDealerModal(true);
+            }}
+            className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition cursor-pointer text-left"
+          >
             <div className="text-4xl mb-2">👥</div>
             <div className="text-3xl font-bold">{totalDealers}</div>
             <div className="text-sm opacity-90">Booth Visitors</div>
-          </div>
+            <div className="text-xs mt-2 opacity-75">Click to view →</div>
+          </button>
           
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
+          {/* Tasks Complete Card */}
+          <button
+            onClick={() => {
+              const dealersWithIncompleteTasks = todosShows.flatMap(show => 
+                show.dealers.filter(d => d.todos.some(t => !t.completed))
+              ).map(d => ({
+                ...d,
+                tradeShows: todosShows
+                  .filter(show => show.dealers.some(dealer => dealer.id === d.id))
+                  .map(show => ({
+                    tradeShow: {
+                      id: show.id,
+                      name: show.name,
+                      startDate: show.startDate
+                    }
+                  }))
+              }));
+              setModalConfig({
+                dealers: dealersWithIncompleteTasks,
+                title: `${totalTodos - completedTodos} Incomplete Tasks`,
+                subtitle: 'Dealers with tasks that need completion',
+                icon: '✅',
+                color: 'from-green-500 to-green-600'
+              });
+              setShowDealerModal(true);
+            }}
+            className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition cursor-pointer text-left"
+          >
             <div className="text-4xl mb-2">✅</div>
             <div className="text-3xl font-bold">{completedTodos}/{totalTodos}</div>
             <div className="text-sm opacity-90">Tasks Complete</div>
@@ -351,9 +401,37 @@ const Reports = () => {
               />
             </div>
             <div className="text-xs mt-1 opacity-90">{completionRate}% Done! 🎉</div>
-          </div>
+            <div className="text-xs mt-1 opacity-75">Click to view →</div>
+          </button>
           
-          <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
+          {/* Follow-Ups Needed Card */}
+          <button
+            onClick={() => {
+              const dealersWithFollowUps = todosShows.flatMap(show => 
+                show.dealers.filter(d => d.todos.some(t => !t.completed && t.followUp))
+              ).map(d => ({
+                ...d,
+                tradeShows: todosShows
+                  .filter(show => show.dealers.some(dealer => dealer.id === d.id))
+                  .map(show => ({
+                    tradeShow: {
+                      id: show.id,
+                      name: show.name,
+                      startDate: show.startDate
+                    }
+                  }))
+              }));
+              setModalConfig({
+                dealers: dealersWithFollowUps,
+                title: `${pendingFollowUps} Follow-Ups Needed`,
+                subtitle: 'Dealers waiting for your follow-up',
+                icon: '🔥',
+                color: 'from-orange-500 to-red-500'
+              });
+              setShowDealerModal(true);
+            }}
+            className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition cursor-pointer text-left"
+          >
             <div className="text-4xl mb-2">🔥</div>
             <div className="text-3xl font-bold">{pendingFollowUps}</div>
             <div className="text-sm opacity-90">Follow-Ups Needed</div>
@@ -362,13 +440,43 @@ const Reports = () => {
                 🏆 All Caught Up!
               </div>
             )}
-          </div>
+            <div className="text-xs mt-1 opacity-75">Click to view →</div>
+          </button>
           
-          <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
+          {/* Emails Sent Card */}
+          <button
+            onClick={() => {
+              const dealersWithEmails = emailsShows.flatMap(show => 
+                show.dealers.filter(d => d.emails.length > 0)
+              ).map(d => ({
+                ...d,
+                tradeShows: emailsShows
+                  .filter(show => show.dealers.some(dealer => dealer.id === d.id))
+                  .map(show => ({
+                    tradeShow: {
+                      id: show.id,
+                      name: show.name,
+                      startDate: show.startDate
+                    }
+                  })),
+                changeHistory: d.emails.map(() => ({ fieldName: 'email_sent' }))
+              }));
+              setModalConfig({
+                dealers: dealersWithEmails,
+                title: `${totalEmailsSent} Emails Sent`,
+                subtitle: 'Dealers you\'ve emailed',
+                icon: '📧',
+                color: 'from-purple-500 to-pink-500'
+              });
+              setShowDealerModal(true);
+            }}
+            className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition cursor-pointer text-left"
+          >
             <div className="text-4xl mb-2">📧</div>
             <div className="text-3xl font-bold">{totalEmailsSent}</div>
             <div className="text-sm opacity-90">Emails Sent</div>
-          </div>
+            <div className="text-xs mt-2 opacity-75">Click to view →</div>
+          </button>
         </div>
 
         {/* Lead Quality & Speed Metrics - NEW GAMIFICATION */}
@@ -1180,6 +1288,19 @@ const Reports = () => {
           </div>
         )}
       </div>
+
+      {/* Dealer List Modal */}
+      {modalConfig && (
+        <DealerListModal
+          isOpen={showDealerModal}
+          onClose={() => setShowDealerModal(false)}
+          dealers={modalConfig.dealers}
+          title={modalConfig.title}
+          subtitle={modalConfig.subtitle}
+          icon={modalConfig.icon}
+          color={modalConfig.color}
+        />
+      )}
     </Layout>
   );
 };
