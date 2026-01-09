@@ -114,17 +114,30 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
   };
 
   const shareToFacebook = () => {
-    const text = encodeURIComponent(getShareText('facebook'));
-    const url = encodeURIComponent('https://www.captureshowleads.com');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
+    // Copy text to clipboard
+    const text = `${getShareText('facebook')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(text);
+    
+    // Alert with instructions
+    alert('📱 Facebook Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the circle with your rank)\n3. Facebook will open → Paste the text\n4. Click "Photo/Video" and attach your badge screenshot\n5. Post! 🚀\n\n💡 TIP: Screenshot your badge NOW before Facebook opens!');
+    
+    const encodedText = encodeURIComponent(getShareText('facebook'));
+    const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`, '_blank', 'width=600,height=400');
     setShowShareModal(false);
   };
 
   const shareToTwitter = () => {
-    const text = encodeURIComponent(getShareText('twitter'));
-    const url = encodeURIComponent('https://www.captureshowleads.com');
-    // Twitter/X will tag @captureshowlead and you'll get notified!
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400');
+    // First, copy the text to clipboard
+    const text = `${getShareText('twitter')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(text);
+    
+    // Open Twitter with a helpful alert
+    alert('📱 Twitter/X Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the circle with your rank)\n3. Twitter will open → Paste the text\n4. Click the image icon and attach your badge screenshot\n5. Post! 🚀\n\n💡 TIP: Screenshot your badge NOW before Twitter opens!');
+    
+    const encodedText = encodeURIComponent(getShareText('twitter'));
+    const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'width=600,height=400');
     setShowShareModal(false);
   };
 
@@ -149,21 +162,21 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
   const copyShareText = () => {
     const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ Text copied to clipboard!\n\nPaste it on Instagram, LinkedIn, or anywhere else!\n\nIncludes: @captureshowlead (X) & @captureshowleads (Instagram)');
+    alert('✅ Text copied to clipboard!\n\n📸 IMPORTANT: Take a screenshot of your badge (the gold circle with your rank) to attach to your post!\n\nThis text works for:\n• X/Twitter: @captureshowlead\n• Instagram: @captureshowleads  \n• TikTok: @captureshowleads\n• LinkedIn: Company page linked\n• Facebook: Page linked\n\nPaste the text + attach your badge screenshot = perfect post! 🚀');
     setShowShareModal(false);
   };
 
   const copyForInstagram = () => {
     const text = `${getShareText('instagram')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ Instagram text copied!\n\nPaste it on Instagram and tag @captureshowleads!\n\nDon\'t forget to upload your badge screenshot! 📸');
+    alert('📸 Instagram Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the gold circle)\n3. Open Instagram app\n4. Create new post → Upload your badge screenshot\n5. Paste the caption\n6. Tag @captureshowleads\n7. Post! 🚀\n\n💡 Make sure to screenshot the badge before leaving this page!');
     setShowShareModal(false);
   };
 
   const copyForTikTok = () => {
     const text = `${getShareText('tiktok')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
-    alert('✅ TikTok text copied!\n\n📱 Next Steps:\n1. Open TikTok app\n2. Create a new video with your badge screenshot\n3. Paste this text as your caption\n4. Tag @captureshowleads\n5. Post & go viral! 🔥');
+    alert('🎵 TikTok Sharing Instructions:\n\n1. ✅ Text copied to clipboard!\n2. Take a SCREENSHOT of your badge (the gold circle)\n3. Open TikTok app\n4. Create video → Upload your badge screenshot (or use green screen)\n5. Paste the caption\n6. Tag @captureshowleads\n7. Post & go viral! 🔥\n\n💡 Screenshot tip: Badge is the gold circle with your rank!');
     setShowShareModal(false);
   };
 
