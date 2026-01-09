@@ -3,7 +3,7 @@
 **Date:** January 9, 2026  
 **Status:** ✅ PRODUCTION READY  
 **Deployment:** Digital Ocean  
-**Last Commit:** `89be47c`
+**Last Commit:** `fe43116`
 
 ---
 
@@ -14,6 +14,7 @@
 2. ✅ **Missing Email UX Fix** - Flash red when dealer has no email
 3. ✅ **Colorful Reports Redesign** - Complete gamification overhaul
 4. ✅ **Lead Quality Score Enhancement** - Better explanatory description
+5. ✅ **Community Benchmarking** - Compare with ALL CSL users anonymously 🏆
 
 ---
 
@@ -231,6 +232,70 @@ details and next steps.
 - `frontend/src/pages/Reports.tsx`
 
 ### Commit: `89be47c`
+
+---
+
+## 🏆 Feature 5: Community Benchmarking Gamification
+
+### What It Does:
+Shows how each user compares to **ALL CSL users worldwide** (anonymously):
+
+#### 5 Metrics Tracked:
+1. **Lead Quality Score** - Data completeness
+2. **Task Completion Rate** - Follow-through percentage
+3. **Speed to Follow-Up** - Leads with todos within 24h
+4. **Emails Per Lead** - Engagement level
+5. **Lead Coverage Rate** - Leads with next steps
+
+#### For Each Metric Shows:
+- Your score
+- Community average
+- **Your percentile** (e.g., "You're in the top 25%")
+- Performance badge:
+  - 🔥 TOP PERFORMER! (75%+)
+  - 👍 Above Average (50-74%)
+  - ⚡ Room to Grow (25-49%)
+  - 💪 Keep Going! (<25%)
+
+#### Overall Performance Card:
+- Average percentile across all metrics
+- Performance tier:
+  - 🌟 ELITE! (90%+)
+  - 🔥 EXCELLENT! (75-89%)
+  - 💪 STRONG! (60-74%)
+  - 👍 GOOD! (50-59%)
+  - ⚡ IMPROVING! (40-49%)
+  - 🚀 KEEP PUSHING! (<40%)
+
+### Why This Matters:
+- ✅ **Motivates improvement** through competition
+- ✅ **100% anonymous** - No company names revealed
+- ✅ **Clear goals** - Shows exactly where to improve
+- ✅ **Gamifies experience** - Makes work fun
+- ✅ **Social proof** - Users can share achievements
+- ✅ **Drives behavior** toward best practices
+
+### Technical Implementation:
+
+**Backend:**
+- New endpoint: `/reports/community-benchmarks`
+- Calculates metrics across ALL companies
+- Returns anonymous aggregate data
+- Calculates percentile rankings
+- Privacy-compliant (no identifiable data)
+
+**Frontend:**
+- New "Community Leaderboard" section
+- 6 beautiful cards with gradients
+- Hover effects and animations
+- Responsive design
+- Conditional rendering based on performance
+
+### Files Changed:
+- `backend/src/routes/reports.ts` (+143 lines)
+- `frontend/src/pages/Reports.tsx` (+320 lines)
+
+### Commit: `fe43116`
 
 ---
 
