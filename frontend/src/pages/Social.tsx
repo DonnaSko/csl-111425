@@ -490,52 +490,60 @@ const Social = () => {
 
         {/* Your Achievement Badges */}
         {!benchmarksLoading && benchmarks && (
-          <div className="mt-8 bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 rounded-xl shadow-lg p-8 border-2 border-purple-200">
-            <div className="text-center mb-6">
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">🏆 Your Achievement Badges</h3>
-              <p className="text-gray-600">
-                Share your top performer badges on social media! Click any badge to share.
-              </p>
-            </div>
+          <div className="mt-8 space-y-8">
+            {/* EARNED BADGES - Worth Bragging About! */}
+            <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 rounded-xl shadow-lg p-8 border-2 border-purple-200">
+              <div className="text-center mb-6">
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">🏆 Your Achievement Badges</h3>
+                <p className="text-gray-600 mb-2">
+                  You've earned these badges - share your achievements on social media!
+                </p>
+                <p className="text-sm text-gray-500">
+                  📱 <strong>How to share:</strong> 1) Click a badge 2) Choose your platform 3) Paste the badge image from Downloads 4) Post!
+                </p>
+              </div>
 
-            <div className="flex flex-wrap justify-center items-center gap-8">
-              {(() => {
-                if (!benchmarks.yourPercentiles) return null;
-                
-                // Calculate overall performance percentile
-                const avgPercentile = Math.round(
-                  (benchmarks.yourPercentiles.quality +
-                   benchmarks.yourPercentiles.taskCompletion +
-                   benchmarks.yourPercentiles.speed +
-                   benchmarks.yourPercentiles.emails +
-                   benchmarks.yourPercentiles.coverage) / 5
-                );
-                
-                const badges = [];
-                
-                // Only show Overall Performance badge if >= 50% (worth bragging about!)
-                if (avgPercentile >= 50) {
-                  // Calculate overall score (average of all metrics normalized to 0-100 scale)
-                  const yourOverall = benchmarks.yourMetrics ? Math.round(
-                    ((benchmarks.yourMetrics.avgQuality / 10 * 100) +
-                     benchmarks.yourMetrics.taskCompletionRate +
-                     benchmarks.yourMetrics.leadCoverageRate) / 3
-                  ) : 0;
-                  const communityOverall = benchmarks.communityAverages ? Math.round(
-                    ((benchmarks.communityAverages.avgQuality / 10 * 100) +
-                     benchmarks.communityAverages.taskCompletionRate +
-                     benchmarks.communityAverages.leadCoverageRate) / 3
-                  ) : 0;
+              <div className="flex flex-wrap justify-center items-center gap-8">
+                {(() => {
+                  if (!benchmarks.yourPercentiles) return null;
                   
-                  badges.push(
+                  // Store badges in parent scope so both sections can access them
+                  const earnedBadgesArray: JSX.Element[] = [];
+                  const badgesToEarnArray: JSX.Element[] = [];
+                
+                  // Calculate overall performance percentile
+                  const avgPercentile = Math.round(
+                    (benchmarks.yourPercentiles.quality +
+                     benchmarks.yourPercentiles.taskCompletion +
+                     benchmarks.yourPercentiles.speed +
+                     benchmarks.yourPercentiles.emails +
+                     benchmarks.yourPercentiles.coverage) / 5
+                  );
+                
+                const earnedBadges = earnedBadgesArray;
+                const badgesToEarn = badgesToEarnArray;
+                
+                // Calculate overall score (average of all metrics normalized to 0-100 scale)
+                const yourOverall = benchmarks.yourMetrics ? Math.round(
+                  ((benchmarks.yourMetrics.avgQuality / 10 * 100) +
+                   benchmarks.yourMetrics.taskCompletionRate +
+                   benchmarks.yourMetrics.leadCoverageRate) / 3
+                ) : 0;
+                const communityOverall = benchmarks.communityAverages ? Math.round(
+                  ((benchmarks.communityAverages.avgQuality / 10 * 100) +
+                   benchmarks.communityAverages.taskCompletionRate +
+                   benchmarks.communityAverages.leadCoverageRate) / 3
+                ) : 0;
+                
+                // EARNED: Overall Performance badge if >= 75% (truly worth bragging about!)
+                if (avgPercentile >= 75) {
+                  earnedBadges.push(
                     <div key="overall" className="text-center">
                       <TopPerformerBadge 
                         percentile={avgPercentile}
                         metric="Overall Performance"
                         rank={
-                          avgPercentile >= 90 ? 'ELITE' :
-                          avgPercentile >= 75 ? 'EXCELLENT' :
-                          'STRONG'
+                          avgPercentile >= 90 ? 'ELITE' : 'EXCELLENT'
                         }
                         actualValue={yourOverall}
                         communityAverage={communityOverall}
@@ -544,19 +552,32 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
                     </div>
                   );
+                } else if (avgPercentile > 0) {
+                  badgesToEarn.push(
+                    <div key="overall-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={avgPercentile}
+                        metric="Overall Performance"
+                        rank={'STRONG'}
+                        actualValue={yourOverall}
+                        communityAverage={communityOverall}
+                        metricUnit="%"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Overall</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {avgPercentile}% - Keep going!</p>
+                    </div>
+                  );
                 }
                 
-                // Lead Quality Badge - only if >= 50%
-                if (benchmarks.yourPercentiles.quality >= 50) {
-                  badges.push(
+                // EARNED: Lead Quality Badge if >= 75%
+                if (benchmarks.yourPercentiles.quality >= 75) {
+                  earnedBadges.push(
                     <div key="quality" className="text-center">
                       <TopPerformerBadge 
                         percentile={benchmarks.yourPercentiles.quality}
                         metric="Lead Quality"
                         rank={
-                          benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' :
-                          benchmarks.yourPercentiles.quality >= 75 ? 'EXCELLENT' :
-                          'STRONG'
+                          benchmarks.yourPercentiles.quality >= 90 ? 'ELITE' : 'EXCELLENT'
                         }
                         actualValue={benchmarks.yourMetrics?.avgQuality}
                         communityAverage={benchmarks.communityAverages?.avgQuality}
@@ -565,20 +586,31 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
                     </div>
                   );
+                } else if (benchmarks.yourPercentiles.quality > 0) {
+                  badgesToEarn.push(
+                    <div key="quality-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.quality}
+                        metric="Lead Quality"
+                        rank={'STRONG'}
+                        actualValue={benchmarks.yourMetrics?.avgQuality}
+                        communityAverage={benchmarks.communityAverages?.avgQuality}
+                        metricUnit="/10"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Lead Quality</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {benchmarks.yourPercentiles.quality}% - Keep improving!</p>
+                    </div>
+                  );
                 }
                 
-                // Speed to Follow-Up Badge - only if >= 50%
-                if (benchmarks.yourPercentiles.speed >= 50) {
-                  badges.push(
+                // EARNED: Speed to Follow-Up Badge if >= 75%
+                if (benchmarks.yourPercentiles.speed >= 75) {
+                  earnedBadges.push(
                     <div key="speed" className="text-center">
                       <TopPerformerBadge 
                         percentile={benchmarks.yourPercentiles.speed}
                         metric="Follow-Up Speed"
-                        rank={
-                          benchmarks.yourPercentiles.speed >= 90 ? 'ELITE' :
-                          benchmarks.yourPercentiles.speed >= 75 ? 'EXCELLENT' :
-                          'STRONG'
-                        }
+                        rank={benchmarks.yourPercentiles.speed >= 90 ? 'ELITE' : 'EXCELLENT'}
                         actualValue={benchmarks.yourMetrics?.speedToFollowUp}
                         communityAverage={benchmarks.communityAverages?.speedToFollowUp}
                         metricUnit=" hrs"
@@ -586,20 +618,31 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
                     </div>
                   );
+                } else if (benchmarks.yourPercentiles.speed > 0) {
+                  badgesToEarn.push(
+                    <div key="speed-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.speed}
+                        metric="Follow-Up Speed"
+                        rank={'STRONG'}
+                        actualValue={benchmarks.yourMetrics?.speedToFollowUp}
+                        communityAverage={benchmarks.communityAverages?.speedToFollowUp}
+                        metricUnit=" hrs"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Follow-Up Speed</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {benchmarks.yourPercentiles.speed}% - Speed up!</p>
+                    </div>
+                  );
                 }
                 
-                // Email Engagement Badge - only if >= 50%
-                if (benchmarks.yourPercentiles.emails >= 50) {
-                  badges.push(
+                // EARNED: Email Engagement Badge if >= 75%
+                if (benchmarks.yourPercentiles.emails >= 75) {
+                  earnedBadges.push(
                     <div key="emails" className="text-center">
                       <TopPerformerBadge 
                         percentile={benchmarks.yourPercentiles.emails}
                         metric="Email Engagement"
-                        rank={
-                          benchmarks.yourPercentiles.emails >= 90 ? 'ELITE' :
-                          benchmarks.yourPercentiles.emails >= 75 ? 'EXCELLENT' :
-                          'STRONG'
-                        }
+                        rank={benchmarks.yourPercentiles.emails >= 90 ? 'ELITE' : 'EXCELLENT'}
                         actualValue={benchmarks.yourMetrics?.emailsPerLead}
                         communityAverage={benchmarks.communityAverages?.emailsPerLead}
                         metricUnit=" per lead"
@@ -607,20 +650,31 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
                     </div>
                   );
+                } else if (benchmarks.yourPercentiles.emails > 0) {
+                  badgesToEarn.push(
+                    <div key="emails-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.emails}
+                        metric="Email Engagement"
+                        rank={'STRONG'}
+                        actualValue={benchmarks.yourMetrics?.emailsPerLead}
+                        communityAverage={benchmarks.communityAverages?.emailsPerLead}
+                        metricUnit=" per lead"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Email Engagement</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {benchmarks.yourPercentiles.emails}% - Send more!</p>
+                    </div>
+                  );
                 }
                 
-                // Task Completion Badge - only if >= 50%
-                if (benchmarks.yourPercentiles.taskCompletion >= 50) {
-                  badges.push(
+                // EARNED: Task Completion Badge if >= 75%
+                if (benchmarks.yourPercentiles.taskCompletion >= 75) {
+                  earnedBadges.push(
                     <div key="tasks" className="text-center">
                       <TopPerformerBadge 
                         percentile={benchmarks.yourPercentiles.taskCompletion}
                         metric="Task Completion"
-                        rank={
-                          benchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' :
-                          benchmarks.yourPercentiles.taskCompletion >= 75 ? 'EXCELLENT' :
-                          'STRONG'
-                        }
+                        rank={benchmarks.yourPercentiles.taskCompletion >= 90 ? 'ELITE' : 'EXCELLENT'}
                         actualValue={benchmarks.yourMetrics?.taskCompletionRate}
                         communityAverage={benchmarks.communityAverages?.taskCompletionRate}
                         metricUnit="%"
@@ -628,20 +682,31 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Task Completion</p>
                     </div>
                   );
+                } else if (benchmarks.yourPercentiles.taskCompletion > 0) {
+                  badgesToEarn.push(
+                    <div key="tasks-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.taskCompletion}
+                        metric="Task Completion"
+                        rank={'STRONG'}
+                        actualValue={benchmarks.yourMetrics?.taskCompletionRate}
+                        communityAverage={benchmarks.communityAverages?.taskCompletionRate}
+                        metricUnit="%"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Task Completion</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {benchmarks.yourPercentiles.taskCompletion}% - Complete more!</p>
+                    </div>
+                  );
                 }
                 
-                // Lead Coverage Badge - only if >= 50%
-                if (benchmarks.yourPercentiles.coverage >= 50) {
-                  badges.push(
+                // EARNED: Lead Coverage Badge if >= 75%
+                if (benchmarks.yourPercentiles.coverage >= 75) {
+                  earnedBadges.push(
                     <div key="coverage" className="text-center">
                       <TopPerformerBadge 
                         percentile={benchmarks.yourPercentiles.coverage}
                         metric="Lead Coverage"
-                        rank={
-                          benchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' :
-                          benchmarks.yourPercentiles.coverage >= 75 ? 'EXCELLENT' :
-                          'STRONG'
-                        }
+                        rank={benchmarks.yourPercentiles.coverage >= 90 ? 'ELITE' : 'EXCELLENT'}
                         actualValue={benchmarks.yourMetrics?.leadCoverageRate}
                         communityAverage={benchmarks.communityAverages?.leadCoverageRate}
                         metricUnit="%"
@@ -649,26 +714,44 @@ const Social = () => {
                       <p className="text-sm font-semibold text-gray-700 mt-2">Lead Coverage</p>
                     </div>
                   );
+                } else if (benchmarks.yourPercentiles.coverage > 0) {
+                  badgesToEarn.push(
+                    <div key="coverage-earn" className="text-center opacity-60">
+                      <TopPerformerBadge 
+                        percentile={benchmarks.yourPercentiles.coverage}
+                        metric="Lead Coverage"
+                        rank={'STRONG'}
+                        actualValue={benchmarks.yourMetrics?.leadCoverageRate}
+                        communityAverage={benchmarks.communityAverages?.leadCoverageRate}
+                        metricUnit="%"
+                      />
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Lead Coverage</p>
+                      <p className="text-xs text-gray-500 mt-1">Top {benchmarks.yourPercentiles.coverage}% - Cover more!</p>
+                    </div>
+                  );
                 }
                 
-                // If no badges earned, show encouragement message
-                if (badges.length === 0) {
+                // Show earned badges or encouragement
+                if (earnedBadges.length === 0) {
                   return (
                     <div className="text-center py-8">
                       <p className="text-xl font-semibold text-gray-700 mb-2">
-                        🚀 Keep Going!
+                        🎯 You're on your way!
                       </p>
                       <p className="text-gray-600">
-                        Earn badges by reaching the top 50% in any category.
+                        Earn badges by reaching the top 25% in any category.
                       </p>
                       <p className="text-sm text-gray-500 mt-2">
-                        Check the Reports section to see your current rankings!
+                        Keep working on your metrics below! 💪
                       </p>
                     </div>
                   );
                 }
                 
-                return badges;
+                // Store badgesToEarn globally to render in second section
+                (window as any)._badgesToEarn = badgesToEarn;
+                
+                return earnedBadges;
               })()}
             </div>
 
@@ -679,6 +762,29 @@ const Social = () => {
               </p>
             </div>
           </div>
+          
+          {/* Badges to Earn Section - Aspirational */}
+          {((window as any)._badgesToEarn && (window as any)._badgesToEarn.length > 0) && (
+            <div className="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 rounded-xl shadow-lg p-8 border-2 border-gray-300">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">🎯 Work to Earn These Badges Too!</h3>
+                <p className="text-gray-600">
+                  You're making progress - keep improving to unlock these achievements!
+                </p>
+              </div>
+
+              <div className="flex flex-wrap justify-center items-center gap-8">
+                {(window as any)._badgesToEarn}
+              </div>
+
+              <div className="mt-6 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <p className="text-sm text-yellow-800 text-center">
+                  <strong>💪 Keep Going!</strong> Reach the top 25% in any metric to earn a shareable badge!
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
         )}
       </div>
     </Layout>
