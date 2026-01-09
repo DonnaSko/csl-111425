@@ -324,19 +324,6 @@ router.get('/trade-shows/emails', async (req: AuthRequest, res) => {
       }
     });
 
-    // Helper function to parse email history value
-    const parseEmailHistory = (historyValue: string) => {
-      // Format: 'Email sent: "Subject here" with 2 attachment(s): file1.pdf, file2.pdf'
-      // Or: 'Email sent: "Subject here"'
-      const subjectMatch = historyValue.match(/Email sent: "([^"]+)"/);
-      const subject = subjectMatch ? subjectMatch[1] : historyValue;
-      
-      const attachmentsMatch = historyValue.match(/with (\d+) attachment\(s\): (.+)$/);
-      const attachments = attachmentsMatch ? attachmentsMatch[2].split(', ') : [];
-      
-      return { subject, attachments };
-    };
-
     const shaped = tradeShows
       .map((ts: any) => ({
         id: ts.id,
@@ -349,15 +336,11 @@ router.get('/trade-shows/emails', async (req: AuthRequest, res) => {
             companyName: dts.dealer.companyName,
             contactName: dts.dealer.contactName,
             email: dts.dealer.email,
-            emails: dts.dealer.changeHistory.map((ch: any) => {
-              const { subject, attachments } = parseEmailHistory(ch.newValue || '');
-              return {
-                id: ch.id,
-                subject,
-                attachments,
-                sentDate: ch.createdAt
-              };
-            })
+            emails: dts.dealer.changeHistory.map((ch: any) => ({
+              id: ch.id,
+              subject: ch.newValue, // Full history text: "Email sent: [subject] with X attachments..."
+              sentDate: ch.createdAt
+            }))
           }))
           .filter((d: any) => d.emails.length > 0) // Only dealers with emails
       }))

@@ -52,7 +52,6 @@ interface TodosTradeShow {
 interface EmailHistoryItem {
   id: string;
   subject: string;
-  attachments: string[];
   sentDate: string;
 }
 
@@ -81,7 +80,6 @@ const Reports = () => {
   const [todosShows, setTodosShows] = useState<TodosTradeShow[]>([]);
   const [emailsShows, setEmailsShows] = useState<EmailsTradeShow[]>([]);
   const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'attendance' | 'todos' | 'emails'>('attendance');
 
   const navigate = useNavigate();
 
@@ -199,45 +197,8 @@ const Reports = () => {
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`${
-                activeTab === 'attendance'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base`}
-            >
-              Trade Shows Attended
-            </button>
-            <button
-              onClick={() => setActiveTab('todos')}
-              className={`${
-                activeTab === 'todos'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base`}
-            >
-              To-Do&apos;s &amp; Follow Ups
-            </button>
-            <button
-              onClick={() => setActiveTab('emails')}
-              className={`${
-                activeTab === 'emails'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base`}
-            >
-              Emails Sent
-            </button>
-          </nav>
-        </div>
-
         {/* Trade Shows Attended */}
-        {activeTab === 'attendance' && (
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Trade Shows Attended</h2>
           <p className="text-xs sm:text-sm text-gray-600 mb-4">
             List of trade shows you attended, with dealers who stopped by your booth or were associated
@@ -300,10 +261,8 @@ const Reports = () => {
             </div>
           )}
         </div>
-        )}
 
         {/* To-Dos & Follow Ups by Tradeshow */}
-        {activeTab === 'todos' && (
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
             To-Do&apos;s &amp; Follow Ups by Tradeshow
@@ -422,11 +381,9 @@ const Reports = () => {
             </div>
           )}
         </div>
-        )}
 
         {/* Emails Sent by Tradeshow */}
-        {activeTab === 'emails' && (
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mt-6">
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
             Emails Sent by Tradeshow
           </h2>
@@ -480,14 +437,9 @@ const Reports = () => {
                       <ul className="space-y-2 text-xs sm:text-sm text-gray-800">
                         {dealer.emails.map(email => (
                           <li key={email.id} className="flex flex-col gap-1 pl-3 border-l-2 border-blue-200">
-                            <div className="text-gray-900 break-words font-medium">
-                              Subject: {email.subject}
+                            <div className="text-gray-900 break-words">
+                              {email.subject}
                             </div>
-                            {email.attachments && email.attachments.length > 0 && (
-                              <div className="text-xs text-gray-600">
-                                Attachments: {email.attachments.join(', ')}
-                              </div>
-                            )}
                             <div className="text-xs text-gray-500">
                               Sent: {formatDateTime(email.sentDate)}
                             </div>
@@ -501,7 +453,6 @@ const Reports = () => {
             </div>
           )}
         </div>
-        )}
       </div>
     </Layout>
   );
