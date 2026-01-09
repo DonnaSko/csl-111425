@@ -5,6 +5,7 @@ interface TopPerformerBadgeProps {
   percentile: number;
   metric?: string; // Optional, for display purposes
   rank: 'ELITE' | 'EXCELLENT' | 'STRONG' | 'TOP_PERFORMER';
+  onShareToAll?: () => void; // Optional callback for "Share to All" button
 }
 
 const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps) => {
@@ -153,6 +154,8 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
   };
 
   const shareToFacebook = async () => {
+    console.log('[SHARE] Facebook share initiated');
+    
     // Auto-download badge image
     await downloadBadgeImage();
     
@@ -160,16 +163,22 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const text = `${getShareText('facebook')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Clear instructions
-    alert('🚀 Ready to Share on Facebook!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 IMPORTANT: Attach the badge image to make your post eye-catching!\n\nNext steps:\n1. Facebook will open\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 Click "Photo/Video" button\n4. 📂 Go to Downloads folder\n5. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n6. ✅ Badge appears in your post!\n7. Click "Post"! 🎉');
-    
+    // IMPORTANT: Open window BEFORE alert to prevent popup blocking
     const encodedText = encodeURIComponent(getShareText('facebook'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`, '_blank', 'width=600,height=400');
+    const fbWindow = window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`, '_blank', 'width=600,height=400');
+    
+    console.log('[SHARE] Facebook window opened:', fbWindow ? 'success' : 'blocked by popup blocker');
+    
+    // Alert AFTER window opens
+    alert('🚀 Ready to Share on Facebook!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n✅ Facebook opened in new window\n\n📸 IMPORTANT: Attach the badge image to make your post eye-catching!\n\nNext steps:\n1. In the Facebook window that just opened\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 Click "Photo/Video" button\n4. 📂 Go to Downloads folder\n5. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n6. ✅ Badge appears in your post!\n7. Click "Post"! 🎉');
+    
     setShowShareModal(false);
   };
 
   const shareToTwitter = async () => {
+    console.log('[SHARE] Twitter/X share initiated');
+    
     // Auto-download badge image
     await downloadBadgeImage();
     
@@ -177,16 +186,22 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const text = `${getShareText('twitter')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(text);
     
-    // Clear instructions with emphasis on attaching badge
-    alert('🚀 Ready to Share on X/Twitter!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 IMPORTANT: The badge image is now in your Downloads folder!\n\nNext steps:\n1. X/Twitter will open in a new window\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 CLICK THE IMAGE ICON at the bottom\n4. 📂 Go to Downloads folder\n5. 🖼️ Select the badge image (CSL-Top-Performer-*.png)\n6. ✅ You\'ll see the badge in your post preview\n7. Click "Post"! 🎉\n\nThe badge makes your post stand out!');
-    
+    // IMPORTANT: Open window BEFORE alert to prevent popup blocking
     const encodedText = encodeURIComponent(getShareText('twitter'));
     const encodedUrl = encodeURIComponent('https://www.captureshowleads.com');
-    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'width=600,height=400');
+    const twitterWindow = window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'width=600,height=400');
+    
+    console.log('[SHARE] Twitter window opened:', twitterWindow ? 'success' : 'blocked by popup blocker');
+    
+    // Alert AFTER window opens
+    alert('🚀 Ready to Share on X/Twitter!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n✅ X/Twitter opened in new window\n\n📸 IMPORTANT: The badge image is now in your Downloads folder!\n\nNext steps:\n1. In the X/Twitter window that just opened\n2. Paste the text (Cmd+V or Ctrl+V)\n3. 📎 CLICK THE IMAGE ICON at the bottom\n4. 📂 Go to Downloads folder\n5. 🖼️ Select the badge image (CSL-Top-Performer-*.png)\n6. ✅ You\'ll see the badge in your post preview\n7. Click "Post"! 🎉\n\nThe badge makes your post stand out!');
+    
     setShowShareModal(false);
   };
 
   const shareToLinkedIn = async () => {
+    console.log('[SHARE] LinkedIn share initiated');
+    
     // Auto-download badge image
     await downloadBadgeImage();
     
@@ -194,9 +209,14 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     const linkedInText = `${getShareText('linkedin')}\n\nhttps://www.captureshowleads.com`;
     navigator.clipboard.writeText(linkedInText);
     
-    alert('🚀 Ready to Share on LinkedIn!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n\n📸 Professional tip: LinkedIn posts with images get 2x more engagement!\n\nNext steps:\n1. LinkedIn will open\n2. Click "Start a post" at the top\n3. Paste the text (Cmd+V or Ctrl+V)\n4. 📎 Click the image icon (camera) at the bottom\n5. 📂 Go to Downloads folder\n6. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n7. ✅ Badge shows in your post\n8. Click "Post"! 🎉');
+    // IMPORTANT: Open window BEFORE alert to prevent popup blocking
+    const linkedInWindow = window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
     
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=600');
+    console.log('[SHARE] LinkedIn window opened:', linkedInWindow ? 'success' : 'blocked by popup blocker');
+    
+    // Alert AFTER window opens
+    alert('🚀 Ready to Share on LinkedIn!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Text copied to clipboard\n✅ LinkedIn opened in new window\n\n📸 Professional tip: LinkedIn posts with images get 2x more engagement!\n\nNext steps:\n1. In the LinkedIn window that just opened\n2. Click "Start a post" at the top\n3. Paste the text (Cmd+V or Ctrl+V)\n4. 📎 Click the image icon (camera) at the bottom\n5. 📂 Go to Downloads folder\n6. 🖼️ Select badge image (CSL-Top-Performer-*.png)\n7. ✅ Badge shows in your post\n8. Click "Post"! 🎉');
+    
     setShowShareModal(false);
   };
 
@@ -229,6 +249,29 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
     
     // TikTok doesn't have web intent, just guide user to app
     alert('🎵 Ready for TikTok!\n\n✅ Badge image downloaded to your Downloads folder\n✅ Text copied to clipboard\n\nNext steps:\n1. Open TikTok app on your phone\n2. Tap "+" to create\n3. Select "Photo" mode\n4. Choose the badge image from your Photos\n5. Paste the caption (Cmd+V / Ctrl+V)\n6. Add @captureshowleads tag\n7. Post & go viral! 🔥\n\nNote: Transfer the badge image to your phone if needed!');
+    setShowShareModal(false);
+  };
+
+  const shareToAllPlatforms = async () => {
+    console.log('[SHARE ALL] Sharing to all platforms initiated');
+    
+    // Auto-download badge image
+    await downloadBadgeImage();
+    
+    // Copy universal share text
+    const text = `${getShareText('copy')}\n\nhttps://www.captureshowleads.com`;
+    navigator.clipboard.writeText(text);
+    
+    // Open all web platforms (must happen before alert!)
+    const twitterWindow = window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(getShareText('twitter'))}&url=${encodeURIComponent('https://www.captureshowleads.com')}`, '_blank', 'width=600,height=400');
+    const linkedInWindow = window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.captureshowleads.com')}`, '_blank', 'width=600,height=600');
+    const facebookWindow = window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.captureshowleads.com')}&quote=${encodeURIComponent(getShareText('facebook'))}`, '_blank', 'width=600,height=400');
+    
+    console.log('[SHARE ALL] Windows opened - X:', twitterWindow ? 'success' : 'blocked', 'LinkedIn:', linkedInWindow ? 'success' : 'blocked', 'Facebook:', facebookWindow ? 'success' : 'blocked');
+    
+    // Alert AFTER windows open
+    alert('🚀 Sharing to ALL Platforms!\n\n✅ BADGE IMAGE SAVED TO YOUR DOWNLOADS FOLDER\n✅ Universal text copied to clipboard\n✅ X/Twitter, LinkedIn, and Facebook opened!\n\n📸 IMPORTANT: Your badge is ready to attach!\n\nWhat just happened:\n• 3 social platforms opened in new windows\n• Your badge downloaded (CSL-Top-Performer-*.png)\n• Text is copied and ready to paste\n\nNext steps:\n1. In each window, paste the text (Cmd+V or Ctrl+V)\n2. Attach the badge image from Downloads folder\n3. Post on all 3 platforms! 🎉\n\nFor Instagram & TikTok:\n• Transfer badge to your phone\n• Use the copied text as your caption\n• Tag @captureshowleads and go viral! 🔥');
+    
     setShowShareModal(false);
   };
 
@@ -400,6 +443,24 @@ const TopPerformerBadge = ({ percentile, metric, rank }: TopPerformerBadgeProps)
 
             {/* Share Buttons */}
             <div className="space-y-3 mb-6">
+              {/* SHARE TO ALL - Featured Button */}
+              <button
+                onClick={shareToAllPlatforms}
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-bold text-lg hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition transform hover:scale-105 shadow-xl flex items-center justify-center gap-2"
+              >
+                <span className="text-2xl">📢</span>
+                Share to ALL Platforms
+              </button>
+
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or choose individual platforms</span>
+                </div>
+              </div>
+              
               <button
                 onClick={shareToFacebook}
                 className="w-full px-6 py-3 bg-[#1877F2] text-white rounded-lg font-semibold hover:bg-[#166FE5] transition flex items-center justify-center gap-2"

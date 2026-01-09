@@ -950,21 +950,40 @@ router.get('/community-benchmarks', async (req: AuthRequest, res) => {
     }).length;
     const mySpeedToFollowUp = myDealers.length > 0 ? (myTodosWithin24h / myDealers.length) * 100 : 0;
 
-    // 3. Calculate percentiles (where you rank vs. everyone)
+    // 3. Calculate percentiles (where you rank vs. everyone ELSE)
     const calculatePercentile = (myValue: number, allValues: number[]): number => {
-      // If no other companies, you're 100% (top of the league, even if alone!)
-      if (allValues.length === 0) return 100;
+      console.log('[Percentile] Calculating for myValue:', myValue, 'against', allValues.length, 'other companies');
+      
+      // If no other companies, you're at 100% (top of the league!)
+      if (allValues.length === 0) {
+        console.log('[Percentile] No other companies, returning 100%');
+        return 100;
+      }
+      
+      // If your value is 0 and you have no activity, you're at the bottom
+      if (myValue === 0) {
+        console.log('[Percentile] User has 0 value, returning 0%');
+        return 0;
+      }
       
       const sorted = allValues.sort((a, b) => a - b);
+      console.log('[Percentile] Sorted community values:', sorted.slice(0, 5), '...');
       
       // Count how many are STRICTLY LESS than your value
       const rank = sorted.filter(v => v < myValue).length;
+      console.log('[Percentile] Rank (companies below you):', rank, 'out of', sorted.length);
       
-      // If everyone (including you) has the same value, you're in the middle
-      if (sorted.every(v => v === myValue)) return 50;
+      // If everyone has the same value as you, you're in the middle
+      if (sorted.every(v => v === myValue)) {
+        console.log('[Percentile] Everyone has same value, returning 50%');
+        return 50;
+      }
       
       // Normal percentile calculation
-      return Math.round((rank / sorted.length) * 100);
+      // Add 1 to ensure at least 1% if you're above any company
+      const percentile = Math.max(1, Math.round((rank / sorted.length) * 100));
+      console.log('[Percentile] Final percentile:', percentile + '%');
+      return percentile;
     };
 
     const qualityPercentile = calculatePercentile(myAvgQuality, communityMetrics.map(m => m.avgQuality));
