@@ -148,19 +148,11 @@ function App() {
             />
             <Route
               path="/privacy-policy"
-              element={
-                <PrivateRoute requireSubscription>
-                  <PrivacyPolicy />
-                </PrivateRoute>
-              }
+              element={<PrivacyPolicy />}
             />
             <Route
               path="/terms-of-service"
-              element={
-                <PrivateRoute requireSubscription>
-                  <TermsOfService />
-                </PrivateRoute>
-              }
+              element={<TermsOfService />}
             />
             <Route
               path="/"
